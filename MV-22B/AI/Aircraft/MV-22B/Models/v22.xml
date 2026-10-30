@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <path>v22.ac</path>
+
+  <animation>
+    <!-- Objets opaques -->
+    <object-name>v22</object-name>
+    <object-name>ailes</object-name>
+    <object-name>portesfermees</object-name>
+    <object-name>portesouvertes</object-name>
+    <object-name>rouessorties</object-name>
+    <object-name>ailespliees</object-name>
+    <object-name>moteurs</object-name>
+    <object-name>bolG</object-name>
+    <object-name>bolD</object-name>
+    <object-name>heliceG</object-name>
+    <object-name>heliceD</object-name>
+    <object-name>probe</object-name>
+    <object-name>antenne</object-name>
+    <object-name>Radome</object-name>
+    <object-name>Countermeasures</object-name>
+    <object-name>FLIR</object-name>
+
+    <object-name>propdiscG</object-name>
+    <object-name>propblurG</object-name>
+    <object-name>propdiscD</object-name>
+    <object-name>propblurD</object-name>
+  </animation>
+
+  <animation>
+    <type>material</type>
+    <object-name>v22</object-name>
+    <object-name>ailes</object-name>
+    <object-name>portesfermees</object-name>
+    <object-name>portesouvertes</object-name>
+    <object-name>rouessorties</object-name>
+    <object-name>ailespliees</object-name>
+    <object-name>moteurs</object-name>
+    <object-name>bolG</object-name>
+    <object-name>bolD</object-name>
+    <object-name>heliceG</object-name>
+    <object-name>heliceD</object-name>
+    <object-name>probe</object-name>
+    <object-name>antenne</object-name>
+    <object-name>Radome</object-name>
+    <object-name>Countermeasures</object-name>
+    <object-name>FLIR</object-name>
+    <object-name>propdiscG</object-name>
+    <object-name>propblurG</object-name>
+    <object-name>propdiscD</object-name>
+    <object-name>propblurD</object-name>
+    <property-base>/ai/models/multiplayer/sim/multiplay/generic</property-base>
+    <texture-prop>string[1]</texture-prop>
+    <texture>/ai/models/multiplayer/sim/multiplay/generic/string[1]</texture>
+  </animation>
+
+  <!-- Show/hide commands for external objects -->
+  <animation>
+    <type>select</type>
+    <object-name>probe</object-name>
+    <condition>
+      <!-- <property>sim/model/show-probe</property> -->
+      <property>/ai/models/multiplayer/sim/multiplay/generic/bool[8]</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>antenne</object-name>
+    <condition>
+      <!-- <property>sim/model/show-antennas</property> -->
+      <property>/ai/models/multiplayer/sim/multiplay/generic/bool[3]</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>Radome</object-name>
+    <condition>
+      <!-- <property>sim/model/show-radome</property> -->
+      <property>/ai/models/multiplayer/sim/multiplay/generic/bool[4]</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>Countermeasures</object-name>
+    <condition>
+      <!-- <property>sim/model/show-countermeasures</property> -->
+      <property>/ai/models/multiplayer/sim/multiplay/generic/bool[1]</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>FLIR</object-name>
+    <condition>
+      <!-- <property>sim/model/show-flir</property> -->
+      <property>/ai/models/multiplayer/sim/multiplay/generic/bool[7]</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>ailespliees</object-name>
+    <condition>
+      <greater-than>
+        <!-- <property>sim/model/v22/wing_rotation</property> -->
+        <property>/ai/models/multiplayer/sim/multiplay/generic/float[13]</property>
+        <value>45</value>
+      </greater-than>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>moteurs</object-name>
+    <object-name>bolG</object-name>
+    <object-name>bolD</object-name>
+    <object-name>heliceG</object-name>
+    <object-name>heliceD</object-name>
+    <object-name>propdiscG</object-name>
+    <object-name>propblurG</object-name>
+    <object-name>propdiscD</object-name>
+    <object-name>propblurD</object-name>
+    <condition>
+      <less-than>
+        <!-- <property>sim/model/v22/wing_rotation</property> -->
+        <property>/ai/models/multiplayer/sim/multiplay/generic/float[13]</property>
+        <value>44.999</value>
+      </less-than>
+    </condition>
+  </animation>
+
+  <model>
+    <path>Effects/light/all-lights.xml</path>
+  </model>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>moteurs</object-name>
+    <object-name>bolG</object-name>
+    <object-name>bolD</object-name>
+    <object-name>heliceG</object-name>
+    <object-name>heliceD</object-name>
+    <object-name>propdiscG</object-name>
+    <object-name>propblurG</object-name>
+    <object-name>propdiscD</object-name>
+    <object-name>propblurD</object-name>
+    <!-- <property>sim/model/v22/animation_tilt</property> -->
+    <property>/ai/models/multiplayer/sim/multiplay/generic/float[14]</property>
+    <factor> 1 </factor>
+    <center>
+      <x-m> -1.880 </x-m>
+      <y-m>  0.000 </y-m>
+      <z-m>  0.520 </z-m>
+    </center>
+    <axis>
+      <x>  0 </x>
+      <y> -1 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <!-- L'hélice gauche-->
+  <!-- Séléction de l'objet visible en fonction des rpm -->
+  <animation>
+    <name>HeliceGauche</name>
+    <object-name>heliceG</object-name>
+    <object-name>bolG</object-name>
+    <object-name>propdiscG</object-name>
+    <object-name>propblurG</object-name>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>propdiscG</object-name>
+    <condition>
+      <greater-than>
+        <!-- <property>rotors/main/rpm</property> -->
+        <property>/ai/models/multiplayer/sim/multiplay/generic/float[2]</property>
+        <value>150</value>
+      </greater-than>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>propblurG</object-name>
+    <condition>
+      <and>
+        <greater-than>
+          <!-- <property>rotors/main/rpm</property> -->
+          <property>/ai/models/multiplayer/sim/multiplay/generic/float[2]</property>
+          <value>60.000</value>
+        </greater-than>
+        <less-than>
+          <!-- <property>rotors/main/rpm</property> -->
+          <property>/ai/models/multiplayer/sim/multiplay/generic/float[2]</property>
+          <value>150.001</value>
+        </less-than>
+      </and>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>HeliceGauche</object-name>
+    <!-- <property>rotors/main/blade[0]/position-deg</property> -->
+    <property>/ai/models/multiplayer/sim/multiplay/generic/float[3]</property>
+    <offset-deg>-90</offset-deg>
+    <factor> 1 </factor>
+    <center>
+      <x-m> -1.574 </x-m>
+      <y-m> -7.041 </y-m>
+      <z-m>  2.252 </z-m>
+    </center>
+    <axis>
+      <x>  0 </x>
+      <y>  0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <!-- L'hélice droite-->
+  <!-- Séléction de l'objet visible en fonction des rpm -->
+  <animation>
+    <name>HeliceDroite</name>
+    <object-name>heliceD</object-name>
+    <object-name>bolD</object-name>
+    <object-name>propdiscD</object-name>
+    <object-name>propblurD</object-name>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>propdiscD</object-name>
+    <condition>
+      <greater-than>
+        <!-- <property>rotors/main/rpm</property> -->
+        <property>/ai/models/multiplayer/sim/multiplay/generic/float[2]</property>
+        <value>150</value>
+      </greater-than>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>propblurD</object-name>
+    <condition>
+      <and>
+        <greater-than>
+          <!-- <property>rotors/main/rpm</property> -->
+          <property>/ai/models/multiplayer/sim/multiplay/generic/float[2]</property>
+          <value>60.000</value>
+        </greater-than>
+        <less-than>
+          <!-- <property>rotors/main/rpm</property> -->
+          <property>/ai/models/multiplayer/sim/multiplay/generic/float[2]</property>
+          <value>150.001</value>
+        </less-than>
+      </and>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>HeliceDroite</object-name>
+    <!-- <property>rotors/main/blade[0]/position-deg</property> -->
+    <property>/ai/models/multiplayer/sim/multiplay/generic/float[3]</property>
+    <offset-deg>-90</offset-deg>
+    <factor> 1 </factor>
+    <center>
+      <x-m> -1.574 </x-m>
+      <y-m>  7.041 </y-m>
+      <z-m>  2.252 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> 1 </z>
+    </axis>
+  </animation>
+
+  <!-- Roues sorties -->
+  <animation>
+    <type>select</type>
+    <object-name>rouessorties</object-name>
+    <object-name>portesouvertes</object-name>
+    <condition>
+      <less-than>
+        <property>velocities/true-airspeed-kt</property>
+        <value>60</value>
+      </less-than>
+    </condition>
+  </animation>
+
+  <!-- Roues rentrée -->
+  <animation>
+    <type>select</type>
+    <object-name>portesfermees</object-name>
+    <condition>
+      <greater-than>
+        <property>velocities/true-airspeed-kt</property>
+        <value>59</value>
+      </greater-than>
+    </condition>
+  </animation>
+
+</PropertyList>

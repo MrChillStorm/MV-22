@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <flares>
+    <model>Aircraft/MV-22B/Models/Effects/Weapons/Flares/flare-complet.xml</model>
+    <!-- <trigger>controls/armament/flares-release</trigger> -->
+    <trigger>sim/multiplay/generic/int[11]</trigger>
+    <speed>400</speed>
+    <repeat>true</repeat>
+    <delay>0.2</delay>
+    <count>-1</count>
+    <life>5</life>
+    <buoyancy>25</buoyancy>
+    <eda>1</eda>
+    <cd>0.2</cd>
+    <random>true</random>
+    <no-roll>true</no-roll>
+  </flares>
+
+  <parachutist>
+    <name>parachutist</name>
+    <model>Aircraft/MV-22B/Models/Effects/Parachuter/parachuter.xml</model>
+    <!-- <trigger>controls/jump-signal</trigger> -->
+    <trigger>sim/multiplay/generic/bool[18]</trigger>
+    <speed>0</speed>
+    <repeat>true</repeat>
+    <delay>1.5</delay>
+    <count>-1</count>
+    <cd>1.2</cd>
+    <eda>100</eda>
+    <weight>200</weight>
+    <wind>true</wind>
+    <buoyancy>20</buoyancy>
+    <life>600</life>
+  </parachutist>
+
+  <submodel>
+    <name>flaresL</name>
+    <model            alias="../../flares/model"/>
+    <trigger          alias="../../flares/trigger"/>
+    <speed            alias="../../flares/speed"/>
+    <repeat           alias="../../flares/repeat"/>
+    <delay            alias="../../flares/delay"/>
+    <count            alias="../../flares/count"/>
+    <life             alias="../../flares/life"/>
+    <buoyancy         alias="../../flares/buoyancy"/>
+    <eda              alias="../../flares/eda"/>
+    <cd               alias="../../flares/cd"/>
+    <random           alias="../../flares/random"/>
+    <no-roll          alias="../../flares/no-roll"/>
+    <offsets>
+      <x-m>  1.79828 </x-m>
+      <y-m> -0.06095 </y-m>
+      <z-m> -0.76198 </z-m>
+      <heading-deg> 45 </heading-deg>
+      <pitch-deg>  190 </pitch-deg>
+    </offsets>
+  </submodel>
+
+  <submodel>
+    <name>flaresR</name>
+    <model            alias="../../flares/model"/>
+    <trigger          alias="../../flares/trigger"/>
+    <speed            alias="../../flares/speed"/>
+    <repeat           alias="../../flares/repeat"/>
+    <delay            alias="../../flares/delay"/>
+    <count            alias="../../flares/count"/>
+    <life             alias="../../flares/life"/>
+    <buoyancy         alias="../../flares/buoyancy"/>
+    <eda              alias="../../flares/eda"/>
+    <cd               alias="../../flares/cd"/>
+    <random           alias="../../flares/random"/>
+    <no-roll          alias="../../flares/no-roll"/>
+    <offsets>
+      <x-m>  1.79828 </x-m>
+      <y-m>  0.06095 </y-m>
+      <z-m> -0.76198 </z-m>
+      <heading-deg> -45 </heading-deg>
+      <pitch-deg>   190 </pitch-deg>
+    </offsets>
+  </submodel>
+
+  <submodel>
+    <name>flaresIL</name>
+    <model            alias="../../flares/model"/>
+    <trigger          alias="../../flares/trigger"/>
+    <speed            alias="../../flares/speed"/>
+    <repeat           alias="../../flares/repeat"/>
+    <delay            alias="../../flares/delay"/>
+    <count            alias="../../flares/count"/>
+    <life             alias="../../flares/life"/>
+    <buoyancy         alias="../../flares/buoyancy"/>
+    <eda              alias="../../flares/eda"/>
+    <cd               alias="../../flares/cd"/>
+    <random           alias="../../flares/random"/>
+    <no-roll          alias="../../flares/no-roll"/>
+    <offsets>
+      <x-m>  3.04794 </x-m>
+      <y-m>  0.03047 </y-m>
+      <z-m>  0.06095 </z-m>
+      <heading-deg> 0 </heading-deg>
+      <pitch-deg> 190 </pitch-deg>
+    </offsets>
+  </submodel>
+
+  <submodel>
+    <name>parachutist</name>
+    <model            alias="../../parachutist/model"/>
+    <trigger          alias="../../parachutist/trigger"/>
+    <speed            alias="../../parachutist/speed"/>
+    <repeat           alias="../../parachutist/repeat"/>
+    <delay            alias="../../parachutist/delay"/>
+    <count            alias="../../parachutist/count"/>
+    <cd               alias="../../parachutist/cd"/>
+    <eda              alias="../../parachutist/eda"/>
+    <weight           alias="../../parachutist/weight"/>
+    <wind             alias="../../parachutist/wind"/>
+    <buoyancy         alias="../../parachutist/buoyancy"/>
+    <life             alias="../../parachutist/life"/>
+    <yaw-offset       alias="../../parachutist/yaw-offset"/>
+    <pitch-offset     alias="../../parachutist/pitch-offset"/>
+    <offsets>
+      <x-m>  3.50513 </x-m>
+      <y-m>  0.00000 </y-m>
+      <z-m> -1.40205 </z-m>
+      <heading-deg> 0 </heading-deg>
+      <pitch-deg>   0 </pitch-deg>
+    </offsets>
+  </submodel>
+
+</PropertyList>

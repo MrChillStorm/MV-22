@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <!-- Pilote seat -->
+  <model>
+    <path>seat.xml</path>
+    <offsets>
+      <x-m> -5.930 </x-m>
+      <y-m>  0.540 </y-m>
+      <z-m> -1.490 </z-m>
+    </offsets>
+  </model>
+
+  <!-- Copilote seat -->
+  <model>
+    <path>seat.xml</path>
+    <offsets>
+      <x-m> -5.930 </x-m>
+      <y-m> -0.540 </y-m>
+      <z-m> -1.490 </z-m>
+    </offsets>
+  </model>
+
+</PropertyList>

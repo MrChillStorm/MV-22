@@ -1,0 +1,102 @@
+English/Français
+
+[English]
+----------
+
+A little history
+================
+
+Bell Boeing V22 Osprey
+======================
+
+Manufacturer                  :
+Type                          :
+Year                          :
+Powerplant                    :
+Wingspan                      :
+Length                        :
+Height                        :
+weight                        :
+Cruise speed                  :
+Range                         :
+Crew                          :
+
+Some useful keys:
+=================
+
+Thanks
+======
+
+Maik   JUSTUS  for animations and FDM
+Detlef FABER   for FDM and texture
+Oliver Thurau  for 3D upgrade and FDM upgrade
+Paolo  AMOROSO for 3D upgrade and flares/Parachutists addition
+
+JSBSim flight model (2026), from NASA's XV-15 data and the V-22's published data:
+see README.md and MV22B-JSBSim-model-report.pdf in the repository.
+
+===============
+BARANGER Emmanuel
+August,  06, 2007
+March,   16, 2014
+March,   05, 2022
+March,   06, 2022
+May,     02, 2024
+May,     21, 2024
+February 05, 2025
+January, 05, 2026
+March,   27, 2026
+October, 14, 2026
+
+http://helijah.free.fr
+embaranger@gmail.com
+
+
+[Français]
+----------
+
+Un peu d'histoire
+=================
+
+Bell Boeing V22 Osprey
+======================
+
+Constructeur                  :
+Type                          :
+Année                         :
+Moteur                        :
+Envergure                     :
+Longueur                      :
+Hauteur                       :
+Poids estimé au décollage     :
+Vitesse estimée de croisière  :
+Autonomie estimée             :
+Equipage                      :
+
+
+Quelques touches utiles :
+=========================
+
+Remerciements
+=============
+
+Maik   JUSTUS  pour le modèle de vol et les animations
+Detlef FABER   pour le modèle de vol et la texture
+Oliver Thurau  pour les détails 3D et l'amélioration du FDM
+Paolo  AMOROSO pour les ajouts 3D et l'ajout des flares/Parachutistes
+
+===============
+BARANGER Emmanuel
+06 Août    2007
+16 Mars    2014
+05 Mars    2022
+06 Mars    2022
+02 Mai     2024
+21 Mai     2024
+05 Février 2025
+05 Janvier 2026
+27 Mars    2026
+14 Octobre 2026
+
+http://helijah.free.fr
+embaranger@gmail.com

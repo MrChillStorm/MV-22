@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <!-- <path>sim/model/show-copilot</path> -->
+  <property>sim/multiplay/generic/bool[0]</property>
+  <!-- <path>sim/model/show-countermeasures</path> -->
+  <property>sim/multiplay/generic/bool[1]</property>
+  <!-- <path>sim/model/show-antennas</path> -->
+  <property>sim/multiplay/generic/bool[3]</property>
+  <!-- <path>sim/model/show-radome</path> -->
+  <property>sim/multiplay/generic/bool[4]</property>
+  <!-- <path>sim/model/show-flir</path> -->
+  <property>sim/multiplay/generic/bool[7]</property>
+  <!-- <path>sim/model/show-probe</path> -->
+  <property>sim/multiplay/generic/bool[8]</property>
+
+</PropertyList>

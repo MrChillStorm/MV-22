@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <name>CrankingRNOALS</name>
+    <path>Classic/crankingR.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>CrankingRNOALS</object-name>
+    <condition>
+      <not><property>/sim/rendering/shaders/skydome</property></not>
+    </condition>
+  </animation>
+
+  <model>
+    <name>CrankingRALS</name>
+    <path>ALS/crankingR.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>CrankingRALS</object-name>
+    <condition>
+      <!-- not in HDR, which loads its own variant -->
+      <and>
+        <property>/sim/rendering/shaders/skydome</property>
+        <not><property>/sim/rendering/hdr/hdr-enabled</property></not>
+      </and>
+    </condition>
+  </animation>
+
+  <model>
+    <name>CrankingRHDR</name>
+    <path>HDR/crankingR.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>CrankingRHDR</object-name>
+    <condition>
+      <property>/sim/rendering/hdr/hdr-enabled</property>
+    </condition>
+  </animation>
+
+</PropertyList>

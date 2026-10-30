@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <name>rotorwashRNOALS</name>
+    <path>Classic/rotorwashR.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>rotorwashRNOALS</object-name>
+    <condition>
+      <not><property>/sim/rendering/shaders/skydome</property></not>
+    </condition>
+  </animation>
+
+  <model>
+    <name>rotorwashRALS</name>
+    <path>ALS/rotorwashR.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>rotorwashRALS</object-name>
+    <condition>
+      <!-- not in HDR, which loads its own variant -->
+      <and>
+        <property>/sim/rendering/shaders/skydome</property>
+        <not><property>/sim/rendering/hdr/hdr-enabled</property></not>
+      </and>
+    </condition>
+  </animation>
+
+  <model>
+    <name>rotorwashRHDR</name>
+    <path>HDR/rotorwashR.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>rotorwashRHDR</object-name>
+    <condition>
+      <property>/sim/rendering/hdr/hdr-enabled</property>
+    </condition>
+  </animation>
+
+</PropertyList>

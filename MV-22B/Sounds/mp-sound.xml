@@ -1,0 +1,684 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <fx>
+
+    <!-- Left engine -->
+    <engine>
+      <name>left-engine-start</name>
+      <path>v22_turbine_strt_out.wav</path>
+      <mode>once</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/v22/state</property> -->
+          <property>sim/multiplay/generic/int[6]</property>
+          <value>1</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <factor>0.12</factor>
+      </volume>
+      <position>
+        <x>  1.50 </x>
+        <y> -7.00 </y>
+        <z>  0.00 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine>
+
+    <engine>
+      <name>left-engine-loop</name>
+      <path>v22_turbine_out.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/v22/state</property> -->
+          <property>sim/multiplay/generic/int[6]</property>
+          <value>1</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/engine_left</property> -->
+        <property>sim/multiplay/generic/float[2]</property>
+        <factor>3</factor>
+        <min>0</min>
+        <max>0.25</max>
+      </volume>
+      <volume>
+        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
+        <property>sim/multiplay/generic/float[36]</property>
+      </volume>
+      <position>
+        <x>  2.50 </x>
+        <y> -7.00 </y>
+        <z>  1.00 </z>
+      </position>
+      <pitch>
+        <!-- <property>sim/model/v22/engine_left</property> -->
+        <property>sim/multiplay/generic/float[2]</property>
+        <factor>1.03</factor>
+        <offset>-0.0</offset>
+        <max>2.0</max>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine>
+
+    <engine>
+      <name>left-exhaust-loop</name>
+      <path>v22_exh.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/v22/state</property> -->
+          <property>sim/multiplay/generic/int[6]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/engine_left</property> -->
+        <property>sim/multiplay/generic/float[2]</property>
+        <factor>1.5</factor>
+        <min>0</min>
+        <max>0.25</max>
+      </volume>
+      <volume>
+        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
+        <property>sim/multiplay/generic/float[36]</property>
+      </volume>
+      <position>
+        <x> 2.50 </x>
+        <y> 0.00 </y>
+        <z> 1.00 </z>
+      </position>
+      <pitch>
+        <!-- <property>sim/model/v22/engine_left</property> -->
+        <property>sim/multiplay/generic/float[2]</property>
+        <factor>1</factor>
+        <offset>-0.0</offset>
+        <max>2.0</max>
+      </pitch>
+      <orientation>
+        <x>  1 </x>
+        <y>  0 </y>
+        <z> -1 </z>
+        <inner-angle>50</inner-angle>
+        <outer-angle>130</outer-angle>
+        <outer-gain>0.6</outer-gain>
+      </orientation>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine>
+
+    <!-- Right engine -->
+    <engine>
+      <name>right-engine-start</name>
+      <path>v22_turbine_strt_out.wav</path>
+      <mode>once</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/v22/state</property> -->
+          <property>sim/multiplay/generic/int[6]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <factor>0.12</factor>
+      </volume>
+      <position>
+        <x> 1.50 </x>
+        <y> 7.00 </y>
+        <z> 0.00 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine>
+
+    <engine>
+      <name>right-engine-loop</name>
+      <path>v22_turbine_out.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/v22/state</property> -->
+          <property>sim/multiplay/generic/int[6]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/engine_right</property> -->
+        <property>sim/multiplay/generic/float[3]</property>
+        <factor>3</factor>
+        <max>0.25</max>
+        <min>0</min>
+      </volume>
+      <volume>
+        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
+        <property>sim/multiplay/generic/float[36]</property>
+      </volume>
+      <position>
+        <x> 2.50 </x>
+        <y> 7.00 </y>
+        <z> 1.00 </z>
+      </position>
+      <pitch>
+        <!-- <property>sim/model/v22/engine_right</property> -->
+        <property>sim/multiplay/generic/float[3]</property>
+        <factor>1</factor>
+        <offset>-0.0</offset>
+        <max>2.0</max>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine>
+
+    <engine>
+      <name>right-exhaust-loop</name>
+      <path>v22_exh.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/v22/state</property> -->
+          <property>sim/multiplay/generic/int[6]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/engine_right</property> -->
+        <property>sim/multiplay/generic/float[3]</property>
+        <factor>1.5</factor>
+        <min>0</min>
+        <max>0.25</max>
+      </volume>
+      <volume>
+        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
+        <property>sim/multiplay/generic/float[36]</property>
+      </volume>
+      <position>
+        <x> 2.50 </x>
+        <y> 0.00 </y>
+        <z> 1.00 </z>
+      </position>
+      <pitch>
+        <!-- <property>sim/model/v22/engine_right</property> -->
+        <property>sim/multiplay/generic/float[3]</property>
+        <factor>1</factor>
+        <offset>-0.0</offset>
+        <max>2.0</max>
+      </pitch>
+      <orientation>
+        <x>  1 </x>
+        <y>  0 </y>
+        <z> -1 </z>
+        <inner-angle>50</inner-angle>
+        <outer-angle>130</outer-angle>
+        <outer-gain>0.6</outer-gain>
+      </orientation>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine>
+
+    <!-- outside -->
+    <!-- rotor -->
+    <rotor>
+      <name>rotor</name>
+      <path>v22_flap.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <and>
+          <greater-than>
+            <property>rotors/main/rpm</property>
+            <value>5</value>
+          </greater-than>
+          <!-- <not><property>sim/crashed</property></not> -->
+          <not><property>sim/multiplay/generic/bool[6]</property></not>
+        </and>
+      </condition>
+      <volume>
+        <!-- <property>rotors/main/stall-filtered</property> -->
+        <factor>0.5</factor>
+      </volume>
+      <pitch>
+        <property>rotors/main/rpm</property>
+        <factor>0.00243</factor>
+        <offset>-0.</offset>
+        <max>2.5</max>
+      </pitch>
+      <position>
+        <x> 1.5 </x>
+        <y> 0.0 </y>
+        <z> 2.0 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </rotor>
+
+    <wing>
+      <name>wingrotation</name>
+      <path>v22_wing_rotate.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <and>
+          <greater-than>
+            <!-- <property>sim/model/v22/wing_rotation_speed</property> -->
+            <property>sim/multiplay/generic/float[35]</property>
+            <value>0.01</value>
+          </greater-than>
+          <!-- <not><property>sim/crashed</property></not> -->
+          <not><property>sim/multiplay/generic/bool[6]</property></not>
+        </and>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/wing_rotation_speed</property> -->
+        <property>sim/multiplay/generic/float[35]</property>
+        <factor>0.1</factor>
+        <min>0</min>
+        <max>1.0</max>
+      </volume>
+      <pitch>
+        <!-- <property>sim/model/v22/wing_rotation_speed</property> -->
+        <property>sim/multiplay/generic/float[35]</property>
+        <factor>0.1</factor>
+        <max>0.5</max>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </wing>
+
+    <blade_fold>
+      <name>bladefold</name>
+      <path>v22_blade_fold.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <and>
+          <greater-than>
+            <!-- <property>sim/model/v22/blade_folding_speed</property> -->
+            <property>sim/multiplay/generic/float[34]</property>
+            <value>0.0001</value>
+          </greater-than>
+          <!-- <not><property>sim/crashed</property></not> -->
+          <not><property>sim/multiplay/generic/bool[6]</property></not>
+        </and>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/blade_folding_speed</property> -->
+        <property>sim/multiplay/generic/float[34]</property>
+        <factor>10</factor>
+        <min>0</min>
+        <max>0.5</max>
+      </volume>
+      <pitch>
+        <!-- <property>sim/model/v22/blade_folding_speed</property> -->
+        <property>sim/multiplay/generic/float[34]</property>
+        <factor>15</factor>
+        <max>0.75</max>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </blade_fold>
+
+    <flap>
+      <name>flap</name>
+      <path>Flaps.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <and>
+          <greater-than>
+            <!-- <property>sim/model/v22/flap_speed</property> -->
+            <property>sim/multiplay/generic/float[33]</property>
+            <value>0.0001</value>
+          </greater-than>
+          <!-- <not><property>sim/crashed</property></not> -->
+          <not><property>sim/multiplay/generic/bool[6]</property></not>
+        </and>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/flap_speed</property> -->
+        <property>sim/multiplay/generic/float[33]</property>
+        <factor>10</factor>
+        <min>0</min>
+        <max>0.25</max>
+      </volume>
+      <pitch>
+        <!-- <property>sim/model/v22/flap_speed</property> -->
+        <property>sim/multiplay/generic/float[33]</property>
+        <factor>25</factor>
+        <min>0</min>
+        <max>1</max>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </flap>
+
+    <engine_tilt>
+      <name>enginetilt</name>
+      <path>servo.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <and>
+          <greater-than>
+            <!-- <property>sim/model/v22/animation_tilt_speed</property> -->
+            <property>sim/multiplay/generic/float[14]</property>
+            <value>0.01</value>
+          </greater-than>
+          <!-- <not><property>sim/crashed</property></not> -->
+          <not><property>sim/multiplay/generic/bool[6]</property></not>
+        </and>
+      </condition>
+      <volume>
+        <!-- <property>sim/model/v22/animation_tilt_speed</property> -->
+        <property>sim/multiplay/generic/float[14]</property>
+        <factor>.1</factor>
+        <min>0</min>
+        <max>0.35</max>
+      </volume>
+      <pitch>
+        <!-- <property>sim/model/v22/animation_tilt_speed</property> -->
+        <property>sim/multiplay/generic/float[14]</property>
+        <factor>.2</factor>
+        <max>0.75</max>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </engine_tilt>
+
+    <!-- ************************************************* -->
+    <rumble>
+      <name>rumble</name>
+      <path>Sounds/rumble.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <or>
+          <!-- <property>gear/gear[0]/wow</property> -->
+          <property>sim/multiplay/generic/bool[19]</property>
+          <!-- <property>gear/gear[1]/wow</property> -->
+          <property>sim/multiplay/generic/bool[20]</property>
+          <!-- <property>gear/gear[2]/wow</property> -->
+          <property>sim/multiplay/generic/bool[21]</property>
+        </or>
+      </condition>
+      <volume>
+        <property>velocities/airspeed-kt</property>
+        <type>log</type>
+        <factor>0.25</factor>
+      </volume>
+      <position>
+        <x> -0.1 </x>
+        <y>  0.0 </y>
+        <z> -1.0 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </rumble>
+
+    <squeal>
+      <name>squeal</name>
+      <path>Sounds/squeal.wav</path>
+      <condition>
+        <!-- <property>gear/gear[0]/wow</property> -->
+        <property>sim/multiplay/generic/bool[19]</property>
+      </condition>
+      <volume>
+        <property>velocities/speed-down-fps</property>
+        <factor>0.5</factor>
+        <max>1.0</max>
+      </volume>
+      <volume>
+        <property>velocities/airspeed-kt</property>
+        <factor>0.01</factor>
+        <max>1.0</max>
+      </volume>
+      <volume>
+        <internal>dt_stop</internal>
+        <factor>0.5</factor>
+        <max>1.0</max>
+      </volume>
+      <pitch>
+        <property>velocities/airspeed-kt</property>
+        <factor>0.0025</factor>
+        <offset>1.2</offset>
+      </pitch>
+      <position>
+        <x> 7.5 </x>
+        <y> 0 </y>
+        <z> -3 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </squeal>
+
+    <squeal>
+      <name>squeal1</name>
+      <path>Sounds/squeal.wav</path>
+      <condition>
+        <!-- <property>gear/gear[1]/wow</property> -->
+        <property>sim/multiplay/generic/bool[20]</property>
+      </condition>
+      <volume>
+        <property>velocities/speed-down-fps</property>
+        <factor>0.5</factor>
+        <max>1.0</max>
+      </volume>
+      <volume>
+        <property>velocities/airspeed-kt</property>
+        <factor>0.01</factor>
+        <max>1.0</max>
+      </volume>
+      <volume>
+        <internal>dt_stop</internal>
+        <factor>0.5</factor>
+        <max>1.0</max>
+      </volume>
+      <pitch>
+        <property>velocities/airspeed-kt</property>
+        <factor>0.0025</factor>
+        <offset>1.2</offset>
+      </pitch>
+      <position>
+        <x> 0.5 </x>
+        <y> 2 </y>
+        <z> -3 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </squeal>
+
+    <squeal>
+      <name>squeal2</name>
+      <path>Sounds/squeal.wav</path>
+      <condition>
+        <!-- <property>gear/gear[2]/wow</property> -->
+        <property>sim/multiplay/generic/bool[21]</property>
+      </condition>
+      <volume>
+        <property>velocities/speed-down-fps</property>
+        <factor>0.5</factor>
+        <max>1.0</max>
+      </volume>
+      <volume>
+        <property>velocities/airspeed-kt</property>
+        <factor>0.01</factor>
+        <max>1.0</max>
+      </volume>
+      <volume>
+        <internal>dt_stop</internal>
+        <factor>0.5</factor>
+        <max>1.0</max>
+      </volume>
+      <pitch>
+        <property>velocities/airspeed-kt</property>
+        <factor>0.0025</factor>
+        <offset>1.2</offset>
+      </pitch>
+      <position>
+        <x>  0.5 </x>
+        <y> -2.0 </y>
+        <z> -3.0 </z>
+      </position>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </squeal>
+
+    <gear>
+      <name>gear</name>
+      <path>Sounds/gear.wav</path>
+      <mode>in-transit</mode>
+      <property>gear/gear[0]/position-norm</property>
+      <pitch>
+        <internal>dt_play</internal>
+        <offset>1.0</offset>
+        <factor>-0.001</factor>
+      </pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </gear>
+
+    <gear>
+      <name>gear-lock</name>
+      <path>Sounds/gear-lck.wav</path>
+      <condition>
+        <equals>
+          <property>gear/gear[0]/position-norm</property>
+          <value>0</value>
+        </equals>
+      </condition>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </gear>
+
+    <!-- DOORS -->
+    <door>
+      <name>open door</name>
+      <path>door_open.wav</path>
+      <mode>once</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/door-positions/crew/position-norm</property> -->
+          <property>sim/multiplay/generic/float[25]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </door>
+
+    <door>
+      <name>Door closed</name>
+      <path>door_close.wav</path>
+      <mode>once</mode>
+      <condition>
+        <less-than>
+          <!-- <property>sim/model/door-positions/crew/position-norm</property> -->
+          <property>sim/multiplay/generic/float[25]</property>
+          <value>0.03</value>
+        </less-than>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </door>
+
+    <door>
+      <name>Steps door</name>
+      <path>door_open.wav</path>
+      <mode>once</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/door-positions/steps/position-norm</property> -->
+          <property>sim/multiplay/generic/float[27]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </door>
+
+    <door>
+      <name>Steps closed</name>
+      <path>door_close.wav</path>
+      <mode>once</mode>
+      <condition>
+        <less-than>
+          <!-- <property>sim/model/door-positions/steps/position-norm</property> -->
+          <property>sim/multiplay/generic/float[27]</property>
+          <value>0.03</value>
+        </less-than>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </door>
+
+    <door>
+      <name>Bay door</name>
+      <path>door_open.wav</path>
+      <mode>once</mode>
+      <condition>
+        <greater-than>
+          <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+          <property>sim/multiplay/generic/float[26]</property>
+          <value>0</value>
+        </greater-than>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </door>
+
+    <door>
+      <name>Bay close</name>
+      <path>door_close.wav</path>
+      <mode>once</mode>
+      <condition>
+        <less-than>
+          <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+          <property>sim/multiplay/generic/float[26]</property>
+          <value>0.03</value>
+        </less-than>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </door>
+
+    <flare>
+      <name>Flares</name>
+      <path>Flare.wav</path>
+      <mode>looped</mode>
+      <condition>
+        <!-- <property>controls/armament/flares-release</property> -->
+        <property>sim/multiplay/generic/int[11]</property>
+      </condition>
+      <volume>
+        <factor>1</factor>
+        <max>1.0</max>
+      </volume>
+      <reference-dist>100</reference-dist>
+      <max-dist>3000</max-dist>
+    </flare>
+
+  </fx>
+
+</PropertyList>

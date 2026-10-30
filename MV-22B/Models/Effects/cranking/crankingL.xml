@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <name>CrankingLNOALS</name>
+    <path>Classic/crankingL.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>CrankingLNOALS</object-name>
+    <condition>
+      <not><property>/sim/rendering/shaders/skydome</property></not>
+    </condition>
+  </animation>
+
+  <model>
+    <name>CrankingLALS</name>
+    <path>ALS/crankingL.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>CrankingLALS</object-name>
+    <condition>
+      <!-- not in HDR, which loads its own variant -->
+      <and>
+        <property>/sim/rendering/shaders/skydome</property>
+        <not><property>/sim/rendering/hdr/hdr-enabled</property></not>
+      </and>
+    </condition>
+  </animation>
+
+  <model>
+    <name>CrankingLHDR</name>
+    <path>HDR/crankingL.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>CrankingLHDR</object-name>
+    <condition>
+      <property>/sim/rendering/hdr/hdr-enabled</property>
+    </condition>
+  </animation>
+
+</PropertyList>

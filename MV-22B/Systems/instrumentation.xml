@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <zkv1000>
+
+    <pfd>
+      <status                         type="int">1</status>
+      <hsi-360                        type="bool">true</hsi-360>
+      <hsi-course                     type="bool">true</hsi-course>
+      <infos>
+        <course                       type="bool">false</course>
+        <heading                      type="bool">false</heading>
+        <wind-data                    type="bool">false</wind-data>
+        <brg1                         type="bool">false</brg1>
+        <brg2                         type="bool">false</brg2>
+        <dme                          type="bool">false</dme>
+      </infos>
+      <cdi>
+        <visible                      type="bool">true</visible>
+        <in-range                     type="bool">true</in-range>
+        <from-flag                    type="int">0</from-flag>
+        <pointer-type                 type="int">0</pointer-type>
+        <course                       type="int">0</course>
+        <course-deflection            type="bool">false</course-deflection>
+      </cdi>
+      <afcs>
+        <fd-bars-visible              type="bool">true</fd-bars-visible>
+        <alt-bug-visible              type="bool">true</alt-bug-visible>
+        <heading-bug-deg              type="int">0</heading-bug-deg>
+        <pit-active-mode              type="int">0</pit-active-mode>
+        <selected-alt-ft              type="float">0</selected-alt-ft>
+        <selected-ias-kt-diff         type="float">0</selected-ias-kt-diff>
+        <selected-alt-ft-diff         type="float">0</selected-alt-ft-diff>
+      </afcs>
+      <mud>
+        <displayed                    type="bool">false</displayed>
+        <title                        type="string">-</title>
+      </mud>
+    </pfd>
+
+    <mfd>
+      <status                         type="int">2</status>
+      <hsi-360                        type="bool">false</hsi-360>
+      <hsi-course                     type="bool">false</hsi-course>
+      <thrust0                        type="float">0</thrust0>
+      <thrust1                        type="float">0</thrust1>
+      <rpm0                           type="float">0</rpm0>
+      <rpm1                           type="float">0</rpm1>
+      <oilt0                          type="float">0</oilt0>
+      <oilt1                          type="float">0</oilt1>
+      <egt0                           type="float">0</egt0>
+      <egt1                           type="float">0</egt1>
+      <volt0                          type="float">0</volt0>
+      <volt1                          type="float">0</volt1>
+      <eis>
+        <type                         type="string">single-prop</type>
+      </eis>
+      <infos>
+        <course                       type="bool">false</course>
+        <heading                      type="bool">false</heading>
+        <wind-data                    type="bool">false</wind-data>
+        <brg1                         type="bool">false</brg1>
+        <brg2                         type="bool">false</brg2>
+        <dme                          type="bool">false</dme>
+      </infos>
+      <cdi>
+        <visible                      type="bool">true</visible>
+        <in-range                     type="bool">true</in-range>
+        <from-flag                    type="int">0</from-flag>
+        <pointer-type                 type="int">0</pointer-type>
+        <course                       type="int">0</course>
+        <course-deflection            type="bool">0</course-deflection>
+      </cdi>
+      <afcs>
+        <fd-bars-visible              type="bool">false</fd-bars-visible>
+        <alt-bug-visible              type="bool">false</alt-bug-visible>
+        <heading-bug-deg              type="int">0</heading-bug-deg>
+        <pit-active-mode              type="int">0</pit-active-mode>
+        <selected-alt-ft              type="float">0</selected-alt-ft>
+        <selected-ias-kt-diff         type="float">0</selected-ias-kt-diff>
+        <selected-alt-ft-diff         type="float">0</selected-alt-ft-diff>
+      </afcs>
+      <map>
+        <onoff                        type="bool">true</onoff>
+        <panning                      type="int">1</panning>
+        <alt                          type="int">1</alt>
+        <alt-selected                 type="int">1</alt-selected>
+        <alt-1-min                    type="int">1</alt-1-min>
+        <moving-x                     type="float">1</moving-x>
+        <moving-y                     type="float">1</moving-y>
+      </map>
+    </mfd>
+
+  </zkv1000>
+
+  <annun>
+    <enginefire                       type="bool">false</enginefire>
+    <voltagelow                       type="bool">false</voltagelow>
+    <doorwarning                      type="bool">false</doorwarning>
+    <oilpreslow                       type="bool">false</oilpreslow>
+    <vacuumlow                        type="bool">false</vacuumlow>
+    <generatoroff                     type="bool">false</generatoroff>
+    <resfuellow                       type="bool">false</resfuellow>
+    <epowerlvr                        type="bool">false</epowerlvr>
+    <leftfuellow                      type="bool">false</leftfuellow>
+    <auxfuelpump                      type="bool">false</auxfuelpump>
+    <rightfuellow                     type="bool">false</rightfuellow>
+    <chipdetect                       type="bool">false</chipdetect>
+    <fuelpreslow                      type="bool">false</fuelpreslow>
+    <stbyelecpwr                      type="bool">false</stbyelecpwr>
+    <stbyelecinop                     type="bool">false</stbyelecinop>
+    <starter                          type="bool">false</starter>
+    <inverterinop                     type="bool">false</inverterinop>
+    <windshieldantiice                type="bool">false</windshieldantiice>
+    <ignition                         type="bool">false</ignition>
+    <fuelselectoff                    type="bool">false</fuelselectoff>
+    <deicepres                        type="bool">false</deicepres>
+  </annun>
+
+  <elt>
+    <on                               type="bool">false</on>
+    <armed                            type="bool">true</armed>
+    <test                             type="bool">false</test>
+  </elt>
+
+  <adf>
+    <adf-btn                          type="bool">true</adf-btn>
+    <bfo-btn                          type="bool">false</bfo-btn>
+    <volume-norm                      type="double">0.5</volume-norm>
+    <power-btn                        type="bool">true</power-btn>
+    <frequencies>
+      <standby-khz                    type="int">291</standby-khz>
+      <selected-khz                   type="int">379</selected-khz>
+    </frequencies>
+  </adf>
+
+  <encoder>
+    <serviceable                      type="bool">1</serviceable>
+    <name>encoder</name>
+    <number>0</number>
+  </encoder>
+
+  <dme                                n="0">
+    <serviceable                      type="bool">true</serviceable>
+    <power-btn                        type="bool">true</power-btn>
+    <ident                            type="bool">false</ident>
+    <volume                           type="double">1.0</volume>
+    <frequencies>
+      <source                         type="string">/instrumentation/dme[0]/frequencies/selected-mhz</source>
+    </frequencies>
+  </dme>
+
+  <dme                                n="1">
+    <serviceable                      type="bool">true</serviceable>
+    <power-btn                        type="bool">true</power-btn>
+    <ident                            type="bool">false</ident>
+    <volume                           type="double">1.0</volume>
+    <frequencies>
+      <source                         type="string">/instrumentation/dme[1]/frequencies/selected-mhz</source>
+    </frequencies>
+  </dme>
+
+  <transponder                        n="0">
+    <altitude-disp                    type="int">0</altitude-disp>
+    <id-code-disp                     type="int">0</id-code-disp>
+  </transponder>
+
+  <nav-radio>
+    <name>nav</name>
+    <number>0</number>
+  </nav-radio>
+
+  <nav-source>
+    <selector                         type="int">0</selector>
+    <in-range                         type="bool">false</in-range>
+    <from-flag                        type="bool">false</from-flag>
+    <to-flag                          type="bool">false</to-flag>
+    <nav-loc                          type="bool">false</nav-loc>
+    <has-gs                           type="bool">false</has-gs>
+    <gs-in-range                      type="bool">false</gs-in-range>
+    <gs-rate-of-climb                 type="double">0.0</gs-rate-of-climb>
+    <gs-rate-of-climb-fpm             type="double">0.0</gs-rate-of-climb-fpm>
+    <heading-needle-deflection        type="double">0.0</heading-needle-deflection>
+    <heading-needle-deflection-norm   type="double">0.0</heading-needle-deflection-norm>
+    <gs-needle-deflection             type="double">0.0</gs-needle-deflection>
+    <selected-radial-deg              type="double">0.0</selected-radial-deg>
+    <target-radial-deg                type="double">0.0</target-radial-deg>
+    <course-error                     type="double">0.0</course-error>
+  </nav-source>
+
+  <comm                               n="0">
+    <serviceable                      type="bool">true</serviceable>
+    <power-btn                        type="bool">true</power-btn>
+    <volume                           type="double">0.95</volume>
+    <display-volume                   type="bool">false</display-volume>
+    <frequencies>
+      <selected-mhz                   type="double">121.50</selected-mhz>
+    </frequencies>
+  </comm>
+
+  <comm                               n="1">
+    <serviceable                      type="bool">true</serviceable>
+    <power-btn                        type="bool">true</power-btn>
+    <volume                           type="double">0.95</volume>
+    <display-volume                   type="bool">false</display-volume>
+    <frequencies>
+      <standby-mhz                    type="double">133.70</standby-mhz>
+    </frequencies>
+  </comm>
+
+  <nav                                n="0">
+    <serviceable                      type="bool">true</serviceable>
+    <power-btn                        type="bool">true</power-btn>
+    <volume                           type="double">0.5</volume>
+    <audio-btn                        type="bool">true</audio-btn>
+    <ident                            type="bool">true</ident>
+    <display-volume                   type="bool">false</display-volume>
+    <radials>
+      <target-radial-deg              type="float">0</target-radial-deg>
+    </radials>
+    <heading-needle-deflection-ils    type="double">0.0</heading-needle-deflection-ils>
+    <heading-needle-deflection-disp   type="double">0.0</heading-needle-deflection-disp>
+  </nav>
+
+  <nav                                n="1">
+    <serviceable                      type="bool">true</serviceable>
+    <power-btn                        type="bool">true</power-btn>
+    <volume                           type="double">0.5</volume>
+    <audio-btn                        type="bool">true</audio-btn>
+    <ident                            type="bool">true</ident>
+    <display-volume                   type="bool">false</display-volume>
+    <radials>
+      <target-radial-deg              type="float">0</target-radial-deg>
+    </radials>
+    <heading-needle-deflection-ils    type="double">0.0</heading-needle-deflection-ils>
+    <heading-needle-deflection-disp   type="double">0.0</heading-needle-deflection-disp>
+  </nav>
+
+  <radar>
+    <serviceable                      type="bool" archive="y">true</serviceable>
+    <switch                           type="string" archive="y">off</switch>
+    <mode-control                     type="int" archive="y">3</mode-control>
+    <range                            type="int" archive="y">20</range>
+    <mode                             type="string" archive="y">WX</mode>
+    <heading-marker                   type="bool" archive="y">false</heading-marker>
+    <lightning                        type="bool" archive="y">false</lightning>
+    <display-mode                     type="string">ARC</display-mode>
+    <display-controls>
+      <WX                             type="bool" archive="y">false</WX>
+      <data                           type="bool" archive="y">false</data>
+      <pos                            type="bool" archive="y">true</pos>
+    </display-controls>
+  </radar>
+
+</PropertyList>

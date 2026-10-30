@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <name>Flare-CompletNOALS</name>
+    <path>Classic/flare-complet.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>Flare-CompletNOALS</object-name>
+    <condition>
+      <not><property>/sim/rendering/shaders/skydome</property></not>
+    </condition>
+  </animation>
+
+  <model>
+    <name>Flare-CompletALS</name>
+    <path>ALS/flare-complet.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>Flare-CompletALS</object-name>
+    <condition>
+      <!-- not in HDR, which loads its own variant -->
+      <and>
+        <property>/sim/rendering/shaders/skydome</property>
+        <not><property>/sim/rendering/hdr/hdr-enabled</property></not>
+      </and>
+    </condition>
+  </animation>
+
+  <model>
+    <name>Flare-CompletHDR</name>
+    <path>HDR/flare-complet.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>Flare-CompletHDR</object-name>
+    <condition>
+      <property>/sim/rendering/hdr/hdr-enabled</property>
+    </condition>
+  </animation>
+
+</PropertyList>

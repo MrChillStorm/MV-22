@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <!-- Left -->
+  <model>
+    <name>LeftCranking</name>
+    <path>crankingL.xml</path>
+    <offsets>
+      <x-m> -1.98280 </x-m>
+      <y-m> -7.11376 </y-m>
+      <z-m> -1.82345 </z-m>
+      <roll-deg> -25 </roll-deg>
+      <pitch-deg> 50 </pitch-deg>
+    </offsets>
+  </model>
+
+  <!-- Right -->
+  <model>
+    <name>RightCranking</name>
+    <path>crankingR.xml</path>
+    <offsets>
+      <x-m> -1.98280 </x-m>
+      <y-m>  7.11376 </y-m>
+      <z-m> -1.82345 </z-m>
+      <roll-deg>  25 </roll-deg>
+      <pitch-deg> 50 </pitch-deg>
+    </offsets>
+  </model>
+
+  <!-- Rotation des ailes -->
+  <animation>
+    <name>Allffects</name>
+    <object-name>LeftCranking</object-name>
+    <object-name>RightCranking</object-name>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Allffects</object-name>
+    <!-- <property>sim/model/v22/wing_rotation</property> -->
+    <property>sim/multiplay/generic/float[13]</property>
+    <factor>1</factor>
+    <interpolation>
+      <entry><ind>  0 </ind><dep>  0.00 </dep></entry>
+      <entry><ind>  1 </ind><dep>  0.25 </dep></entry>
+      <entry><ind>  2 </ind><dep>  0.50 </dep></entry>
+      <entry><ind>  3 </ind><dep>  1.00 </dep></entry>
+      <entry><ind>  4 </ind><dep>  2.00 </dep></entry>
+      <entry><ind> 86 </ind><dep> 88.00 </dep></entry>
+      <entry><ind> 87 </ind><dep> 89.00 </dep></entry>
+      <entry><ind> 88 </ind><dep> 89.50 </dep></entry>
+      <entry><ind> 89 </ind><dep> 89.75 </dep></entry>
+      <entry><ind> 90 </ind><dep> 90.00 </dep></entry>
+    </interpolation>
+    <center>
+      <x-m> -1.018454 </x-m>
+      <y-m>  0.000235 </y-m>
+      <z-m>  0.871560 </z-m>
+    </center>
+    <axis>
+      <x> -0.068906 </x>
+      <y>  0.000000 </y>
+      <z>  2.440773 </z>
+    </axis>
+  </animation>
+
+  <!-- Rotation des moteurs -->
+  <animation>
+    <type>rotate</type>
+    <object-name>Allffects</object-name>
+    <!-- <property>sim/model/v22/animation_tilt</property> -->
+    <property>sim/multiplay/generic/float[12]</property>
+    <factor>1</factor>
+    <center>
+      <x-m> -1.880 </x-m>
+      <y-m>  0.000 </y-m>
+      <z-m>  0.520 </z-m>
+    </center>
+    <axis>
+      <x>  0 </x>
+      <y> -1 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+</PropertyList>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <path>panel.xml</path>
+    <offsets>
+      <x-m>        -6.62722 </x-m>
+      <y-m>         0.00000 </y-m>
+      <z-m>        -1.39538 </z-m>
+      <pitch-deg> -30.26000 </pitch-deg>
+    </offsets>
+  </model>
+
+</PropertyList>

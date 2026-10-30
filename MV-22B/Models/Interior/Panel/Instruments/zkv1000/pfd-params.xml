@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <params>
+    <!-- **************************************************************** -->
+    <nav-serviceable0>instrumentation/nav[0]/serviceable</nav-serviceable0>
+    <power-nav0>instrumentation/nav[0]/power-btn</power-nav0>
+
+    <nav-frq-swp0>instrumentation/nav[0]/frq-swap-btn</nav-frq-swp0>
+    <nav-frq-selected0>instrumentation/nav[0]/frequencies/selected-mhz</nav-frq-selected0>
+    <nav-frq-standby0>instrumentation/nav[0]/frequencies/standby-mhz</nav-frq-standby0>
+    <nav-volume0>instrumentation/nav[0]/volume</nav-volume0>
+    <nav-audio0>instrumentation/nav[0]/audio-btn</nav-audio0>
+
+    <comm-serviceable0>instrumentation/comm[0]/serviceable</comm-serviceable0>
+    <power-comm0>instrumentation/comm[0]/power-btn</power-comm0>
+
+    <comm-frq-swp0>instrumentation/comm[0]/frq-swap-btn</comm-frq-swp0>
+    <comm-frq-selected0>instrumentation/comm[0]/frequencies/selected-mhz</comm-frq-selected0>
+    <comm-frq-standby0>instrumentation/comm[0]/frequencies/standby-mhz</comm-frq-standby0>
+    <comm-volume0>instrumentation/comm[0]/volume</comm-volume0>
+    <comm-test0>instrumentation/comm[0]/test-btn</comm-test0>
+
+    <dimming0>instrumentation/comm[0]/dimming-norm</dimming0>
+    <!-- **************************************************************** -->
+    <nav-serviceable1>instrumentation/nav[1]/serviceable</nav-serviceable1>
+    <power-nav1>instrumentation/nav[1]/power-btn</power-nav1>
+
+    <comm-serviceable1>instrumentation/comm[1]/serviceable</comm-serviceable1>
+    <power-comm1>instrumentation/comm[1]/power-btn</power-comm1>
+
+    <nav-frq-swp1>instrumentation/nav[1]/frq-swap-btn</nav-frq-swp1>
+    <nav-frq-selected1>instrumentation/nav[1]/frequencies/selected-mhz</nav-frq-selected1>
+    <nav-frq-standby1>instrumentation/nav[1]/frequencies/standby-mhz</nav-frq-standby1>
+    <nav-volume1>instrumentation/nav[1]/volume</nav-volume1>
+    <nav-audio1>instrumentation/nav[1]/audio-btn</nav-audio1>
+
+    <comm-frq-swp1>instrumentation/comm[1]/frq-swap-btn</comm-frq-swp1>
+    <comm-frq-selected1>instrumentation/comm[1]/frequencies/selected-mhz</comm-frq-selected1>
+    <comm-frq-standby1>instrumentation/comm[1]/frequencies/standby-mhz</comm-frq-standby1>
+    <comm-volume1>instrumentation/comm[1]/volume</comm-volume1>
+    <comm-test1>instrumentation/comm[1]/test-btn</comm-test1>
+
+    <dimming1>instrumentation/comm[1]/dimming-norm</dimming1>
+    <!-- **************************************************************** -->
+  </params>
+
+</PropertyList>

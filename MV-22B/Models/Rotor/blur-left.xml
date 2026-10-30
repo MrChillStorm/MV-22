@@ -1,0 +1,909 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- The left rotor's motion blur, written by fdm/rotorvis.py (see there): v22.xml turns it with
+     the rotor (RotorBlurG) -->
+
+<PropertyList>
+
+  <path>blur-left.ac</path>
+
+  <!-- the fans fade in with the rpm; their shadow x 2: two wedges over each point -->
+  <effect>
+    <inherits-from>../Effects/RotorBlur/rotor-blur</inherits-from>
+    <parameters>
+      <fade-from type="float"> 31.76 </fade-from>
+      <fade-to type="float"> 246.14 </fade-to>
+      <pbr-metallic type="float"> 0 </pbr-metallic>
+      <pbr-roughness type="float"> 1 </pbr-roughness>
+      <shadow-gain type="float"> 2 </shadow-gain>
+    </parameters>
+    <object-name>blurG1_0</object-name>
+    <object-name>blurG1_1</object-name>
+    <object-name>blurG1_2</object-name>
+    <object-name>blurG1_3</object-name>
+    <object-name>blurG1_4</object-name>
+    <object-name>blurG1_5</object-name>
+    <object-name>blurG1_6</object-name>
+    <object-name>blurG1_7</object-name>
+    <object-name>blurG1_8</object-name>
+    <object-name>blurG1_9</object-name>
+    <object-name>blurG1_10</object-name>
+    <object-name>blurG1_11</object-name>
+    <object-name>blurG1_12</object-name>
+    <object-name>blurG1_13</object-name>
+    <object-name>blurG1_14</object-name>
+    <object-name>blurG1_15</object-name>
+    <object-name>blurG1_16</object-name>
+    <object-name>blurG1_17</object-name>
+    <object-name>blurG1_18</object-name>
+    <object-name>blurG1_19</object-name>
+    <object-name>blurG1_20</object-name>
+    <object-name>blurG1_21</object-name>
+    <object-name>blurG1_22</object-name>
+    <object-name>blurG1_23</object-name>
+    <object-name>blurG2_0</object-name>
+    <object-name>blurG2_1</object-name>
+    <object-name>blurG2_2</object-name>
+    <object-name>blurG2_3</object-name>
+    <object-name>blurG2_4</object-name>
+    <object-name>blurG2_5</object-name>
+    <object-name>blurG2_6</object-name>
+    <object-name>blurG2_7</object-name>
+    <object-name>blurG2_8</object-name>
+    <object-name>blurG2_9</object-name>
+    <object-name>blurG2_10</object-name>
+    <object-name>blurG2_11</object-name>
+    <object-name>blurG2_12</object-name>
+    <object-name>blurG2_13</object-name>
+    <object-name>blurG2_14</object-name>
+    <object-name>blurG2_15</object-name>
+    <object-name>blurG2_16</object-name>
+    <object-name>blurG2_17</object-name>
+    <object-name>blurG2_18</object-name>
+    <object-name>blurG2_19</object-name>
+    <object-name>blurG2_20</object-name>
+    <object-name>blurG2_21</object-name>
+    <object-name>blurG2_22</object-name>
+    <object-name>blurG2_23</object-name>
+    <object-name>blurG3_0</object-name>
+    <object-name>blurG3_1</object-name>
+    <object-name>blurG3_2</object-name>
+    <object-name>blurG3_3</object-name>
+    <object-name>blurG3_4</object-name>
+    <object-name>blurG3_5</object-name>
+    <object-name>blurG3_6</object-name>
+    <object-name>blurG3_7</object-name>
+    <object-name>blurG3_8</object-name>
+    <object-name>blurG3_9</object-name>
+    <object-name>blurG3_10</object-name>
+    <object-name>blurG3_11</object-name>
+    <object-name>blurG3_12</object-name>
+    <object-name>blurG3_13</object-name>
+    <object-name>blurG3_14</object-name>
+    <object-name>blurG3_15</object-name>
+    <object-name>blurG3_16</object-name>
+    <object-name>blurG3_17</object-name>
+    <object-name>blurG3_18</object-name>
+    <object-name>blurG3_19</object-name>
+    <object-name>blurG3_20</object-name>
+    <object-name>blurG3_21</object-name>
+    <object-name>blurG3_22</object-name>
+    <object-name>blurG3_23</object-name>
+  </effect>
+
+  <!-- the blades' copies fade out -->
+  <effect>
+    <inherits-from>../Effects/RotorBlur/rotor-blur</inherits-from>
+    <parameters>
+      <fade-from type="float"> 246.14 </fade-from>
+      <fade-to type="float"> 31.76 </fade-to>
+      <pbr-metallic type="float"> 0 </pbr-metallic>
+      <pbr-roughness type="float"> 0.5 </pbr-roughness>
+      <shadow-gain type="float"> 1 </shadow-gain>
+    </parameters>
+    <object-name>tpiedpaleG1</object-name>
+    <object-name>tpaleG1</object-name>
+    <object-name>tpiedpaleG2</object-name>
+    <object-name>tpaleG2</object-name>
+    <object-name>tpiedpaleG3</object-name>
+    <object-name>tpaleG3</object-name>
+  </effect>
+
+  <!-- the copies between the opaque blades and the fans -->
+  <animation>
+    <type>select</type>
+    <object-name>tpiedpaleG1</object-name>
+    <object-name>tpaleG1</object-name>
+    <object-name>tpiedpaleG2</object-name>
+    <object-name>tpaleG2</object-name>
+    <object-name>tpiedpaleG3</object-name>
+    <object-name>tpaleG3</object-name>
+    <condition>
+      <and>
+        <not><less-than><property>rotors/main/rpm</property><value> 31.76 </value></less-than></not>
+        <less-than><property>rotors/main/rpm</property><value> 246.14 </value></less-than>
+      </and>
+    </condition>
+  </animation>
+
+  <!-- and the fans -->
+  <animation>
+    <type>select</type>
+    <object-name>blurG1_0</object-name>
+    <object-name>blurG1_1</object-name>
+    <object-name>blurG1_2</object-name>
+    <object-name>blurG1_3</object-name>
+    <object-name>blurG1_4</object-name>
+    <object-name>blurG1_5</object-name>
+    <object-name>blurG1_6</object-name>
+    <object-name>blurG1_7</object-name>
+    <object-name>blurG1_8</object-name>
+    <object-name>blurG1_9</object-name>
+    <object-name>blurG1_10</object-name>
+    <object-name>blurG1_11</object-name>
+    <object-name>blurG1_12</object-name>
+    <object-name>blurG1_13</object-name>
+    <object-name>blurG1_14</object-name>
+    <object-name>blurG1_15</object-name>
+    <object-name>blurG1_16</object-name>
+    <object-name>blurG1_17</object-name>
+    <object-name>blurG1_18</object-name>
+    <object-name>blurG1_19</object-name>
+    <object-name>blurG1_20</object-name>
+    <object-name>blurG1_21</object-name>
+    <object-name>blurG1_22</object-name>
+    <object-name>blurG1_23</object-name>
+    <object-name>blurG2_0</object-name>
+    <object-name>blurG2_1</object-name>
+    <object-name>blurG2_2</object-name>
+    <object-name>blurG2_3</object-name>
+    <object-name>blurG2_4</object-name>
+    <object-name>blurG2_5</object-name>
+    <object-name>blurG2_6</object-name>
+    <object-name>blurG2_7</object-name>
+    <object-name>blurG2_8</object-name>
+    <object-name>blurG2_9</object-name>
+    <object-name>blurG2_10</object-name>
+    <object-name>blurG2_11</object-name>
+    <object-name>blurG2_12</object-name>
+    <object-name>blurG2_13</object-name>
+    <object-name>blurG2_14</object-name>
+    <object-name>blurG2_15</object-name>
+    <object-name>blurG2_16</object-name>
+    <object-name>blurG2_17</object-name>
+    <object-name>blurG2_18</object-name>
+    <object-name>blurG2_19</object-name>
+    <object-name>blurG2_20</object-name>
+    <object-name>blurG2_21</object-name>
+    <object-name>blurG2_22</object-name>
+    <object-name>blurG2_23</object-name>
+    <object-name>blurG3_0</object-name>
+    <object-name>blurG3_1</object-name>
+    <object-name>blurG3_2</object-name>
+    <object-name>blurG3_3</object-name>
+    <object-name>blurG3_4</object-name>
+    <object-name>blurG3_5</object-name>
+    <object-name>blurG3_6</object-name>
+    <object-name>blurG3_7</object-name>
+    <object-name>blurG3_8</object-name>
+    <object-name>blurG3_9</object-name>
+    <object-name>blurG3_10</object-name>
+    <object-name>blurG3_11</object-name>
+    <object-name>blurG3_12</object-name>
+    <object-name>blurG3_13</object-name>
+    <object-name>blurG3_14</object-name>
+    <object-name>blurG3_15</object-name>
+    <object-name>blurG3_16</object-name>
+    <object-name>blurG3_17</object-name>
+    <object-name>blurG3_18</object-name>
+    <object-name>blurG3_19</object-name>
+    <object-name>blurG3_20</object-name>
+    <object-name>blurG3_21</object-name>
+    <object-name>blurG3_22</object-name>
+    <object-name>blurG3_23</object-name>
+    <condition>
+      <not><less-than><property>rotors/main/rpm</property><value> 31.76 </value></less-than></not>
+    </condition>
+  </animation>
+
+  <!-- blade 1's copy pitched as the blade -->
+  <animation>
+    <type>rotate</type>
+    <object-name>tpiedpaleG1</object-name>
+    <object-name>tpaleG1</object-name>
+    <property>sim/multiplay/generic/float[4]</property>
+    <factor> -1 </factor>
+    <offset-deg> 100 </offset-deg>
+    <center>
+      <x-m> -1.574569 </x-m>
+      <y-m> -6.693149 </y-m>
+      <z-m> 2.533302 </z-m>
+    </center>
+    <axis>
+      <x> 0.001439 </x>
+      <y> 0.695704 </y>
+      <z> 0.012211 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>tpiedpaleG2</object-name>
+    <object-name>tpaleG2</object-name>
+    <property>sim/multiplay/generic/float[6]</property>
+    <factor> -1 </factor>
+    <offset-deg> 100 </offset-deg>
+    <center>
+      <x-m> -1.876895 </x-m>
+      <y-m> -7.214302 </y-m>
+      <z-m> 2.533302 </z-m>
+    </center>
+    <axis>
+      <x> -0.603216 </x>
+      <y> -0.346605 </y>
+      <z> -0.012211 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>tpiedpaleG3</object-name>
+    <object-name>tpaleG3</object-name>
+    <property>sim/multiplay/generic/float[5]</property>
+    <factor> -1 </factor>
+    <offset-deg> 100 </offset-deg>
+    <center>
+      <x-m> -1.274400 </x-m>
+      <y-m> -7.215548 </y-m>
+      <z-m> 2.533302 </z-m>
+    </center>
+    <axis>
+      <x> 0.601777 </x>
+      <y> -0.349097 </y>
+      <z> -0.012211 </z>
+    </axis>
+  </animation>
+
+  <!-- blades 2 and 3 unfolded (v22.ac has them folded) -->
+  <animation>
+    <type>rotate</type>
+    <object-name>tpaleG2</object-name>
+    <offset-deg> 120 </offset-deg>
+    <center>
+      <x-m> -2.771000 </x-m>
+      <y-m> -7.734000 </y-m>
+      <z-m> 2.572000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> 1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>tpaleG3</object-name>
+    <offset-deg> 120 </offset-deg>
+    <center>
+      <x-m> -0.377000 </x-m>
+      <y-m> -7.734000 </y-m>
+      <z-m> 2.572000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <!-- blade 2's fan at its blade, 240 deg on from blade 1 along the rotation -->
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG2_0</object-name>
+    <object-name>blurG2_1</object-name>
+    <object-name>blurG2_2</object-name>
+    <object-name>blurG2_3</object-name>
+    <object-name>blurG2_4</object-name>
+    <object-name>blurG2_5</object-name>
+    <object-name>blurG2_6</object-name>
+    <object-name>blurG2_7</object-name>
+    <object-name>blurG2_8</object-name>
+    <object-name>blurG2_9</object-name>
+    <object-name>blurG2_10</object-name>
+    <object-name>blurG2_11</object-name>
+    <object-name>blurG2_12</object-name>
+    <object-name>blurG2_13</object-name>
+    <object-name>blurG2_14</object-name>
+    <object-name>blurG2_15</object-name>
+    <object-name>blurG2_16</object-name>
+    <object-name>blurG2_17</object-name>
+    <object-name>blurG2_18</object-name>
+    <object-name>blurG2_19</object-name>
+    <object-name>blurG2_20</object-name>
+    <object-name>blurG2_21</object-name>
+    <object-name>blurG2_22</object-name>
+    <object-name>blurG2_23</object-name>
+    <offset-deg> 240 </offset-deg>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <!-- blade 3's fan at its blade, 120 deg on from blade 1 along the rotation -->
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG3_0</object-name>
+    <object-name>blurG3_1</object-name>
+    <object-name>blurG3_2</object-name>
+    <object-name>blurG3_3</object-name>
+    <object-name>blurG3_4</object-name>
+    <object-name>blurG3_5</object-name>
+    <object-name>blurG3_6</object-name>
+    <object-name>blurG3_7</object-name>
+    <object-name>blurG3_8</object-name>
+    <object-name>blurG3_9</object-name>
+    <object-name>blurG3_10</object-name>
+    <object-name>blurG3_11</object-name>
+    <object-name>blurG3_12</object-name>
+    <object-name>blurG3_13</object-name>
+    <object-name>blurG3_14</object-name>
+    <object-name>blurG3_15</object-name>
+    <object-name>blurG3_16</object-name>
+    <object-name>blurG3_17</object-name>
+    <object-name>blurG3_18</object-name>
+    <object-name>blurG3_19</object-name>
+    <object-name>blurG3_20</object-name>
+    <object-name>blurG3_21</object-name>
+    <object-name>blurG3_22</object-name>
+    <object-name>blurG3_23</object-name>
+    <offset-deg> 120 </offset-deg>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <!-- wedge j trails its blade by j / 23 of the fan -->
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_1</object-name>
+    <object-name>blurG2_1</object-name>
+    <object-name>blurG3_1</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.013142 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_2</object-name>
+    <object-name>blurG2_2</object-name>
+    <object-name>blurG3_2</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.0262841 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_3</object-name>
+    <object-name>blurG2_3</object-name>
+    <object-name>blurG3_3</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.0394261 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_4</object-name>
+    <object-name>blurG2_4</object-name>
+    <object-name>blurG3_4</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.0525682 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_5</object-name>
+    <object-name>blurG2_5</object-name>
+    <object-name>blurG3_5</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.0657102 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_6</object-name>
+    <object-name>blurG2_6</object-name>
+    <object-name>blurG3_6</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.0788523 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_7</object-name>
+    <object-name>blurG2_7</object-name>
+    <object-name>blurG3_7</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.0919943 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_8</object-name>
+    <object-name>blurG2_8</object-name>
+    <object-name>blurG3_8</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.105136 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_9</object-name>
+    <object-name>blurG2_9</object-name>
+    <object-name>blurG3_9</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.118278 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_10</object-name>
+    <object-name>blurG2_10</object-name>
+    <object-name>blurG3_10</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.13142 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_11</object-name>
+    <object-name>blurG2_11</object-name>
+    <object-name>blurG3_11</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.144562 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_12</object-name>
+    <object-name>blurG2_12</object-name>
+    <object-name>blurG3_12</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.157705 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_13</object-name>
+    <object-name>blurG2_13</object-name>
+    <object-name>blurG3_13</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.170847 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_14</object-name>
+    <object-name>blurG2_14</object-name>
+    <object-name>blurG3_14</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.183989 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_15</object-name>
+    <object-name>blurG2_15</object-name>
+    <object-name>blurG3_15</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.197131 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_16</object-name>
+    <object-name>blurG2_16</object-name>
+    <object-name>blurG3_16</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.210273 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_17</object-name>
+    <object-name>blurG2_17</object-name>
+    <object-name>blurG3_17</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.223415 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_18</object-name>
+    <object-name>blurG2_18</object-name>
+    <object-name>blurG3_18</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.236557 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_19</object-name>
+    <object-name>blurG2_19</object-name>
+    <object-name>blurG3_19</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.249699 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_20</object-name>
+    <object-name>blurG2_20</object-name>
+    <object-name>blurG3_20</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.262841 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_21</object-name>
+    <object-name>blurG2_21</object-name>
+    <object-name>blurG3_21</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.275983 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_22</object-name>
+    <object-name>blurG2_22</object-name>
+    <object-name>blurG3_22</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.289125 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>blurG1_23</object-name>
+    <object-name>blurG2_23</object-name>
+    <object-name>blurG3_23</object-name>
+    <property>rotors/main/rpm</property>
+    <factor> -0.302267 </factor>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> -1 </z>
+    </axis>
+  </animation>
+
+  <!-- the wedges as wide as twice their spacing at any rpm (blur-left.ac: at 100 %), across blade 1 (x) -->
+  <animation>
+    <type>scale</type>
+    <object-name>blurG1_0</object-name>
+    <object-name>blurG1_1</object-name>
+    <object-name>blurG1_2</object-name>
+    <object-name>blurG1_3</object-name>
+    <object-name>blurG1_4</object-name>
+    <object-name>blurG1_5</object-name>
+    <object-name>blurG1_6</object-name>
+    <object-name>blurG1_7</object-name>
+    <object-name>blurG1_8</object-name>
+    <object-name>blurG1_9</object-name>
+    <object-name>blurG1_10</object-name>
+    <object-name>blurG1_11</object-name>
+    <object-name>blurG1_12</object-name>
+    <object-name>blurG1_13</object-name>
+    <object-name>blurG1_14</object-name>
+    <object-name>blurG1_15</object-name>
+    <object-name>blurG1_16</object-name>
+    <object-name>blurG1_17</object-name>
+    <object-name>blurG1_18</object-name>
+    <object-name>blurG1_19</object-name>
+    <object-name>blurG1_20</object-name>
+    <object-name>blurG1_21</object-name>
+    <object-name>blurG1_22</object-name>
+    <object-name>blurG1_23</object-name>
+    <object-name>blurG2_0</object-name>
+    <object-name>blurG2_1</object-name>
+    <object-name>blurG2_2</object-name>
+    <object-name>blurG2_3</object-name>
+    <object-name>blurG2_4</object-name>
+    <object-name>blurG2_5</object-name>
+    <object-name>blurG2_6</object-name>
+    <object-name>blurG2_7</object-name>
+    <object-name>blurG2_8</object-name>
+    <object-name>blurG2_9</object-name>
+    <object-name>blurG2_10</object-name>
+    <object-name>blurG2_11</object-name>
+    <object-name>blurG2_12</object-name>
+    <object-name>blurG2_13</object-name>
+    <object-name>blurG2_14</object-name>
+    <object-name>blurG2_15</object-name>
+    <object-name>blurG2_16</object-name>
+    <object-name>blurG2_17</object-name>
+    <object-name>blurG2_18</object-name>
+    <object-name>blurG2_19</object-name>
+    <object-name>blurG2_20</object-name>
+    <object-name>blurG2_21</object-name>
+    <object-name>blurG2_22</object-name>
+    <object-name>blurG2_23</object-name>
+    <object-name>blurG3_0</object-name>
+    <object-name>blurG3_1</object-name>
+    <object-name>blurG3_2</object-name>
+    <object-name>blurG3_3</object-name>
+    <object-name>blurG3_4</object-name>
+    <object-name>blurG3_5</object-name>
+    <object-name>blurG3_6</object-name>
+    <object-name>blurG3_7</object-name>
+    <object-name>blurG3_8</object-name>
+    <object-name>blurG3_9</object-name>
+    <object-name>blurG3_10</object-name>
+    <object-name>blurG3_11</object-name>
+    <object-name>blurG3_12</object-name>
+    <object-name>blurG3_13</object-name>
+    <object-name>blurG3_14</object-name>
+    <object-name>blurG3_15</object-name>
+    <object-name>blurG3_16</object-name>
+    <object-name>blurG3_17</object-name>
+    <object-name>blurG3_18</object-name>
+    <object-name>blurG3_19</object-name>
+    <object-name>blurG3_20</object-name>
+    <object-name>blurG3_21</object-name>
+    <object-name>blurG3_22</object-name>
+    <object-name>blurG3_23</object-name>
+    <property>rotors/main/rpm</property>
+    <x-factor> 0.0025189 </x-factor>
+    <x-offset> 0 </x-offset>
+    <x-min> 0.02 </x-min>
+    <x-max> 1 </x-max>
+    <y-factor> 0 </y-factor>
+    <y-offset> 1 </y-offset>
+    <z-factor> 0 </z-factor>
+    <z-offset> 1 </z-offset>
+    <center>
+      <x-m> -1.574000 </x-m>
+      <y-m> -7.041000 </y-m>
+      <z-m> 2.252000 </z-m>
+    </center>
+  </animation>
+
+</PropertyList>

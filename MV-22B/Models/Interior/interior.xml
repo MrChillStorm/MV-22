@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <path>interior.ac</path>
+
+  <animation>
+    <!-- Objets opaques -->
+    <object-name>interieur</object-name>
+    <object-name>inttour</object-name>
+    <object-name>siege</object-name>
+    <object-name>cosiege</object-name>
+    <object-name>cloison</object-name>
+    <object-name>intporteH</object-name>
+    <object-name>intporteB</object-name>
+    <object-name>intcargoH</object-name>
+    <object-name>intcargoB</object-name>
+    <object-name>pistonH</object-name>
+    <object-name>pistonB</object-name>
+
+    <!-- Objets transparents -->
+    <object-name>intvitres</object-name>
+    <object-name>intvitreporteH</object-name>
+    <!-- HDR mode -->
+    <object-name>HDRintvitres</object-name>
+    <object-name>HDRintvitreporteH</object-name>
+  </animation>
+
+  <!-- working for Compositor -->
+  <effect>
+    <inherits-from>../Effects/Glass/glassrain</inherits-from>
+    <object-name>intvitres</object-name>
+    <object-name>intvitreporteH</object-name>
+  </effect>
+
+  <effect>
+    <inherits-from>../Effects/Glass/glass</inherits-from>
+    <object-name>HDRintvitres</object-name>
+    <object-name>HDRintvitreporteH</object-name>
+  </effect>
+
+  <!-- Sélection des vitres en fonction de HDR ou pas -->
+  <animation>
+    <type>select</type>
+    <condition>
+      <!-- <property>sim/rendering/hdr/hdr-enabled</property> -->
+      <property>sim/multiplay/generic/bool[2]</property>
+    </condition>
+    <object-name>HDRintvitres</object-name>
+    <object-name>HDRintvitreporteH</object-name>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <condition>
+      <!-- <not><property>sim/rendering/hdr/hdr-enabled</property></not> -->
+      <not><property>sim/multiplay/generic/bool[2]</property></not>
+    </condition>
+    <object-name>intvitres</object-name>
+    <object-name>intvitreporteH</object-name>
+  </animation>
+
+  <model>
+    <path>Panel/all-panels.xml</path>
+  </model>
+
+  <model>
+    <path>../Pilot/all-pilots.xml</path>
+  </model>
+
+  <model>
+    <path>Seat/all-seats.xml</path>
+  </model>
+
+  <!-- Animation des portes -->
+  <animation>
+    <type>pick</type>
+    <object-name>intporteH</object-name>
+    <object-name>intvitreporteH</object-name>
+    <object-name>HDRintvitreporteH</object-name>
+    <visible>true</visible>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>nasal</command>
+        <script>doors.crew.toggle();</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>pick</type>
+    <object-name>intporteB</object-name>
+    <visible>true</visible>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <condition>
+          <and>
+            <property>gear/gear[0]/wow</property>
+            <property>gear/gear[1]/wow</property>
+            <property>gear/gear[2]/wow</property>
+            <less-than>
+              <property>gear/gear[0]/rollspeed-ms</property>
+              <value>10</value>
+            </less-than>
+          </and>
+        </condition>
+        <command>nasal</command>
+        <script>doors.steps.toggle();</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>intporteB</object-name>
+    <!-- <property>sim/model/door-positions/steps/position-norm</property> -->
+    <property>sim/multiplay/generic/float[27]</property>
+    <interpolation>
+      <entry><ind> 0 </ind><dep>   0 </dep></entry>
+      <entry><ind> 1 </ind><dep> 142 </dep></entry>
+    </interpolation>
+    <axis>
+      <x1-m> -4.338 </x1-m>
+      <y1-m>  1.162 </y1-m>
+      <z1-m> -2.234 </z1-m>
+      <x2-m> -4.560 </x2-m>
+      <y2-m>  1.162 </y2-m>
+      <z2-m> -2.234 </z2-m>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>translate</type>
+    <object-name>intporteH</object-name>
+    <object-name>intvitreporteH</object-name>
+    <object-name>HDRintvitreporteH</object-name>
+    <!-- <property>sim/model/door-positions/crew/position-norm</property> -->
+    <property>sim/multiplay/generic/float[25]</property>
+    <interpolation>
+      <entry><ind> 0.0 </ind><dep>  0.00 </dep></entry>
+      <entry><ind> 0.2 </ind><dep> -0.04 </dep></entry>
+      <entry><ind> 1.0 </ind><dep> -0.04 </dep></entry>
+    </interpolation>
+    <axis>
+      <x> 0 </x>
+      <y> 1 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+   <type>rotate</type>
+   <object-name>intporteH</object-name>
+   <object-name>intvitreporteH</object-name>
+   <object-name>HDRintvitreporteH</object-name>
+   <!-- <property>sim/model/door-positions/crew/position-norm</property> -->
+   <property>sim/multiplay/generic/float[25]</property>
+   <interpolation>
+      <entry><ind> 0.00 </ind><dep>  0 </dep></entry>
+      <entry><ind> 0.25 </ind><dep>  0 </dep></entry>
+      <entry><ind> 1.00 </ind><dep> 60 </dep></entry>
+    </interpolation>
+    <center>
+      <x-m> -4.2253 </x-m>
+      <y-m>  0.0000 </y-m>
+      <z-m> -2.4000 </z-m>
+    </center>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <!-- Animation des portes cargo-->
+  <animation>
+    <type>pick</type>
+    <object-name>intcargoH</object-name>
+    <object-name>intcargoB</object-name>
+    <visible>true</visible>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <condition>
+          <!-- <not><property>controls/jump-signal</property></not> -->
+          <not><property>sim/multiplay/generic/bool[18]</property></not>
+        </condition>
+        <command>nasal</command>
+        <script>doors.passenger.toggle();</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+   <type>rotate</type>
+    <object-name>intcargoH</object-name>
+    <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+    <property>sim/multiplay/generic/float[26]</property>
+    <interpolation>
+      <entry><ind> 0 </ind><dep>  0 </dep></entry>
+      <entry><ind> 1 </ind><dep> 34 </dep></entry>
+    </interpolation>
+    <center>
+      <x-m>  6.69833 </x-m>
+      <y-m>  0.00000 </y-m>
+      <z-m> -0.95824 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 1 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>intcargoB</object-name>
+    <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+    <property>sim/multiplay/generic/float[26]</property>
+    <interpolation>
+      <entry><ind> 0.0 </ind><dep>  0 </dep></entry>
+      <entry><ind> 0.2 </ind><dep>  1 </dep></entry>
+      <entry><ind> 0.8 </ind><dep> 26 </dep></entry>
+      <entry><ind> 1.0 </ind><dep> 27 </dep></entry>
+    </interpolation>
+    <center>
+      <x-m>  2.37696 </x-m>
+      <y-m>  0.00000 </y-m>
+      <z-m> -2.51089 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 1 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>pistonH</object-name>
+    <object-name>pistonB</object-name>
+    <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+    <property>sim/multiplay/generic/float[26]</property>
+    <interpolation>
+      <entry><ind> 0.0 </ind><dep> 0.00 </dep></entry>
+      <entry><ind> 0.2 </ind><dep> 0.01 </dep></entry>
+      <entry><ind> 0.8 </ind><dep> 6.99 </dep></entry>
+      <entry><ind> 1.0 </ind><dep> 7.00 </dep></entry>
+    </interpolation>
+    <center>
+      <x-m>  3.23435 </x-m>
+      <y-m>  0.00000 </y-m>
+      <z-m> -0.96328 </z-m>
+    </center>
+    <axis>
+      <x> 0 </x>
+      <y> 1 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>translate</type>
+    <object-name>pistonB</object-name>
+    <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+    <property>sim/multiplay/generic/float[26]</property>
+    <interpolation>
+      <entry><ind> 0.0 </ind><dep> 0.0000 </dep></entry>
+      <entry><ind> 0.2 </ind><dep> 0.0010 </dep></entry>
+      <entry><ind> 0.8 </ind><dep> 0.6618 </dep></entry>
+      <entry><ind> 1.0 </ind><dep> 0.6621 </dep></entry>
+    </interpolation>
+    <axis>
+      <x>  0.2986 </x>
+      <y>  0.0000 </y>
+      <z> -0.5910 </z>
+    </axis>
+  </animation>
+
+</PropertyList>

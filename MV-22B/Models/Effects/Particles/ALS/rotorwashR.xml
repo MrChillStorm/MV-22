@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <path>rotorwashidleR.xml</path>
+    <offsets>
+      <roll-deg> 90 </roll-deg>
+    </offsets>
+  </model>
+
+  <model>
+    <path>rotorwashpowerR.xml</path>
+  </model>
+
+</PropertyList>
+

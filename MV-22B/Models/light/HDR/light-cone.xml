@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+ <PropertyList>
+
+  <light>
+    <name>lightconelight</name>
+    <!-- HDR: a spot aimed out through its lens, so that it lights the night around it and not its own skin;
+         intensity in candela / 635 (the HDR unit, as the UH-60's and the Bo 105's): the landing lights under
+         the nose, each a warm white beam of 200 000 cd at its centre (a halogen landing lamp's), aimed 25 deg down by
+         all-lights.xml -->
+    <type>spot</type>
+    <direction>
+      <lookat-x-m> -1 </lookat-x-m>
+      <lookat-y-m> 0 </lookat-y-m>
+      <lookat-z-m> 0 </lookat-z-m>
+    </direction>
+    <color>
+      <r> 1 </r>
+      <g> 0.92 </g>
+      <b> 0.8 </b>
+    </color>
+    <intensity> 314.96 </intensity>      <!-- 200000 cd -->
+    <spot-exponent> 20 </spot-exponent>
+    <spot-cutoff> 12 </spot-cutoff>
+    <range-m> 400 </range-m>
+  </light>
+
+  <animation>
+    <type>noshadow</type>
+    <object-name>lightconelight</object-name>
+  </animation>
+
+   <animation>
+    <type>select</type>
+    <object-name>lightconelight</object-name>
+    <nopreview/>
+    <condition>
+      <!-- <property>controls/lighting/landing-lights</property> -->
+      <property>sim/multiplay/generic/bool[16]</property>
+    </condition>
+  </animation>
+
+</PropertyList>

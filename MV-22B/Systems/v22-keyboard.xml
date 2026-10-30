@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <keyboard>
+
+    <key n="68">
+      <name>D</name>
+      <desc>Cargo doors</desc>
+      <binding>
+        <condition>
+          <!-- <not><property>controls/jump-signal</property></not> -->
+          <not><property>sim/multiplay/generic/bool[18]</property></not>
+        </condition>
+        <command>nasal</command>
+        <script>doors.passenger.toggle();</script>
+      </binding>
+    </key>
+
+    <key n="100">
+      <name>d</name>
+      <desc>Crew door</desc>
+      <binding>
+        <command>nasal</command>
+        <script>doors.crew.toggle();</script>
+      </binding>
+    </key>
+
+    <key n="101">
+      <name>e</name>
+      <desc>Steps door</desc>
+      <binding>
+        <condition>
+          <and>
+            <property>gear/gear[0]/wow</property>
+            <property>gear/gear[1]/wow</property>
+            <property>gear/gear[2]/wow</property>
+            <less-than>
+              <property>gear/gear[0]/rollspeed-ms</property>
+              <value>10</value>
+            </less-than>
+          </and>
+        </condition>
+        <command>nasal</command>
+        <script>doors.steps.toggle();</script>
+      </binding>
+    </key>
+
+    <key n="108">
+      <name>l</name>
+      <desc>Landing light</desc>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/lighting/landing-lights</property>
+      </binding>
+    </key>
+
+    <key n="78">
+      <name>N</name>
+      <desc>Fold wing back</desc>
+    </key>
+
+    <key n="110">
+      <name>n</name>
+      <desc>Unfold wing</desc>
+    </key>
+
+    <key n="109">
+      <name>m</name>
+      <desc>Tilt Rotors fwd</desc>
+      <repeatable>false</repeatable>
+      <mod-alt>
+        <binding>
+          <command>nasal</command>
+          <script>v22.set_tilt(0,0)</script>
+        </binding>
+      </mod-alt>
+    </key>
+
+    <key n="77">
+      <name>M</name>
+      <desc>Tilt Rotors aft</desc>
+      <repeatable>false</repeatable>
+    </key>
+
+    <key n="106">
+      <name>j</name>
+      <desc>Jump signal</desc>
+      <binding>
+        <condition>
+          <equals>
+            <!-- <property>sim/model/door-positions/passenger/position-norm</property> -->
+            <property>sim/multiplay/generic/float[26]</property>
+            <value>1</value>
+          </equals>
+        </condition>
+        <command>property-toggle</command>
+        <!-- <property>controls/jump-signal</property> -->
+        <property>sim/multiplay/generic/bool[18]</property>
+      </binding>
+    </key>
+
+    <key n="102">
+      <name>f</name>
+      <desc>Trigger flare release</desc>
+      <binding>
+        <condition>
+          <!-- <property>sim/model/show-countermeasures</property> -->
+          <property>sim/multiplay/generic/bool[1]</property>
+        </condition>
+        <command>property-toggle</command>
+        <!-- <property>controls/armament/flares-release</property> -->
+        <property>sim/multiplay/generic/int[11]</property>
+        <value type="bool">true</value>
+      </binding>
+      <mod-up>
+        <binding>
+          <command>property-assign</command>
+          <!-- <property>controls/armament/flares-release</property> -->
+          <property>sim/multiplay/generic/int[11]</property>
+          <value type="bool">false</value>
+        </binding>
+      </mod-up>
+    </key>
+
+    <key n="113">
+      <name>q</name>
+      <desc>Refuelling Probe</desc>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>controls/probe/position-extended</property> -->
+        <property>sim/multiplay/generic/bool[17]</property>
+      </binding>
+    </key>
+
+    <key n="119">
+      <name>w</name>
+      <desc>PA On/Off</desc>
+      <binding>
+        <command>nasal</command>
+        <script>PA.PAToggle();</script>
+      </binding>
+    </key>
+
+    <key n="81">
+      <name>Q</name>
+      <desc>Reset view</desc>
+      <binding>
+        <command>nasal</command>
+        <script>
+          setprop("sim/current-view/field-of-view",      getprop("sim/current-view/config/default-field-of-view-deg"));
+          setprop("sim/current-view/heading-offset-deg", getprop("sim/current-view/config/heading-offset-deg"));
+          setprop("sim/current-view/pitch-offset-deg",   getprop("sim/current-view/config/pitch-offset-deg"));
+          setprop("sim/current-view/roll-offset-deg",    getprop("sim/current-view/config/roll-offset-deg"));
+        </script>
+      </binding>
+    </key>
+
+    <key n="125">
+      <name>}</name>
+      <desc>Autostart/AutoStop</desc>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/electric/battery-switch</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/electric/engine/generator</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/lighting/instrument-lights</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/lighting/nav-lights</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/lighting/beacon</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/lighting/strobe</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/switches/starterkey-insert</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/engines/engine[0]/fuel-pump</property>
+      </binding>
+      <binding>
+        <command>property-toggle</command>
+        <property>controls/engines/engine[1]/fuel-pump</property>
+      </binding>
+      <!-- Magnetos ON -->
+      <binding>
+        <condition>
+          <property>controls/switches/starterkey-insert</property>
+        </condition>
+        <command>property-assign</command>
+        <property>controls/engines/engine[0]/magnetos</property>
+        <value>3</value>
+      </binding>
+      <binding>
+        <condition>
+          <property>controls/switches/starterkey-insert</property>
+        </condition>
+        <command>property-assign</command>
+        <property>controls/engines/engine[1]/magnetos</property>
+        <value>3</value>
+      </binding>
+      <binding>
+        <condition>
+          <property>controls/switches/starterkey-insert</property>
+        </condition>
+        <command>nasal</command>
+        <script>v22.engines(1)</script>
+      </binding>
+      <!-- Magnetos OFF -->
+      <binding>
+        <condition>
+          <not><property>controls/switches/starterkey-insert</property></not>
+        </condition>
+        <command>property-assign</command>
+        <property>controls/engines/engine[0]/magnetos</property>
+        <value>0</value>
+      </binding>
+      <binding>
+        <condition>
+          <not><property>controls/switches/starterkey-insert</property></not>
+        </condition>
+        <command>property-assign</command>
+        <property>controls/engines/engine[1]/magnetos</property>
+        <value>0</value>
+      </binding>
+      <binding>
+        <condition>
+          <not><property>controls/switches/starterkey-insert</property></not>
+        </condition>
+        <command>nasal</command>
+        <script>v22.engines(0)</script>
+      </binding>
+    </key>
+
+  </keyboard>
+
+</PropertyList>

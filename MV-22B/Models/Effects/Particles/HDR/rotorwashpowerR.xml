@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <particlesystem>
+
+    <name>rotorwashpower</name>
+    <texture>smoke.png</texture>
+
+    <emissive>false</emissive>
+    <lighting>false</lighting>
+
+    <attach>world</attach>
+
+    <align>billboard</align>
+
+    <placer>
+      <type>sector</type>
+      <radius-min-m>  0 </radius-min-m>
+      <radius-max-m> 15 </radius-max-m>
+    </placer>
+
+    <condition>
+      <and>
+        <!-- <not><property>sim/freeze/clock</property></not> -->
+        <not><property>sim/multiplay/generic/bool[5]</property></not>
+        <!-- <not><property>sim/crashed</property></not> -->
+        <not><property>sim/multiplay/generic/bool[6]</property></not>
+        <less-than>
+          <!-- <property>position/gear-agl-m</property> -->
+          <property>sim/multiplay/generic/float[7]</property>
+          <value>20</value>
+        </less-than>
+        <!-- the rotors near their flight speed (413 rpm at 104 %, 333 at 84 %) -->
+        <greater-than>
+          <property>rotors/tail/rpm</property>
+          <value>300</value>
+        </greater-than>
+        <!-- the thrust lever above 60 %: high thrust -->
+        <greater-than>
+          <!-- <property>controls/engines/engine[0]/throttle</property> -->
+          <property>sim/multiplay/generic/float[31]</property>
+          <value>0.60</value>
+        </greater-than>
+      </and>
+    </condition>
+
+    <shooter>
+      <theta-min-deg> -1.5 </theta-min-deg>
+      <theta-max-deg>  1.5 </theta-max-deg>
+      <phi-min-deg>   -1.5 </phi-min-deg>
+      <phi-max-deg>    0.0 </phi-max-deg>
+      <speed-mps>
+        <value>  20 </value>
+        <spread>  0 </spread>
+      </speed-mps>
+      <rotation-speed>
+        <x-min-deg-sec> 0 </x-min-deg-sec>
+        <y-min-deg-sec> 0 </y-min-deg-sec>
+        <z-min-deg-sec> 0 </z-min-deg-sec>
+        <x-max-deg-sec> 0 </x-max-deg-sec>
+        <y-max-deg-sec> 0 </y-max-deg-sec>
+        <z-max-deg-sec> 0 </z-max-deg-sec>
+      </rotation-speed>
+    </shooter>
+
+    <counter>
+      <particles-per-sec>
+        <value>  20 </value>
+        <spread>  5 </spread>
+      </particles-per-sec>
+    </counter>
+
+    <particle>
+      <start>
+        <color>
+          <red>
+            <!-- <property>sim/model/v22/effects/particles/rotorwash/redcombinedstart</property> -->
+            <property>sim/multiplay/generic/float[15]</property>
+          </red>
+          <green>
+            <!-- <property>sim/model/v22/effects/particles/rotorwash/greencombinedstart</property> -->
+            <property>sim/multiplay/generic/float[16]</property>
+          </green>
+          <blue>
+            <!-- <property>sim/model/v22/effects/particles/rotorwash/bluecombinedstart</property> -->
+            <property>sim/multiplay/generic/float[17]</property>
+          </blue>
+          <alpha>
+            <property>rotors/tail/rpm</property>
+            <factor>0.0004</factor>
+          </alpha>
+        </color>
+        <size>
+          <value>  4 </value>
+          <spread> 1 </spread>
+        </size>
+      </start>
+
+      <end>
+        <color>
+          <red>
+            <!-- <property>sim/model/v22/effects/particles/rotorwash/redcombinedend</property> -->
+            <property>sim/multiplay/generic/float[18]</property>
+          </red>
+          <green>
+            <!-- <property>sim/model/v22/effects/particles/rotorwash/greencombinedend</property> -->
+            <property>sim/multiplay/generic/float[19]</property>
+          </green>
+          <blue>
+            <!-- <property>sim/model/v22/effects/particles/rotorwash/bluecombinedend</property> -->
+            <property>sim/multiplay/generic/float[20]</property>
+          </blue>
+          <alpha>
+            <property>rotors/tail/rpm</property>
+            <factor>0.002</factor>
+          </alpha>
+        </color>
+        <size>
+          <value>  40 </value>
+          <spread> 15 </spread>
+        </size>
+      </end>
+
+      <life-sec>
+        <value> 2 </value>
+      </life-sec>
+
+      <mass-kg> 6000 </mass-kg>
+      <radius-m>  10 </radius-m>
+    </particle>
+
+    <program>
+      <fluid>   water </fluid>
+      <gravity> true  </gravity>
+      <wind>    true  </wind>
+    </program>
+
+  </particlesystem>
+
+  <!-- pitch -->
+  <animation>
+    <type>rotate</type>
+    <object-name>rotorwashpower</object-name>
+    <!-- <property>orientation/pitch-deg</property> -->
+    <property>sim/multiplay/generic/float[8]</property>
+    <factor> -1 </factor>
+    <axis>
+      <x> 0 </x>
+      <y> 1 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <!-- roll -->
+  <animation>
+    <type>rotate</type>
+    <object-name>rotorwashpower</object-name>
+    <!-- <property>orientation/roll-deg</property> -->
+    <property>sim/multiplay/generic/float[9]</property>
+    <factor> 1 </factor>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <!--Translate to ground level  -->
+  <animation>
+    <type>translate</type>
+    <object-name>rotorwashpower</object-name>
+    <!-- <property>position/gear-agl-m</property> -->
+    <property>sim/multiplay/generic/float[7]</property>
+    <factor> -1 </factor>
+    <axis>
+      <x> 0 </x>
+      <y> 0 </y>
+      <z> 1 </z>
+    </axis>
+  </animation>
+
+</PropertyList>

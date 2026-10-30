@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <main>
+    <rpm             type="double">0</rpm>
+    <blade>
+      <position-deg  type="float">0</position-deg>
+      <incidence-deg type="float">0</incidence-deg>
+    </blade>
+  </main>
+
+</PropertyList>

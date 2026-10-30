@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <sim>
+
+    <model>
+      <livery>
+        <name    type="string">USAF, CV-22B</name>
+        <texture type="string">Liveries/2048x2048/USAF.png</texture>
+        <roughness type="float"> 0.70 </roughness>   <!-- HDR: the paint, 0 gloss .. 1 matte -->
+        <specular>
+          <red   type="float"> 0.03 </red>
+          <green type="float"> 0.03 </green>
+          <blue  type="float"> 0.03 </blue>
+        </specular>
+      </livery>
+    </model>
+
+  </sim>
+
+</PropertyList>

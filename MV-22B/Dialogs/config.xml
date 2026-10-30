@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <name>V-22 Configuration</name>
+  <layout>vbox</layout>
+  <modal>false</modal>
+  <draggable>true</draggable>
+  <resizable>false</resizable>
+
+  <group>
+
+    <layout>hbox</layout>
+
+    <empty>
+      <stretch>false</stretch>
+    </empty>
+    <text>
+      <label>V-22 Configuration</label>
+    </text>
+    <empty><stretch>true</stretch></empty>
+
+    <button>
+      <legend/>
+      <key>Esc</key>
+      <pref-width>16</pref-width>
+      <pref-height>16</pref-height>
+      <binding>
+        <command>nasal</command>
+        <script>v22.load_dialog.toggle()</script>
+      </binding>
+    </button>
+
+  </group>
+
+  <hrule/>
+
+  <group>
+
+    <layout>vbox</layout>
+    <padding>6</padding>
+    <checkbox>
+      <halign>left</halign>
+      <label>Show/Hide copilot</label>
+      <!-- <property>sim/model/show-copilot</property> -->
+      <property>sim/multiplay/generic/bool[0]</property>
+      <live>true</live>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>sim/model/show-copilot</property> -->
+        <property>sim/multiplay/generic/bool[0]</property>
+      </binding>
+      <binding>
+        <command>nasal</command>
+      </binding>
+      <binding>
+        <command>dialog-update</command>
+      </binding>
+    </checkbox>
+
+    <layout>vbox</layout>
+    <padding>6</padding>
+    <checkbox>
+      <halign>left</halign>
+      <label>V-22B Countermeasures</label>
+      <!-- <property>sim/model/show-countermeasures</property> -->
+      <property>sim/multiplay/generic/bool[1]</property>
+      <live>true</live>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>sim/model/show-countermeasures</property> -->
+        <property>sim/multiplay/generic/bool[1]</property>
+      </binding>
+      <binding>
+        <command>nasal</command>
+      </binding>
+      <binding>
+        <command>dialog-update</command>
+      </binding>
+    </checkbox>
+
+    <layout>vbox</layout>
+    <padding>6</padding>
+    <checkbox>
+      <halign>left</halign>
+      <label>CV-22B Radome</label>
+      <!-- <property>sim/model/show-radome</property> -->
+      <property>sim/multiplay/generic/bool[4]</property>
+      <live>true</live>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>sim/model/show-radome</property> -->
+        <property>sim/multiplay/generic/bool[4]</property>
+      </binding>
+      <binding>
+        <command>nasal</command>
+      </binding>
+      <binding>
+        <command>dialog-update</command>
+      </binding>
+    </checkbox>
+
+    <layout>vbox</layout>
+    <padding>6</padding>
+    <checkbox>
+      <halign>left</halign>
+      <label>MV-22B Equipment</label>
+      <!-- <property>sim/model/show-antennas</property> -->
+      <property>sim/multiplay/generic/bool[3]</property>
+      <live>true</live>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>sim/model/show-antennas</property> -->
+        <property>sim/multiplay/generic/bool[3]</property>
+      </binding>
+      <binding>
+        <command>nasal</command>
+      </binding>
+      <binding>
+        <command>dialog-update</command>
+      </binding>
+    </checkbox>
+
+    <layout>vbox</layout>
+    <padding>6</padding>
+    <checkbox>
+      <halign>left</halign>
+      <label>FLIR</label>
+      <!-- <property>sim/model/show-flir</property> -->
+      <property>sim/multiplay/generic/bool[7]</property>
+      <live>true</live>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>sim/model/show-flir</property> -->
+        <property>sim/multiplay/generic/bool[7]</property>
+      </binding>
+      <binding>
+        <command>nasal</command>
+      </binding>
+      <binding>
+        <command>dialog-update</command>
+      </binding>
+    </checkbox>
+
+    <layout>vbox</layout>
+    <padding>6</padding>
+    <checkbox>
+      <halign>left</halign>
+      <label>Probe</label>
+      <!-- <property>sim/model/show-probe</property> -->
+      <property>sim/multiplay/generic/bool[8]</property>
+      <live>true</live>
+      <binding>
+        <command>property-toggle</command>
+        <!-- <property>sim/model/show-probe</property> -->
+        <property>sim/multiplay/generic/bool[8]</property>
+      </binding>
+      <binding>
+        <command>nasal</command>
+      </binding>
+      <binding>
+        <command>dialog-update</command>
+      </binding>
+    </checkbox>
+
+  </group>
+
+</PropertyList>

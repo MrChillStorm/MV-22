@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <light>
+    <name>navlightwhite</name>
+    <!-- HDR: a spot aimed out through its lens, so that it lights the night around it and not its own skin;
+         intensity in candela / 635 (the HDR unit, as the UH-60's and the Bo 105's): the tail's, aimed aft -->
+    <type>spot</type>
+    <direction>
+      <lookat-x-m> 1 </lookat-x-m>
+      <lookat-y-m> 0 </lookat-y-m>
+      <lookat-z-m> 0 </lookat-z-m>
+    </direction>
+    <color>
+      <r> 1 </r>
+      <g> 1 </g>
+      <b> 1 </b>
+    </color>
+    <intensity> 0.031496 </intensity>      <!-- 20 cd -->
+    <spot-exponent> 1 </spot-exponent>
+    <spot-cutoff> 70 </spot-cutoff>
+    <range-m> 20 </range-m>
+  </light>
+
+  <animation>
+    <type>noshadow</type>
+    <object-name>navlightwhite</object-name>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>navlightwhite</object-name>
+    <condition>
+      <!-- <property>controls/lighting/nav-lights</property> -->
+      <property>sim/multiplay/generic/bool[15]</property>
+    </condition>
+  </animation>
+
+</PropertyList>

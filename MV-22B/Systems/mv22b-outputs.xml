@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<system name="V-22 outputs">
+<property value="0">/sim/model/v22/wingfoldincidence</property>
+<channel name="nacelle masses" execrate="8">
+<fcs_function name="mass/nacelle0-x-in"><function><difference><value>249.60643</value><sum><product><value>12.598432</value><property>ctl/sin-nac</property></product><product><value>27.55907</value><property>ctl/cos-nac</property></product></sum></difference></function><output>inertia/pointmass-location-X-inches[0]</output></fcs_function>
+<fcs_function name="mass/nacelle0-z-in"><function><sum><value>136.61425</value><sum><product><value>-12.598432</value><property>ctl/cos-nac</property></product><product><value>27.55907</value><property>ctl/sin-nac</property></product></sum></sum></function><output>inertia/pointmass-location-Z-inches[0]</output></fcs_function>
+<fcs_function name="mass/nacelle1-x-in"><function><difference><value>249.60643</value><sum><product><value>12.598432</value><property>ctl/sin-nac</property></product><product><value>27.55907</value><property>ctl/cos-nac</property></product></sum></difference></function><output>inertia/pointmass-location-X-inches[1]</output></fcs_function>
+<fcs_function name="mass/nacelle1-z-in"><function><sum><value>136.61425</value><sum><product><value>-12.598432</value><property>ctl/cos-nac</property></product><product><value>27.55907</value><property>ctl/sin-nac</property></product></sum></sum></function><output>inertia/pointmass-location-Z-inches[1]</output></fcs_function>
+</channel>
+<channel name="rotors" execrate="8">
+<fcs_function name="out/rotor-rpm"><function><product><value>9.5492966</value><property>rotor/omega-rad_sec</property></product></function><output>/rotors/main/rpm</output><output>/rotors/tail/rpm</output></fcs_function>
+<fcs_function name="out/rotor-rpm-pct"><function><product><value>2.4053644</value><property>rotor/omega-rad_sec</property></product></function><output>/rotors/main/rpm-pct</output></fcs_function>
+<fcs_function name="out/b0-position"><function><ifthen><gt><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>0</value></sum><value>360</value></gt><difference><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>0</value></sum><value>360</value></difference><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>0</value></sum></ifthen></function><output>/rotors/main/blade[0]/position-deg</output></fcs_function>
+<fcs_function name="out/b1-position"><function><ifthen><gt><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>120</value></sum><value>360</value></gt><difference><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>120</value></sum><value>360</value></difference><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>120</value></sum></ifthen></function><output>/rotors/main/blade[1]/position-deg</output></fcs_function>
+<fcs_function name="out/b2-position"><function><ifthen><gt><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>240</value></sum><value>360</value></gt><difference><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>240</value></sum><value>360</value></difference><sum><product><value>57.29578</value><property>rotor/psi-rad</property></product><value>240</value></sum></ifthen></function><output>/rotors/main/blade[2]/position-deg</output></fcs_function>
+<fcs_function name="out/nacelle-deg"><function><property>ctl/nacelle-deg</property></function><output>/sim/model/v22/nacelle-deg</output></fcs_function>
+<fcs_function name="out/r/a1"><function><property>aero/rotor/r/a1-deg</property></function><output>/rotors/r/a1-deg</output></fcs_function>
+<fcs_function name="out/r/b1"><function><product><value>1</value><property>aero/rotor/r/b1-deg</property></product></function><output>/rotors/r/b1-deg</output></fcs_function>
+<fcs_function name="out/r/coll"><function><property>ctl/r/theta75-deg</property></function><output>/rotors/r/collective-deg</output></fcs_function>
+<fcs_function name="out/l/a1"><function><property>aero/rotor/l/a1-deg</property></function><output>/rotors/l/a1-deg</output></fcs_function>
+<fcs_function name="out/l/b1"><function><product><value>-1</value><property>aero/rotor/l/b1-deg</property></product></function><output>/rotors/l/b1-deg</output></fcs_function>
+<fcs_function name="out/l/coll"><function><property>ctl/l/theta75-deg</property></function><output>/rotors/l/collective-deg</output></fcs_function>
+<fcs_function name="out/b0-pitch"><function><sum><sum><property>aero/rotor/r/b0/theta-deg</property><value>5.2</value></sum><product><property>/sim/model/v22/wingfoldincidence</property><difference><value>90</value><sum><property>aero/rotor/r/b0/theta-deg</property><value>5.2</value></sum></difference></product></sum></function><output>/rotors/main/blade[0]/incidence-deg</output></fcs_function>
+<fcs_function name="out/b1-pitch"><function><sum><sum><property>aero/rotor/r/b1/theta-deg</property><value>5.2</value></sum><product><property>/sim/model/v22/wingfoldincidence</property><difference><value>90</value><sum><property>aero/rotor/r/b1/theta-deg</property><value>5.2</value></sum></difference></product></sum></function><output>/rotors/main/blade[1]/incidence-deg</output></fcs_function>
+<fcs_function name="out/b2-pitch"><function><sum><sum><property>aero/rotor/r/b2/theta-deg</property><value>5.2</value></sum><product><property>/sim/model/v22/wingfoldincidence</property><difference><value>90</value><sum><property>aero/rotor/r/b2/theta-deg</property><value>5.2</value></sum></difference></product></sum></function><output>/rotors/main/blade[2]/incidence-deg</output></fcs_function>
+<fcs_function name="out/gimbal-fwd"><function><product><value>0.5</value><sum><property>aero/rotor/r/a1-deg</property><property>aero/rotor/l/a1-deg</property></sum></product></function><output>/rotors/main/yaw-deg</output></fcs_function>
+<fcs_function name="out/gimbal-right"><function><product><value>-0.5</value><sum><property>aero/rotor/r/b1-deg</property><product><value>-1</value><property>aero/rotor/l/b1-deg</property></product></sum></product></function><output>/rotors/main/roll-deg</output></fcs_function>
+</channel>
+<channel name="gear" execrate="8">
+<actuator name="gear/gear-actuator"><input>gear/gear-cmd-norm</input><rate_limit>0.1</rate_limit><output>gear/gear-pos-norm</output></actuator>
+<fcs_function name="out/gear-agl"><function><max><value>0</value><product><value>0.3048</value><difference><property>position/h-agl-ft</property><quotient><difference><property>inertia/cg-z-in</property><value>0</value></difference><value>12</value></quotient></difference></product></max></function><output>/position/gear-agl-m</output></fcs_function>
+</channel>
+<channel name="engine gauges" execrate="8">
+<fcs_function name="out/eng[0]/n1"><function><property>eng[0]/n1-pct</property></function><output>/engines/engine[0]/n1-pct</output></fcs_function>
+<fcs_function name="out/eng[0]/rpm"><function><product><value>75</value><property>eng[0]/n1-pct</property></product></function><output>/engines/engine[0]/rpm</output></fcs_function>
+<fcs_function name="out/eng[0]/torque"><function><property>eng[0]/torque-pct</property></function><output>/engines/engine[0]/torque-pct</output></fcs_function>
+<fcs_function name="out/eng[0]/ff"><function><property>eng[0]/fuel-flow-pph</property></function><output>/engines/engine[0]/fuel-flow-pph</output></fcs_function>
+<fcs_function name="out/eng[0]/ff-gph"><function><quotient><property>eng[0]/fuel-flow-pph</property><value>6.81</value></quotient></function><output>/engines/engine[0]/fuel-flow-gph</output></fcs_function>
+<fcs_function name="out/eng[0]/run"><function><product><property>eng[0]/running</property><gt><property>eng[0]/spool</property><value>0.5</value></gt></product></function><output>/engines/engine[0]/running</output><output>/engines/engine[0]/on</output></fcs_function>
+<fcs_function name="out/eng[1]/n1"><function><property>eng[1]/n1-pct</property></function><output>/engines/engine[1]/n1-pct</output></fcs_function>
+<fcs_function name="out/eng[1]/rpm"><function><product><value>75</value><property>eng[1]/n1-pct</property></product></function><output>/engines/engine[1]/rpm</output></fcs_function>
+<fcs_function name="out/eng[1]/torque"><function><property>eng[1]/torque-pct</property></function><output>/engines/engine[1]/torque-pct</output></fcs_function>
+<fcs_function name="out/eng[1]/ff"><function><property>eng[1]/fuel-flow-pph</property></function><output>/engines/engine[1]/fuel-flow-pph</output></fcs_function>
+<fcs_function name="out/eng[1]/ff-gph"><function><quotient><property>eng[1]/fuel-flow-pph</property><value>6.81</value></quotient></function><output>/engines/engine[1]/fuel-flow-gph</output></fcs_function>
+<fcs_function name="out/eng[1]/run"><function><product><property>eng[1]/running</property><gt><property>eng[1]/spool</property><value>0.5</value></gt></product></function><output>/engines/engine[1]/running</output><output>/engines/engine[1]/on</output></fcs_function>
+<fcs_function name="out/engine-right"><function><property>eng[0]/spool</property></function><output>/sim/model/v22/engine_right</output></fcs_function>
+<fcs_function name="out/engine-left"><function><property>eng[1]/spool</property></function><output>/sim/model/v22/engine_left</output></fcs_function>
+</channel>
+<channel name="surfaces" execrate="8">
+<fcs_function name="out/elevator"><function><quotient><property>ctl/elevator-deg</property><value>-20</value></quotient></function><output>/surface-positions/elevator-pos-norm</output></fcs_function>
+<fcs_function name="out/rudder"><function><quotient><property>ctl/rudder-deg</property><value>20</value></quotient></function><output>/surface-positions/rudder-pos-norm</output></fcs_function>
+<fcs_function name="out/flaperon"><function><quotient><property>ctl/flaperon-deg</property><value>67</value></quotient></function><output>/surface-positions/flap-pos-norm</output></fcs_function>
+<fcs_function name="out/aileron-l"><function><quotient><sum><property>ctl/flaperon-deg</property><property>ctl/aileron-deg</property></sum><value>67</value></quotient></function><output>/surface-positions/left-aileron-pos-norm</output></fcs_function>
+<fcs_function name="out/aileron-r"><function><quotient><difference><property>ctl/flaperon-deg</property><property>ctl/aileron-deg</property></difference><value>67</value></quotient></function><output>/surface-positions/right-aileron-pos-norm</output></fcs_function>
+</channel>
+</system>
