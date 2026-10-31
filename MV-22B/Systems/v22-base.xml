@@ -254,7 +254,6 @@
       <file>Aircraft/MV-22B/Nasal/interpolate.nas</file>
       <file>Aircraft/MV-22B/Nasal/convert.nas</file>
       <file>Aircraft/MV-22B/Nasal/Electrical.nas</file>
-      <file>Aircraft/MV-22B/Nasal/map.nas</file>
       <file>Aircraft/MV-22B/Nasal/dialogs.nas</file>
     </v22>
     <PA>
@@ -263,17 +262,15 @@
     <radar>
       <file>Aircraft/MV-22B/Nasal/radar.nas</file>
     </radar>
-    <terrain-map>
-      <file>Aircraft/MV-22B/Nasal/terrain-map.nas</file>
-    </terrain-map>
     <turrets>
       <file>Aircraft/MV-22B/Nasal/turrets.nas</file>
       <script>
       </script>
     </turrets>
-    <zkv1000>
-      <file>Aircraft/MV-22B/Models/Interior/Panel/Instruments/zkv1000/zkv1000.nas</file>
-    </zkv1000>
+    <displays>
+      <!-- the instrument panel's displays (Models/Interior/Panel/MV22B, fdm/cockpit/panel.py) -->
+      <file>Aircraft/MV-22B/Nasal/displays.nas</file>
+    </displays>
 
     aircraft.data.add(
 

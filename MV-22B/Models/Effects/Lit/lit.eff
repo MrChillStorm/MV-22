@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- Self-lit parts of the cockpit (lamps, lit legends, displays, integrally lit panels) in the HDR pipeline, which
+     leaves out the material animation's emission: the object's texture emits lit-color x lit-level x lit-gain
+     (cd/m2), and reflects the light on it as its texture x lit-reflectance (a lamp's dead front, or 1 for
+     integrally lit markings). The other pipelines keep model-default and the material animation. As the UH-60 model's;
+     here the displays' Canvas pages (Nasal/displays.nas) are the texture, and the panel's XML (fdm/cockpit/panel.py)
+     binds lit-level to each display's luminance, /instrumentation/mv22b/displays/<unit>/luminance. -->
+
+<PropertyList>
+
+  <name>lit</name>
+  <inherits-from>Effects/model-default</inherits-from>
+
+  <parameters>
+    <lit-color type="vec3d">1.0 1.0 1.0</lit-color>
+    <lit-level type="float">0.0</lit-level>
+    <lit-gain type="float">1.0</lit-gain>
+    <lit-reflectance type="float">1.0</lit-reflectance>
+  </parameters>
+
+  <technique n="109">
+    <pass>
+      <program>
+        <fragment-shader n="0">Aircraft/MV-22B/Shaders/HDR/lit.frag</fragment-shader>
+      </program>
+      <uniform n="20">
+        <name>lit_color</name>
+        <type>float-vec3</type>
+        <value><use>lit-color</use></value>
+      </uniform>
+      <uniform n="21">
+        <name>lit_level</name>
+        <type>float</type>
+        <value><use>lit-level</use></value>
+      </uniform>
+      <uniform n="22">
+        <name>lit_gain</name>
+        <type>float</type>
+        <value><use>lit-gain</use></value>
+      </uniform>
+      <uniform n="23">
+        <name>lit_reflectance</name>
+        <type>float</type>
+        <value><use>lit-reflectance</use></value>
+      </uniform>
+
+    </pass>
+  </technique>
+
+</PropertyList>

@@ -186,9 +186,11 @@ class Model:
             lo_ = c.fn('ctl/cps-min-deg', IFTHEN(on, T1('velocities/ve-kts', lv, ln), v(U.NACELLE_MIN)))
             hi_ = c.fn('ctl/cps-max-deg', IFTHEN(on, T1('velocities/ve-kts', uv, un), v(U.NACELLE_MAX)))
             cmd = c.fn('ctl/nacelle-cmd-limited-deg', MAX(lo_, MIN(hi_, cmd)))
+        # this step's change, and its rate, from the angle before it: the next angle overwrites ctl/nacelle-deg
         step = M(v(U.NACELLE_RATE), p('simulation/dt'))
-        nn = c.fn('ctl/nacelle-next', IFTHEN(init, cmd, S(nac, MAX(NEG(step), MIN(step, D(cmd, nac))))), out='ctl/nacelle-deg')
-        c.fn('ctl/nacelle-rate-rad_sec', IFTHEN(init, v(0), Q(D(nn, nac), M(v(R2D), p('simulation/dt')))))
+        dn = c.fn('ctl/nacelle-step-deg', IFTHEN(init, D(cmd, nac), MAX(NEG(step), MIN(step, D(cmd, nac)))))
+        c.fn('ctl/nacelle-rate-rad_sec', IFTHEN(init, v(0), Q(dn, M(v(R2D), p('simulation/dt')))))
+        c.fn('ctl/nacelle-next', S(nac, dn), out='ctl/nacelle-deg')
         bm = c.fn('ctl/beta-m-deg', D(v(90), nac), desc='Bell\'s mast angle, 0 helicopter .. 90 airplane')
         c.fn('ctl/sin-nac', SIN(M(nac, v(1 / R2D))))
         c.fn('ctl/cos-nac', COS(M(nac, v(1 / R2D))))

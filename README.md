@@ -105,7 +105,8 @@ pointing at it), and pick **Bell Boeing MV-22B Osprey (JSBSim)**.
   command is fully forward lets them convert as the speed allows. From 90°,
   `M` tilts them 7.5° aft of vertical, to stop or back up in the hover. If you
   slow down below the corridor for your nacelle angle, the conversion
-  protection raises them.
+  protection raises them. The NACELLE thumbwheel on either thrust control
+  lever does the same: click it, or turn the mouse wheel over it.
 - **Stick and pedals.** Below 50 kt with the nacelles above 60°, each 5 % of
   stick (one arrow-key press) holds about 1° of pitch or 1.25° of bank, and
   the heading holds while the pedals are centred. Above it the stick commands
@@ -123,6 +124,27 @@ pointing at it), and pick **Bell Boeing MV-22B Osprey (JSBSim)**.
   the Navy's MV-22B and CMV-22B, the Air Force's CV-22B, the V-22A prototype,
   a search and rescue scheme and a white one.
 - **Doors** `d`, `D` and `e`, the landing light `l`.
+- **Displays.** The keys along the top of each multifunction display pick
+  its format:
+  - FLT: attitude, airspeed and altitude, heading, the nacelle angle against
+    the conversion corridor's limits, torque, rotor speed, flaperons and gear;
+  - NAV: a horizontal situation display with the NAV 1 course, the heading
+    bug, the route's next waypoint and the wind;
+  - ENG: the engines and drive;
+  - FUEL: the five tanks, the flow and the endurance.
+
+  The control display unit's EICAS and STAT keys show the cautions and the
+  weights. Its keypads type into the scratchpad, and ENTER takes `H270` for
+  the heading bug, `C090` for the NAV 1 course and `B2992` for the
+  altimeter. The displays follow the light outside, like their photocells:
+  DAY is bright enough for full sun and dims at dusk, NIGHT stays at a night
+  vision goggle level. The standby instrument, the flight control panel's
+  windows and the radio panels have no NIGHT/DAY knob and follow the light
+  over both. The BRT rockers and knobs scale each; the levels are under
+  `/instrumentation/mv22b/displays/levels`.
+- **Glareshield.** The flight control panel's knobs set the course, heading
+  bug, speed, altitude and hover height, shown in its windows; the radio
+  panels' CHAN knobs tune COM 1 and COM 2.
 
 ## How it compares
 
@@ -172,7 +194,11 @@ Every number comes from the scripted test programme in the report.
   temperatures come from the original's converter), blade torsion and bending,
   failures other than an engine cut (the interconnect shaft then drives both
   rotors), the fuel transfer's pumps and valves.
-- **Cockpit.** The original's generic glass cockpit, not the V-22's displays.
+- **Cockpit.** The V-22's display formats follow its published layout and
+  the photographs, not its NATOPS manual, which isn't public. The flight
+  control panel's HOLD, coupled and AUTO NAC keys show their modes on the
+  flight format, but no autopilot flies them. The overhead and side consoles
+  are the original's.
 - **HDR renderer:** it has no particles (FlightGear says so in its log), so the
   rotors' dust doesn't show, and the position lights' lenses don't glow. The
   AI-traffic copy of the model shows the default paint in it.
@@ -208,7 +234,14 @@ python3 genv22.py root-polar/aircraft/mv22b --no-inline
 - `report/mkresults.py` runs the whole programme (about four and a half
   minutes on 8 cores) into `report/results/`; `report/build.sh` makes every
   figure, table and number of the report from them and builds the PDF.
-- `rotorvis.py` builds the rotors' blur models.
+- `rotorvis.py` builds the rotors' blur models, and `cockpit/panel.py` the
+  instrument panel, glareshield and console (their 3-D model, legends and
+  key bindings); `MV-22B/Nasal/displays.nas` draws the displays.
+  `cockpit/tclgrip.py` carves the thrust control lever's grip from three
+  photographs of it (front, top and oblique, not included: it reads them
+  from `refs/web/tcl/`), fitting their cameras to each other's outlines,
+  and writes the mesh and where its switches are to
+  `cockpit/data/tcl_grip.json`, which `panel.py` builds both grips from.
 
 The NASA and ERF reports are not included; the report lists them as sources.
 
@@ -243,6 +276,32 @@ Thurau and Paolo Amoroso. Changed in 2026, all inside `MV-22B`:
   time-averaged coverage, after the UH-60's and the Bo 105's. They replace the
   original's blurred-blade and disc objects. The right rotor's blade 1 pitched
   about an axis coned the wrong way, out of its plane; it is corrected.
+- **Instrument panel** (`Models/Interior/Panel/MV22B/`, `fdm/cockpit/panel.py`,
+  `Nasal/displays.nas`). New, after public photographs of the MV-22B's
+  cockpit:
+  - the four 6-inch multifunction displays with their keys, knobs and rockers;
+  - the backup engine and fuel display and the electronic standby flight
+    instrument;
+  - the centre console: the control display unit and its two keypads in
+    one plane, sloping back from under the standby displays, the box under
+    them down to the floor (the interior's old box between the seats is
+    gone), and the radio call panel beside the control display unit;
+  - the glareshield's flight control panel and radio panels;
+  - each pilot's thrust control lever, its grip carved from three
+    photographs: the palm rest under the left hand, the finger switches on
+    its front, the head beside its front right, the NACELLE thumbwheel under
+    the thumb, turning while the nacelles tilt. The
+    right-hand seat's is on the console's right side, its quadrant flush
+    with the keypads; the left-hand seat's is on the left side wall (the
+    interior has no console there). Both travel 4 inches with the throttle
+    axis.
+
+  Every key and knob is clickable, the displays are Canvas pages of the flight
+  model's quantities, and in the HDR renderer they emit light as a
+  sunlight-readable display does (`Models/Effects/Lit`, after the UH-60's).
+  They replace the original's two Garmin-style displays, its light aircraft's
+  autopilot panel, its standby gauges and their scripts (`map.nas`,
+  `terrain-map.nas`, the `zkv1000` displays') and its twin-lever throttle.
 - **HDR renderer** (FlightGear 2024.2 and later):
   - the liveries change the paint in it too (a `pbr` animation in
     `Models/v22.xml`), each with its paint's gloss;
@@ -257,7 +316,7 @@ Thurau and Paolo Amoroso. Changed in 2026, all inside `MV-22B`:
   loading screen, the flight model and its rate, the minimum FlightGear
   version (2024.2.0), the launcher's HDR compatibility flag, cold and dark on
   the ground, the tanks and the payload, and the launcher ratings by the
-  FlightGear wiki's criteria: FDM 4, systems 2, cockpit 2, model 4, beta overall,
+  FlightGear wiki's criteria: FDM 4, systems 2, cockpit 3, model 4, beta overall,
   since early-production needs at least 3 in each.
 
 Everything else is as its authors made it; they are credited in

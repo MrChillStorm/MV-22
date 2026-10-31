@@ -2,8 +2,10 @@
 
 <PropertyList>
 
+  <!-- the instrument panel, glareshield and console with the thrust control lever (MV22B/panel.xml, written by
+       fdm/cockpit/panel.py), in the old panel's frame -->
   <model>
-    <path>panel.xml</path>
+    <path>MV22B/panel.xml</path>
     <offsets>
       <x-m>        -6.62722 </x-m>
       <y-m>         0.00000 </y-m>

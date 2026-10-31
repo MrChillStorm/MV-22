@@ -386,6 +386,9 @@ torque now, and the flight idle is the power the rotors need at flat pitch at th
 \item \emph{The gear in the comparisons.} The harness first ran with the gear extended, JSBSim's default. Its drag stood in for drag the airframe lacks: the V-22's
 fitted drag (then 4.7\,ft$^2$) met Boeing's polar and the airplane-mode speeds only with the gear down, and the XV-15's airplane-mode power looked close. All comparisons
 in forward flight are now gear up, the V-22's drag refitted, and the XV-15's shortfall reported (Section~\ref{sec:xv15}).
+\item \emph{The nacelle rate.} The nacelles' tilt rate, which moves the hubs and adds to the shafts' pitch rate in the flapping, was taken after
+the step had already set the new nacelle angle, so it was zero throughout. Taken from the step itself it changes no trim, and the pitch attitude
+through the conversion run (Section~\ref{sec:handling}) by up to 1.6$^\circ$.
 \end{enumerate}
 
 % =====================================================================================================================

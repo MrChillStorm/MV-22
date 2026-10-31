@@ -48,7 +48,7 @@
     <rating>
       <FDM      type="int"> 4 </FDM>
       <systems  type="int"> 2 </systems>
-      <cockpit  type="int"> 2 </cockpit>
+      <cockpit  type="int"> 3 </cockpit>
       <model    type="int"> 4 </model>
     </rating>
 
