@@ -806,21 +806,22 @@ def aft_section(z0):
     # the FLIR's hand control
     panel('HCU', -0.018, 0.056, 0.000, 0.173, lambda d, k, c: None)
     g = obj('HCU.grip')
+    G = lambda s: Z(s + AFT_L - 0.006 - 0.170)          # the grip aft, its stick's end flush with the aft face
     gy = Y(0.019)
     p, top = solid(GRIP), 0.056
-    A.box(g, gy - 0.016, gy + 0.016, Z(0.040), Z(0.010), 0.004, 0.030, p, p)
-    closed(g, A.rrect(0.072, 0.046, 0.012, gy, Z(0.023)), 0.028, top, p, p)
-    A.cylinder(g, 0.012, gy, Z(0.012), top, top + 0.005, solid(KEY), solid(KEY), n=24)
-    A.cylinder(g, 0.0085, gy, Z(0.012), top + 0.005, top + 0.013, solid(GLASS), solid(GLASS), n=20)
+    A.box(g, gy - 0.016, gy + 0.016, G(0.040), G(0.010), 0.004, 0.030, p, p)
+    closed(g, A.rrect(0.072, 0.046, 0.012, gy, G(0.023)), 0.028, top, p, p)
+    A.cylinder(g, 0.012, gy, G(0.012), top, top + 0.005, solid(KEY), solid(KEY), n=24)
+    A.cylinder(g, 0.0085, gy, G(0.012), top + 0.005, top + 0.013, solid(GLASS), solid(GLASS), n=20)
     for sy in (-1, 1):
-        A.box(g, gy + sy * 0.026 - 0.0065, gy + sy * 0.026 + 0.0065, Z(0.020), Z(0.004), top, top + 0.012, solid(SWITCH), solid(SWITCH))
-        A.cylinder(g, 0.0055, gy + sy * 0.017, Z(0.031), top, top + 0.004, solid(RED), solid(RED), n=16)
-    A.cylinder(g, 0.004, gy, Z(0.032), top, top + 0.003, solid(KEY), solid(KEY), n=12)
+        A.box(g, gy + sy * 0.026 - 0.0065, gy + sy * 0.026 + 0.0065, G(0.020), G(0.004), top, top + 0.012, solid(SWITCH), solid(SWITCH))
+        A.cylinder(g, 0.0055, gy + sy * 0.017, G(0.031), top, top + 0.004, solid(RED), solid(RED), n=16)
+    A.cylinder(g, 0.004, gy, G(0.032), top, top + 0.003, solid(KEY), solid(KEY), n=12)
     for t, y, s in (('FOV', -0.024, 0.023), ('SIZE', 0.026, 0.023), ('POL', -0.017, 0.040), ('MAN', 0.0, 0.040)):
         uv = label_uv(t, 0.010, 0.0035)
-        a0, a1, b0, b1 = gy + y - 0.005, gy + y + 0.005, Z(s) - 0.00175, Z(s) + 0.00175
+        a0, a1, b0, b1 = gy + y - 0.005, gy + y + 0.005, G(s) - 0.00175, G(s) + 0.00175
         A.flat(g, [(a0, b0), (a1, b0), (a1, b1), (a0, b1)], top + 0.0002, tex_rect(uv, a0, a1, b0, b1))
-    ring = lambda s, r: [(0.038 + r * math.cos(a), gy + r * math.sin(a), Z(s)) for a in
+    ring = lambda s, r: [(0.038 + r * math.cos(a), gy + r * math.sin(a), G(s)) for a in
                          (2 * math.pi * k / 20 for k in range(20))]
     A.loft(g, [ring(s, r) for s, r in ((0.040, 0.015), (0.050, 0.018), (0.140, 0.0185), (0.160, 0.0175), (0.167, 0.0135),
                                        (0.170, 0.007))], p)

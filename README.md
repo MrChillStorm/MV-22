@@ -242,6 +242,7 @@ python3 genv22.py root-polar/aircraft/mv22b --no-inline
   from `refs/web/tcl/`), fitting their cameras to each other's outlines,
   and writes the mesh and where its switches are to
   `cockpit/data/tcl_grip.json`, which `panel.py` builds both grips from.
+  `cockpit/seat.py` builds the crew seat (its 3-D model and texture).
 
 The NASA and ERF reports are not included; the report lists them as sources.
 
@@ -314,6 +315,13 @@ Thurau and Paolo Amoroso. Changed in 2026, all inside `MV-22B`:
   They replace the original's two Garmin-style displays, its light aircraft's
   autopilot panel, its standby gauges and their scripts (`map.nas`,
   `terrain-map.nas`, the `zkv1000` displays') and its twin-lever throttle.
+- **Crew seats** (`Models/Interior/Seat/`, `fdm/cockpit/seat.py`). New, after
+  public photographs: armoured crashworthy bucket seats, a tall shell
+  narrowing to its head plate, its sides wrapping forward low along the
+  pan, mesh and tweed cushions, the four-point harness with its rotary
+  buckle, and an armrest on the left behind each pilot's thrust control
+  lever, on the frame the seat strokes down in a crash. They replace the
+  original's F-14 ejection seats.
 - **HDR renderer** (FlightGear 2024.2 and later):
   - the liveries change the paint in it too (a `pbr` animation in
     `Models/v22.xml`), each with its paint's gloss;

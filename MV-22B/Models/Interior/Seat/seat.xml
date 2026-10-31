@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
-<!-- Based on F14b seat -->
+<!-- The MV-22B's crew seat, an armoured crashworthy bucket seat (seat.ac, seat.png written by fdm/cockpit/seat.py;
+     placed for both pilots by all-seats.xml) -->
 <PropertyList>
 
   <path>seat.ac</path>
