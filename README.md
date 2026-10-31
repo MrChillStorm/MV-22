@@ -279,14 +279,26 @@ Thurau and Paolo Amoroso. Changed in 2026, all inside `MV-22B`:
 - **Instrument panel** (`Models/Interior/Panel/MV22B/`, `fdm/cockpit/panel.py`,
   `Nasal/displays.nas`). New, after public photographs of the MV-22B's
   cockpit:
-  - the four 6-inch multifunction displays with their keys, knobs and rockers;
+  - the four 6-inch multifunction displays with their keys, knobs and
+    rockers, their bezels' corners cut back to the panel's screws;
   - the backup engine and fuel display and the electronic standby flight
     instrument;
   - the centre console: the control display unit and its two keypads in
-    one plane, sloping back from under the standby displays, the box under
-    them down to the floor (the interior's old box between the seats is
-    gone), and the radio call panel beside the control display unit;
-  - the glareshield's flight control panel and radio panels;
+    one plane, sloping back from under the standby displays down to a
+    level extension about as high as the seats' cushions, its aft edge
+    rounded, with the landing gear handle's panel, the FLIR's hand control
+    and the flap lever (the flaps stay scheduled by the flight model), and
+    at its aft face the park brake handle (the gear handle and the park
+    brake are clickable); the box under it all down to the floor (the
+    interior's old box between the seats is gone); beside the control
+    display unit a radar warning receiver's round azimuth indicator over
+    the radio call placard (scaled down a little to the panel there);
+  - the glareshield: the flight control panel and the two radio panels
+    themselves, a shelf across the panel's top standing out over the
+    displays, each radio panel running the width of its two displays, its
+    housing thinner under its two keys past a bevel, with sheet-metal
+    cheeks at its ends running back toward the crew, their crew-side edges
+    angled in at the top and the foot and nearest the crew halfway down;
   - each pilot's thrust control lever, its grip carved from three
     photographs: the palm rest under the left hand, the finger switches on
     its front, the head beside its front right, the NACELLE thumbwheel under

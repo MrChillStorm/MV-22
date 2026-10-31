@@ -21,9 +21,10 @@ face, metres; the face is d = 0, the multifunction displays' row centred at z = 
 (Nasal/displays.nas), lit through Models/Effects/Lit (the UH-60 model's): their objects carry plain 0..1 texture
 coordinates. Every key is its own object, clickable.
 
-    python3 panel.py      writes MV-22B/Models/Interior/Panel/MV22B/ (panel.ac, panel.xml, legends.png, screen.png)
+    python3 panel.py      writes MV-22B/Models/Interior/Panel/MV22B/ (panel.ac, panel.xml, legends.png, screen.png, rwr.png)
 """
 import os, sys, math, json
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import acmesh as A
 
@@ -50,25 +51,27 @@ def font(px, narrow=False):
 
 # ---------------------------------------------------------------- the legend atlas
 class Atlas:
-    """Tiles packed in shelves into one ATLAS_W x ATLAS_H texture; each tile's uv rectangle"""
+    """Tiles packed into one ATLAS_W x ATLAS_H texture, each where it lies highest under those before it (a skyline,
+    2 px apart); each tile's uv rectangle"""
     def __init__(s):
         s.im = Image.new('RGB', (ATLAS_W, ATLAS_H), PAINT)
-        s.x = s.y = s.row = 2
+        s.sky = np.zeros(ATLAS_W, int)          # each column's first free row
         s.tiles = {}
 
     def add(s, key, w, h, draw):
         if key in s.tiles:
             return s.tiles[key]
         w, h = int(math.ceil(w)), int(math.ceil(h))
-        if s.x + w + 2 > ATLAS_W:
-            s.x, s.y, s.row = 2, s.y + s.row + 2, 0
-        assert s.y + h + 2 <= ATLAS_H, 'atlas full'
+        under = np.lib.stride_tricks.sliding_window_view(s.sky, w + 2).max(axis=1)
+        x0 = int(np.argmin(under)); y0 = int(under[x0])
+        assert y0 + h + 2 <= ATLAS_H, 'atlas full'
+        s.sky[x0:x0 + w + 2] = y0 + h + 2
+        x, y = x0 + 1, y0 + 1
         tile = Image.new('RGB', (w, h), PAINT)
         draw(ImageDraw.Draw(tile), w, h)
-        s.im.paste(tile, (s.x, s.y))
-        uv = (s.x / ATLAS_W, 1 - (s.y + h) / ATLAS_H, (s.x + w) / ATLAS_W, 1 - s.y / ATLAS_H)     # u0, v0, u1, v1
+        s.im.paste(tile, (x, y))
+        uv = (x / ATLAS_W, 1 - (y + h) / ATLAS_H, (x + w) / ATLAS_W, 1 - y / ATLAS_H)     # u0, v0, u1, v1
         s.tiles[key] = uv
-        s.x += w + 2; s.row = max(s.row, h)
         return uv
 
 
@@ -212,6 +215,8 @@ MFD_W, MFD_H, MFD_D = 0.218, 0.216, 0.022            # the bezel; its face at d 
 SCREEN = 0.1524                                       # 6 in square
 MFD_Y = [-0.546, -0.312, 0.312, 0.546]
 MFD_Z = 0.137
+MFD_CUT = (0.023, 0.016)                              # the bezel's corners cut off: along its sides, along top and foot
+SCREW = (44, 45, 47)
 FACE_PX = 3000
 
 
@@ -240,13 +245,23 @@ def mfd(n, cy):
     face = face_tile('mfd-face', MFD_W, MFD_H, FACE_PX, mfd_face)
     cz = MFD_Z
     o = obj(name + '.bezel')
-    # the bezel: its face printed, a recess for the screen (the face's hole: four strips)
+    # the bezel: its face printed, its corners cut off back to the panel, where its screws are, a recess for the
+    # screen (the face's hole: four strips, the top and the foot's corners cut)
     s = SCREEN / 2 + 0.004
     uvf = tex_rect(face, cy - MFD_W / 2, cy + MFD_W / 2, cz - MFD_H / 2, cz + MFD_H / 2)
     y0, y1, z0, z1 = cy - MFD_W / 2, cy + MFD_W / 2, cz - MFD_H / 2, cz + MFD_H / 2
-    for (a0, a1, b0, b1) in ((y0, y1, cz + s, z1), (y0, y1, z0, cz - s), (y0, cy - s, cz - s, cz + s), (cy + s, y1, cz - s, cz + s)):
-        A.flat(o, [(a0, b0), (a1, b0), (a1, b1), (a0, b1)], MFD_D, uvf)
-    A.walls(o, [(y0, z0), (y1, z0), (y1, z1), (y0, z1)], -0.01, MFD_D, solid(BEZEL))
+    cw, ch = MFD_CUT
+    A.flat(o, [(y0, cz + s), (y1, cz + s), (y1, z1 - ch), (y1 - cw, z1), (y0 + cw, z1), (y0, z1 - ch)], MFD_D, uvf)
+    A.flat(o, [(y0, z0 + ch), (y0 + cw, z0), (y1 - cw, z0), (y1, z0 + ch), (y1, cz - s), (y0, cz - s)], MFD_D, uvf)
+    for (a0, a1) in ((y0, cy - s), (cy + s, y1)):
+        A.flat(o, [(a0, cz - s), (a1, cz - s), (a1, cz + s), (a0, cz + s)], MFD_D, uvf)
+    outline = [(y0 + cw, z0), (y1 - cw, z0), (y1, z0 + ch), (y1, z1 - ch), (y1 - cw, z1), (y0 + cw, z1), (y0, z1 - ch), (y0, z0 + ch)]
+    A.walls(o, outline, -0.01, MFD_D, solid(BEZEL))
+    r = (cw + ch - math.hypot(cw, ch)) / 2                          # the screws: in the cut corners' middles
+    for sy, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        sc = (cy + sy * (MFD_W / 2 - r), cz + sz * (MFD_H / 2 - r))
+        A.cylinder(o, 0.0042, *sc, 0.0, 0.0025, solid(SCREW), solid(SCREW), n=16)
+        A.cylinder(o, 0.0017, *sc, 0.0025, 0.0027, solid(SCREEN_OFF), solid(SCREEN_OFF), n=10)
     A.walls(o, [(cy - s, cz - s), (cy + s, cz - s), (cy + s, cz + s), (cy - s, cz + s)], 0.010, MFD_D, solid(SCREEN_OFF), outward=False)
     screen(name + '.screen', cy, cz, SCREEN, SCREEN, 0.0105)
     kw, kh = 0.016, 0.0115
@@ -391,26 +406,71 @@ def cdu(top):
     return cz - CDU_H / 2
 
 
-LENS = (12, 50, 26)          # the green lens, unlit
+DIAL = (9, 27, 18)          # the azimuth indicator's green face, unlit
+MARK = (226, 222, 200)       # its scale
+RING = (12, 12, 13)
 CALL_H = 0.124
+RWR_C = (-0.002, 0.020)      # the indicator's centre from the panel's
+RWR_R = (0.029, 0.025)       # its ring's radius, its face's
+RWR_PLATE = (0.066, 0.062)   # its square mounting plate
+RWR_TEX, RWR_PX = 'rwr.png', 512                     # its ring and face: their own texture, the ring's width across
+
+
+def rwr_face():
+    R, r = RWR_R
+    k = RWR_PX / (2 * R)
+    im = Image.new('RGB', (RWR_PX, RWR_PX), RING)
+    d = ImageDraw.Draw(im)
+    c = lambda y, z: (RWR_PX / 2 + y * k, RWR_PX / 2 - z * k)
+    disc = lambda a, **kw: d.ellipse(c(-a, a) + c(a, -a), **kw)
+    lw = max(1, int(0.0005 * k))
+    disc(r, fill=DIAL)
+    for i in range(12):
+        a = math.radians(30 * i)
+        r0, r1 = (0.62, 0.94) if i % 3 == 0 else (0.80, 0.91)
+        d.line([c(r * r0 * math.sin(a), r * r0 * math.cos(a)), c(r * r1 * math.sin(a), r * r1 * math.cos(a))], fill=MARK, width=lw)
+    for i in range(16):
+        d.arc(c(-0.43 * r, 0.43 * r) + c(0.43 * r, -0.43 * r), 22.5 * i + 5, 22.5 * i + 16, fill=MARK, width=lw)
+    disc(0.055 * r, outline=MARK, width=lw)
+    return im
 
 
 def call_panel(top):
-    """right of the CDU, under the standby instrument: a small panel with a green lens and the RADIO CALL placard"""
+    """right of the CDU, under the standby instrument: a small panel with a radar warning receiver's round azimuth
+    indicator (by its look, the AN/APR-39's: a green face scaled every 30 deg, a dashed inner ring; its knob at the
+    upper right), under it the RADIO CALL placard and a pushbutton. Scaled to the panel: the photographs' is wider"""
     y0, y1 = CDU_Y + CDU_W / 2 + 0.002, ESFI_Y1
     w, h, cy = y1 - y0, CALL_H, (y0 + y1) / 2
     cz = top - 0.006 - h / 2
+    ry, rz = cy + RWR_C[0], cz + RWR_C[1]
+    R, r = RWR_R
 
     def draw(d, W, H, k):
         d.rectangle((0, 0, W, H), fill=BEZEL)
         c = lambda y, z: (W / 2 + y * k, H / 2 - z * k)
-        d.rectangle(c(-0.030, -0.024) + c(0.030, -0.052), outline=LETTER, width=max(1, int(0.0005 * k)))
-        d.text(c(0, -0.031), 'RADIO CALL', font=font(0.0042 * k), fill=LETTER, anchor='mm')
-        d.text(c(0, -0.043), '- - - - - -', font=font(0.0050 * k), fill=LETTER, anchor='mm')
+        lw = max(1, int(0.0005 * k))
+        d.rectangle(c(-0.038, -0.020) + c(0.006, -0.040), fill=RING)
+        d.text(c(-0.016, -0.026), 'RADIO CALL', font=font(0.0045 * k), fill=LETTER, anchor='mm')
+        d.text(c(-0.016, -0.034), '- - - - - -', font=font(0.0040 * k), fill=LETTER, anchor='mm')
+        for sy in (-0.035, 0.003):
+            d.ellipse(c(sy - 0.0008, -0.0292) + c(sy + 0.0008, -0.0308), outline=LETTER, width=lw)
     face = face_tile('call-face', w, h, FACE_PX, draw)
     o = plate('CALL.panel', cy, cz, w, h, -0.01, 0.016, tex_rect(face, cy - w / 2, cy + w / 2, cz - h / 2, cz + h / 2), color=BEZEL)
-    A.cylinder(o, 0.0185, cy, cz + 0.020, 0.016, 0.020, solid(BEZEL), solid(BEZEL), n=32)
-    A.cylinder(o, 0.0150, cy, cz + 0.020, 0.020, 0.023, solid(LENS), solid(LENS), n=32)
+    pw, ph = RWR_PLATE
+    A.box(o, ry - pw / 2, ry + pw / 2, rz - ph / 2, rz + ph / 2, 0.016, 0.019, solid(BEZEL), solid(BEZEL))
+    for sy, sz in ((-1, -1), (1, -1), (-1, 1)):
+        A.cylinder(o, 0.0018, ry + sy * (pw / 2 - 0.004), rz + sz * (ph / 2 - 0.004), 0.019, 0.0205, solid(SCREW), solid(SCREW), n=10)
+    A.cylinder(o, 0.0022, ry + 0.027, rz - 0.019, 0.019, 0.021, solid(SCREW), solid(SCREW), n=12)
+    A.box(o, cy + 0.012, cy + 0.028, cz - 0.034, cz - 0.024, 0.016, 0.021, solid(KEY), solid(KEY))
+    # the ring standing off the plate, the face down in it
+    f = obj('RWR.face', RWR_TEX)
+    uv = A.planar(ry - R, ry + R, rz - R, rz + R)
+    A.bezel(f, A.circle(R, ry, rz, 48), A.circle(r, ry, rz, 48), 0.025, uv, ry, rz)
+    A.walls(f, A.circle(R, ry, rz, 48), 0.019, 0.025, A.const(0.0, 0.0))
+    A.walls(f, A.circle(r, ry, rz, 48), 0.0215, 0.025, A.const(0.0, 0.0), outward=False)
+    A.flat(f, A.circle(r, ry, rz, 48), 0.0215, uv)
+    knob('RWR.BRIL', ry + 0.0225, rz + 0.0225, 0.0048, 0.019, 0.010)
+    A.box(o, cy + 0.012, cy + 0.028, cz - 0.034, cz - 0.024, 0.016, 0.021, solid(KEY), solid(KEY))
 
 
 # ---------------------------------------------------------------- the thrust control levers
@@ -427,7 +487,7 @@ WHEEL = (138, 144, 150)
 SWITCH = (184, 184, 178)
 BUTTON = (224, 224, 212)
 TCL_TRAVEL = 0.1016                    # m
-TCL_PITCH = 20.0                       # deg: the grip tilted forward from the console's slope, its palm rest about level
+TCL_LEAN = 10.0                        # deg: the grip's up leaning aft of the vertical, its palm rest about level
 TCLG = json.load(open(os.path.join(HERE, 'data', 'tcl_grip.json')))
 STEM_Y, STEM_Z = 0.020, 0.028          # the lever's stem, under the middle of the grip's base
 GRIP_LEFT = -0.055                     # the body's left side
@@ -580,9 +640,9 @@ def tcl(seat, kp_top):
     A.flat(slot, [(ys - 0.007, zc - 0.061), (ys + 0.007, zc - 0.061), (ys + 0.007, zc + 0.061), (ys - 0.007, zc + 0.061)],
            KP_D + 0.0004, solid(SCREEN_OFF))
     # the grip's frame: up tilted forward from the slope's normal, along it to the right, the thumb's side aft
-    a = math.radians(TCL_PITCH)
+    a = math.radians(90.0 - PANEL_PITCH - CONSOLE_TILT - TCL_LEAN)                 # forward from the slope's normal
     up, aft, right = (math.cos(a), 0.0, math.sin(a)), (math.sin(a), 0.0, -math.cos(a)), (0.0, 1.0, 0.0)
-    stem = (KP_D + 0.012, ys, zc)
+    stem = (KP_D + 0.022, ys, zc)                                                   # its base clear of the quadrant
     origin = tuple(stem[i] - STEM_Y * aft[i] - STEM_Z * right[i] for i in range(3))
     grip = lambda name: Frame(obj(name), origin, up, aft, right)
     g, w = grip(n + '.grip'), grip(n + '.wheel')
@@ -625,8 +685,9 @@ KP_ROWS = [  # (legend, columns it spans of 7, boxed); None: no key
 BOXED = {'5', 'E', 'N', 'S', 'W'}                     # the touch-typing marks of the real keypad
 KP_W, KP_L = 0.146, 0.212                             # two side by side as wide as the CDU above them
 KP_GAP = 0.010                                        # below the CDU
-CONSOLE_TILT = 30.0                                   # deg: the CDU and keypads' plane back from the panel's face
-CONSOLE_AFT = 0.03                                    # m: the console's top on past the keypads
+CONSOLE_TILT = 15.0                                   # deg: the CDU and keypads' plane back from the panel's face, down
+                                                      # to the level aft section, about as high as the seats' cushions
+AFT_L = 0.205                                         # m: the console's level aft section past them, to its square edge
 KP_D = 0.014                                          # the base's face: in the CDU's plane, its keys' tops at its face
 KP_K = KP_W / 0.166                                   # the key layout's scale (drawn for a 0.166 m keypad)
 
@@ -662,10 +723,162 @@ def keypad(n, cy, z_top):
                 name, kid, leg, y, z, w * KP_K, 0.0118, KP_D, 0.006, boxed=leg in BOXED)
 
 
+# ---------------------------------------------------------------- the console's aft section, past the keypads
+# After the photographs, level from the keypads' foot to the console's square aft edge: on the left the landing gear panel
+# (the wheel-knobbed GEAR handle, MUTE, DOWN LOCK ORIDE, the striped EMERG DOWN pull), in the middle a grip lying along
+# the section, its head forward (by its markings, FOV, SIZE, POL, MAN and a thumb puck, the FLIR turret's hand control: it
+# doesn't move), on the right the FLAP lever (the flight model schedules the flaps: it stays at A, auto) and its
+# scale; past the edge the PARK BRAKE handle on its rod (body). Across, the photographs' layout fitted to the console.
+CHROME = (118, 120, 123)
+RED = (196, 32, 30)
+HAZARD = (222, 176, 30)
+GLASS = (150, 156, 162)
+GEAR_TRAVEL = 0.025                   # m: the gear handle forward with the gear up
+BRAKE_TRAVEL = 0.040                  # m: the park brake handle down, released
+
+
+def closed(o, poly, d0, d1, uv_end, uv_side):
+    """a prism capped at both ends: free-standing, seen from all round"""
+    A.prism(o, poly, d0, d1, uv_end, uv_side)
+    A.flat(o, poly, d0, uv_end, normal=-1)
+
+
+def screws(o, y0, y1, z0, z1, d, inset=0.005):
+    for y, z in ((y0 + inset, z0 + inset), (y1 - inset, z0 + inset), (y1 - inset, z1 - inset), (y0 + inset, z1 - inset)):
+        A.cylinder(o, 0.0022, y, z, d, d + 0.0015, solid(SCREW), solid(SCREW), n=10)
+
+
+def hazard_box(d, x0, y0, x1, y1, b):
+    """yellow and black stripes round a black box (px), b wide"""
+    im = Image.new('RGB', (int(x1 - x0), int(y1 - y0)), HAZARD)
+    di = ImageDraw.Draw(im)
+    for x in range(-im.height, im.width, int(2 * b)):
+        di.polygon([(x, im.height), (x + b, im.height), (x + b + im.height, 0), (x + im.height, 0)], fill=(10, 10, 10))
+    di.rectangle((b, b, im.width - b, im.height - b), fill=(10, 10, 10))
+    d._image.paste(im, (int(x0), int(y0)))
+
+
+def aft_section(z0):
+    """the level section aft of the keypads' foot (z0, in its frame: d up, z forward): s aft, y from the console's middle"""
+    Z = lambda s: z0 - 0.006 - s
+    Y = lambda y: CDU_Y + y
+    tex = lambda face, y0, y1, s0, s1: tex_rect(face, Y(y0), Y(y1), Z(s1), Z(s0))
+
+    def panel(name, y0, y1, s0, s1, draw):
+        face = face_tile(name, y1 - y0, s1 - s0, FACE_PX,
+                         lambda d, W, H, k: (d.rectangle((0, 0, W, H), fill=BEZEL),
+                                             draw(d, k, lambda y, s: ((y - y0) * k, (s - s0) * k))))
+        o = plate(name + '.panel', Y((y0 + y1) / 2), Z((s0 + s1) / 2), y1 - y0, s1 - s0, -0.002, 0.004,
+                  tex(face, y0, y1, s0, s1), color=BEZEL)
+        screws(o, Y(y0), Y(y1), Z(s1), Z(s0), 0.004)
+        return o
+
+    # the landing gear panel
+    def gear_face(d, k, c):
+        f = font(0.0030 * k)
+        d.rectangle(c(-0.062, 0.020) + c(-0.054, 0.066), fill=SCREEN_OFF)
+        d.text(c(-0.058, 0.023), 'GEAR', font=f, fill=LETTER, anchor='mm')
+        d.text(c(-0.107, 0.062), 'MUTE', font=f, fill=LETTER, anchor='mm')
+        for i, t in enumerate(('DOWN', 'LOCK', 'ORIDE')):
+            d.text(c(-0.108, 0.106 + 0.0050 * i), t, font=f, fill=LETTER, anchor='mm')
+        d.text(c(-0.108, 0.127), ARROWS['D'], font=font(0.0050 * k), fill=LETTER, anchor='mm')
+        hazard_box(d, *c(-0.066, 0.098), *c(-0.031, 0.154), 0.0022 * k)
+        for i, t in enumerate(('EMERG', 'DOWN')):
+            d.text(c(-0.0485, 0.106 + 0.0050 * i), t, font=f, fill=LETTER, anchor='mm')
+        d.ellipse(c(-0.059, 0.119) + c(-0.038, 0.140), fill=(4, 4, 4))
+    o = panel('GEAR', -0.124, -0.022, 0.017, 0.159, gear_face)
+    A.cylinder(o, 0.0050, Y(-0.090), Z(0.062), 0.004, 0.008, solid(KEY), solid(KEY), n=16)
+    A.cylinder(o, 0.0045, Y(-0.089), Z(0.131), 0.004, 0.009, solid(RED), solid(RED), n=16)
+    h = obj('GEAR.handle')
+    A.beam(h, (0.002, Y(-0.058), Z(0.046)), (0.032, Y(-0.058), Z(0.079)), 0.008, solid(KEY))
+    # the wheel, its edges rounded: across, its tread's quarter circles round to its flat sides
+    rim = [(math.copysign(0.005 + 0.007 * math.sin(t), s), 0.014 + 0.007 * math.cos(t))
+           for s, ts in ((-1, (90, 60, 30, 0)), (1, (0, 30, 60, 90))) for t in map(math.radians, ts)]
+    A.loft(Frame(h, (0.032, Y(-0.058), Z(0.079)), (0, 1, 0), (0, 0, 1), (1, 0, 0)),
+           [[(x, r * math.cos(a), r * math.sin(a)) for a in (2 * math.pi * k / 24 for k in range(24))] for x, r in rim],
+           solid(CHROME))
+    up = FRAME.vec((0, 0, 1))
+    XML.append('  <animation>\n    <type>translate</type>\n    <object-name>GEAR.handle</object-name>\n'
+               '    <property>/controls/gear/gear-down</property>\n    <factor>%.4f</factor>\n    <offset-m>%.4f</offset-m>\n'
+               '    <axis>\n      <x>%.4f</x>\n      <y>%.4f</y>\n      <z>%.4f</z>\n    </axis>\n  </animation>\n'
+               % ((-GEAR_TRAVEL, GEAR_TRAVEL) + up) + toggle_xml('GEAR.handle', '/controls/gear/gear-down'))
+
+    # the FLIR's hand control
+    panel('HCU', -0.018, 0.056, 0.000, 0.173, lambda d, k, c: None)
+    g = obj('HCU.grip')
+    gy = Y(0.019)
+    p, top = solid(GRIP), 0.056
+    A.box(g, gy - 0.016, gy + 0.016, Z(0.040), Z(0.010), 0.004, 0.030, p, p)
+    closed(g, A.rrect(0.072, 0.046, 0.012, gy, Z(0.023)), 0.028, top, p, p)
+    A.cylinder(g, 0.012, gy, Z(0.012), top, top + 0.005, solid(KEY), solid(KEY), n=24)
+    A.cylinder(g, 0.0085, gy, Z(0.012), top + 0.005, top + 0.013, solid(GLASS), solid(GLASS), n=20)
+    for sy in (-1, 1):
+        A.box(g, gy + sy * 0.026 - 0.0065, gy + sy * 0.026 + 0.0065, Z(0.020), Z(0.004), top, top + 0.012, solid(SWITCH), solid(SWITCH))
+        A.cylinder(g, 0.0055, gy + sy * 0.017, Z(0.031), top, top + 0.004, solid(RED), solid(RED), n=16)
+    A.cylinder(g, 0.004, gy, Z(0.032), top, top + 0.003, solid(KEY), solid(KEY), n=12)
+    for t, y, s in (('FOV', -0.024, 0.023), ('SIZE', 0.026, 0.023), ('POL', -0.017, 0.040), ('MAN', 0.0, 0.040)):
+        uv = label_uv(t, 0.010, 0.0035)
+        a0, a1, b0, b1 = gy + y - 0.005, gy + y + 0.005, Z(s) - 0.00175, Z(s) + 0.00175
+        A.flat(g, [(a0, b0), (a1, b0), (a1, b1), (a0, b1)], top + 0.0002, tex_rect(uv, a0, a1, b0, b1))
+    ring = lambda s, r: [(0.038 + r * math.cos(a), gy + r * math.sin(a), Z(s)) for a in
+                         (2 * math.pi * k / 20 for k in range(20))]
+    A.loft(g, [ring(s, r) for s, r in ((0.040, 0.015), (0.050, 0.018), (0.140, 0.0185), (0.160, 0.0175), (0.167, 0.0135),
+                                       (0.170, 0.007))], p)
+
+    # the flap lever and its scale
+    def flap_face(d, k, c):
+        f = font(0.0030 * k)
+        d.text(c(0.096, 0.024), 'FLAP', font=f, fill=LETTER, anchor='mm')
+        d.rectangle(c(0.075, 0.020) + c(0.083, 0.115), fill=SCREEN_OFF)
+        for i, t in enumerate(('A', '0', '10', '20', '40', 'F')):
+            d.text(c(0.067, 0.040 + 0.0135 * i), t, font=f, fill=LETTER, anchor='mm')
+        d.text(c(0.090, 0.042), '-', font=f, fill=LETTER, anchor='mm')
+        d.text(c(0.101, 0.042), 'AUTO', font=f, fill=LETTER, anchor='mm')
+        for i, t in enumerate(('0', '10', '20')):
+            s = 0.056 + 0.0135 * i
+            d.line([c(0.089, s), c(0.101, s)], fill=LETTER, width=max(1, int(0.0006 * k)))
+            d.text(c(0.106, s), t, font=f, fill=LETTER, anchor='mm')
+        d.rectangle(c(0.112, 0.053) + c(0.1145, 0.084), fill=RED)
+        d.rectangle(c(0.061, 0.128) + c(0.126, 0.174), fill=SCREEN_OFF)
+    panel('FLAP', 0.058, 0.130, 0.014, 0.180, flap_face)
+    v = obj('FLAP.lever')
+    A.box(v, Y(0.073), Y(0.085), Z(0.044), Z(0.036), 0.002, 0.036, solid(KEY), solid(KEY))
+    closed(v, [(Y(0.071), Z(0.048)), (Y(0.087), Z(0.048)), (Y(0.087), Z(0.032)), (Y(0.071), Z(0.032))], 0.034, 0.046,
+           solid(KEY), solid(KEY))
+
+
+def toggle_xml(name, prop):
+    """a click flips prop"""
+    return ('  <animation>\n    <type>pick</type>\n    <object-name>%s</object-name>\n    <action>\n      <button>0</button>\n'
+            '      <repeatable>false</repeatable>\n      <binding>\n        <command>property-toggle</command>\n'
+            '        <property>%s</property>\n      </binding>\n    </action>\n  </animation>\n' % (name, prop))
+
+
 # ---------------------------------------------------------------- the glareshield
-HOOD_Z0, HOOD_Z1 = 0.256, 0.362
-HOOD_D = 0.036
+# After the cockpit photographs: the radio panels and the flight control panel are the glareshield, a shelf across
+# the panel's top standing out over the displays toward the crew, its sides hardly taller than the radio panels in
+# them, its middle taller round the flight control panel; at the panel's ends sheet-metal cheeks run back toward the
+# crew flush with the radio panels' ends, their crew-side edges angled out from the radio panels' faces, straight for a
+# short stretch, and angled back to the displays at the foot. Each
+# radio panel runs from the flight control panel to just past its outer display: from its outer end two square keys,
+# the CHAN knob, the display, the BRT knob.
+SHELF_D = 0.060                      # the shelf's face, out from the panel's (the displays' bezels at 0.022)
+SHELF_M = 0.0035                     # its margin round the panels in it
 AFCS_W, AFCS_H = 0.410, 0.090
+AFCS_Z0 = MFD_Z + MFD_H / 2 + 0.005  # the flight control panel's foot, over the displays
+RADIO_TOP = 0.315                    # the radio housings' top edge, the same along each
+RADIO_IN, RADIO_OUT = AFCS_W / 2 + 2 * SHELF_M, 0.6635   # their inner and outer ends, |y|
+# Each housing, measured in from its outer end (m): two square keys, then a bevel where its foot slants down from
+# under the keys to under the radio unit, the housing there the taller; the radio unit a plate of its own with the
+# CHAN knob, the SEL key, the display and the BRT knob.
+HOUSING_H = (0.066, 0.049)           # its height under the radio unit and under the keys
+BEVEL = (0.168, 0.201)
+RADIO_UNIT = (0.201, 0.438, 0.053)   # from, to, height
+RADIO_KEYS = (0.075, 0.142)
+RADIO_CHAN, RADIO_SEL, RADIO_BRT = 0.226, 0.254, 0.423
+RADIO_WIN = (0.273, 0.402, 0.023)    # from, to, height
+CHEEK_NEAR = 0.125                   # m: the cheeks at the panel's ends, how near the crew their edge comes
+CHEEK_FLAT = (0.085, 0.195)          # m below their top: where that edge runs straight
 
 
 def afcs_face(d, W, H, k):
@@ -700,24 +913,42 @@ AFCS_LABELS = [('CPLD', (-0.181, 0.017)), ('VOR/ILS', (-0.105, 0.035)), ('TACAN'
                ('BRT', (-0.049, -0.040))]
 
 
-def radio_face(d, W, H, k):
-    d.rectangle((0, 0, W, H), fill=BEZEL)
-    c = lambda y, z: (W / 2 + y * k, H / 2 - z * k)
-    f = font(0.0028 * k)
-    d.text(c(-0.078, 0.016), 'CHAN', font=f, fill=LETTER, anchor='mm')
-    d.text(c(0.084, 0.016), 'BRT', font=f, fill=LETTER, anchor='mm')
+def label_uv(text, w, h):
+    """a small printed label's uv rectangle"""
+    return face_tile(('label', text, w, h), w, h, FACE_PX,
+                     lambda d, W, H, k: (d.rectangle((0, 0, W, H), fill=BEZEL), fitted(d, text, W, H, H * 0.75)))
 
 
 def glareshield():
-    # the hood over the displays, from the windscreen to its face
+    """the shelf from the windscreen to its face, the flight control panel and the radio panels in it, the cheeks"""
     o = obj('Glareshield')
-    A.box(o, -0.668, 0.668, HOOD_Z0, HOOD_Z1, -0.42, HOOD_D, solid(PAINT), solid(PAINT))
+    p = solid(PAINT)
+    A.box(o, -AFCS_W / 2 - SHELF_M, AFCS_W / 2 + SHELF_M, AFCS_Z0 - SHELF_M, AFCS_Z0 + AFCS_H + SHELF_M, -0.42, SHELF_D, p, p)
+    hr, hk = HOUSING_H
+    for side in (-1, 1):
+        at = lambda s_: side * (RADIO_OUT - s_)
+        inner = side * RADIO_IN
+        # the radio housing: its full length to the keys' foot, the radio unit's lower part, the bevel between
+        A.box(o, *sorted((at(0.0), inner)), RADIO_TOP - hk, RADIO_TOP, -0.42, SHELF_D, p, p)
+        A.box(o, *sorted((at(BEVEL[1]), inner)), RADIO_TOP - hr, RADIO_TOP - hk, -0.42, SHELF_D, p, p)
+        A.prism(o, [(at(BEVEL[0]), RADIO_TOP - hk), (at(BEVEL[1]), RADIO_TOP - hk), (at(BEVEL[1]), RADIO_TOP - hr)],
+                -0.42, SHELF_D, p, p)
+        # the cheek at the end: a sheet of metal straight back toward the crew, flush with the radio panel's end; its
+        # crew-side edge starts at the radio panel's face at the top, angles toward the crew, runs straight for a
+        # short stretch a little above halfway down, and angles back to the displays' bezels at the foot
+        z0, z1 = MFD_Z - MFD_H / 2 - 0.010, RADIO_TOP
+        top, near, foot = SHELF_D, CHEEK_NEAR, MFD_D
+        outline = [(0.0, z0), (foot - BACK, z0), (near - BACK, z1 - CHEEK_FLAT[1]), (near - BACK, z1 - CHEEK_FLAT[0]),
+                   (top - BACK, z1), (0.0, z1)]
+        f = Frame(o, (BACK, side * (RADIO_OUT + 0.003), 0.0), (0.0, -side, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+        A.prism(f, outline, 0.0, 0.003, p, p)
+        A.flat(f, outline, 0.0, p, normal=-1)
     # the automatic flight control panel
-    cz = (HOOD_Z0 + HOOD_Z1) / 2 + 0.002
+    cz = AFCS_Z0 + AFCS_H / 2
     face = face_tile('afcs-face', AFCS_W, AFCS_H, FACE_PX, afcs_face)
-    plate('AFCS.panel', 0.0, cz, AFCS_W, AFCS_H, HOOD_D, HOOD_D + 0.008,
+    plate('AFCS.panel', 0.0, cz, AFCS_W, AFCS_H, SHELF_D, SHELF_D + 0.008,
           tex_rect(face, -AFCS_W / 2, AFCS_W / 2, cz - AFCS_H / 2, cz + AFCS_H / 2), color=BEZEL)
-    dk = HOOD_D + 0.008
+    dk = SHELF_D + 0.008
     for kid, leg, y, z, w, h in AFCS_KEYS:
         key('AFCS.%s' % kid, 'AFCS', kid, leg if leg != 'CPLD' else '', y, cz + z, w, h, dk)
     screen('AFCS.readouts', 0.0375, cz + 0.0255, 0.225, 0.013, dk + 0.0004)
@@ -730,23 +961,32 @@ def glareshield():
                                                ('HVRALT', '/autopilot/settings/target-agl-ft', 0.5, 10, 0, 5000, False),
                                                ('BRT', '/instrumentation/mv22b/displays/afcs/brightness', 270, 0.1, 0.1, 1, False)):
         XML.append(knob_xml('AFCS.%s.knob' % kid, prop, deg, step, lo, hi, wrap))
-    # the radio panels
+    # the radio units and the keys: s in from the housing's outer end
+    a0, a1, ph = RADIO_UNIT
+    rz = RADIO_TOP - 0.004 - ph / 2
+    dark = solid((12, 12, 13))
     for side, name in ((-1, 'RADIO1'), (1, 'RADIO2')):
-        w, h = 0.205, 0.044
-        cy = side * 0.445
-        rface = face_tile('radio-face', w, h, FACE_PX, radio_face)
-        plate(name + '.panel', cy, cz - 0.004, w, h, HOOD_D, HOOD_D + 0.006, tex_rect(rface, cy - w / 2, cy + w / 2, cz - 0.004 - h / 2, cz - 0.004 + h / 2),
-              color=BEZEL)
-        knob(name + '.CHAN', cy - 0.078, cz - 0.008, 0.0085, HOOD_D + 0.006, 0.014)
-        knob(name + '.BRT', cy + 0.084, cz - 0.008, 0.0065, HOOD_D + 0.006, 0.010)
+        at = lambda s_: side * (RADIO_OUT - s_)
+        o = plate(name + '.panel', (at(a0) + at(a1)) / 2, rz, a1 - a0, ph, SHELF_D, SHELF_D + 0.006, solid(BEZEL), color=BEZEL)
+        dk = SHELF_D + 0.006
+        for s_ in (a0 + 0.006, a1 - 0.006):                                                   # its screws
+            for z in (rz - ph / 2 + 0.007, rz + ph / 2 - 0.007):
+                A.cylinder(o, 0.0018, at(s_), z, dk, dk + 0.0012, dark, dark, n=8)
+        for t, s_ in (('CHAN', RADIO_CHAN), ('BRT', RADIO_BRT)):                          # the knobs' labels
+            uv = label_uv(t, 0.016, 0.004)
+            A.flat(o, [(at(s_) - 0.008, rz + 0.016), (at(s_) + 0.008, rz + 0.016), (at(s_) + 0.008, rz + 0.020),
+                       (at(s_) - 0.008, rz + 0.020)], dk + 0.0003, tex_rect(uv, at(s_) - 0.008, at(s_) + 0.008, rz + 0.016, rz + 0.020))
+        knob(name + '.CHAN', at(RADIO_CHAN), rz, 0.0085, dk, 0.014)
+        knob(name + '.BRT', at(RADIO_BRT), rz, 0.0065, dk, 0.010)
+        key(name + '.SEL', name, 'SEL', 'S\nE\nL', at(RADIO_SEL), rz, 0.010, 0.026, dk, 0.004)
         n = 0 if side < 0 else 1
         XML.append(knob_xml(name + '.CHAN', '/instrumentation/comm[%d]/frequencies/selected-mhz' % n, 40, 0.025, 118, 136.975, True))
         XML.append(knob_xml(name + '.BRT', '/instrumentation/mv22b/displays/%s/brightness' % name.lower(), 270, 0.1, 0.1, 1))
-        screen(name + '.screen', cy + 0.006, cz - 0.006, 0.112, 0.018, HOOD_D + 0.0065)
-        # the two square keys at its outer end
-        for k, dy in enumerate((0.142, 0.180)):
-            key('%s.K%d' % (name, k + 1), name, 'K%d' % (k + 1), '', side * (0.445 + dy) if side > 0 else -(0.445 + dy), cz - 0.004, 0.020, 0.018,
-                HOOD_D, 0.008)
+        w0, w1, wh = RADIO_WIN
+        screen(name + '.screen', (at(w0) + at(w1)) / 2, rz, w1 - w0, wh, dk + 0.0005)
+        for k, s_ in enumerate(RADIO_KEYS):                                                 # on the housing's thin part
+            key('%s.K%d' % (name, k + 1), name, 'K%d' % (k + 1), '', at(s_), RADIO_TOP - HOUSING_H[1] / 2, 0.025, 0.025,
+                SHELF_D, 0.008)
 
 
 # ---------------------------------------------------------------- the panel's body and the console
@@ -767,23 +1007,57 @@ def extrude(o, profile, y0, y1, uv):
 
 def body(tilt, kp_foot):
     """the face behind the displays' row; the console: under the CDU and its keypads as wide as they are, from the
-    panel's face to its foot past the keypads, there straight down to the floor, its front straight down from the
-    panel's back; the wedge under the call panel"""
+    panel's face to the keypads' foot (kp_foot), straight down from there and from the panel's back to the floor; aft
+    of it the extension, level to a rounded edge and straight down to the floor, the park brake handle at its aft face;
+    the wedge under the call panel"""
     o = obj('Panel.body')
     p = solid(PAINT)
-    A.box(o, -0.668, 0.668, MFD_Z - MFD_H / 2 - 0.010, HOOD_Z0, BACK, 0.0, p, p)
+    A.box(o, -RADIO_OUT, RADIO_OUT, MFD_Z - MFD_H / 2 - 0.010, AFCS_Z0, BACK, 0.0, p, p)
     sp, cp = math.sin(math.radians(PANEL_PITCH)), math.cos(math.radians(PANEL_PITCH))
+    up, aft = (sp, cp), (cp, -sp)                                       # in (d, z)
+    down = lambda q, h: (q[0] - h * up[0], q[1] - h * up[1])
+    height = lambda q: q[0] * sp + q[1] * cp - FLOOR                    # above the floor
     top = (BACK, tilt.p)
     s0 = (0.0, tilt.p)
-    d1, _, z1 = tilt.pt((0.0, 0.0, kp_foot))
-    t = d1 * sp + z1 * cp - FLOOR                                       # height above the floor
-    d2, z2 = d1 - t * sp, z1 - t * cp                                   # straight down
-    u = (d2 * cp - z2 * sp) - (BACK * cp - tilt.p * sp)                 # how far aft of the top's front edge
-    d3, z3 = d2 - u * cp, z2 + u * sp                                   # straight forward, below it
+    d0, _, z0 = tilt.pt((0.0, 0.0, kp_foot))
+    foot = (d0, z0)
+    floor0, floor_top = down(foot, height(foot)), down(top, height(top))
     w = CDU_W / 2 + 0.006
-    extrude(o, [top, s0, (d1, z1), (d2, z2), (d3, z3)], CDU_Y - w, CDU_Y + w, p)
+    extrude(o, [top, s0, foot, floor0, floor_top], CDU_Y - w, CDU_Y + w, p)
+    # the extension: its aft edge rounded, a quarter circle from the level top to the aft face
+    corner = (d0 + AFT_L * aft[0], z0 + AFT_L * aft[1])
+    c = (corner[0] - EDGE_R * (aft[0] + up[0]), corner[1] - EDGE_R * (aft[1] + up[1]))
+    edge = [(c[0] + EDGE_R * (math.cos(a) * up[0] + math.sin(a) * aft[0]), c[1] + EDGE_R * (math.cos(a) * up[1] + math.sin(a) * aft[1]))
+            for a in (math.radians(15 * k) for k in range(7))]
+    x = obj('Console.extension')
+    extrude(x, [foot] + edge + [down(corner, height(corner)), floor0], CDU_Y - w, CDU_Y + w, p)
+    park_brake(x, corner, height(corner), sp, cp)
     d4, _, z4 = tilt.pt((0.0, 0.0, tilt.p - 0.006 - CALL_H))
     extrude(o, [top, s0, (d4, z4), (BACK, z4)], CDU_Y + w, ESFI_Y1, p)
+
+
+EDGE_R = 0.020                        # m: the console extension's rounded aft edge
+BRAKE_Y = 0.115                      # the park brake's rod right of the console's middle
+BRAKE_T = (0.075, -0.050, 0.030)      # its T-handle above the console's aft edge, its bracket, the rod aft of the face
+
+
+def park_brake(o, corner, height, sp, cp):
+    """the PARK BRAKE handle: a T on a rod standing up the console's aft face through a bracket, pulled up when set
+    (corner: the console's aft edge; height: the edge's above the floor)"""
+    hi, lo, off = BRAKE_T
+    up, aft = (sp, 0.0, cp), (cp, 0.0, -sp)
+    at = lambda h: (corner[0] + off * aft[0] + h * up[0], CDU_Y + BRAKE_Y, corner[1] + off * aft[2] + h * up[2])
+    metal = solid(CHROME)
+    b = Frame(o, at(lo), up, (0.0, 1.0, 0.0), aft)
+    closed(b, A.circle(0.012, n=6), -0.011, 0.011, metal, metal)
+    A.box(b, -0.008, 0.008, -off, -0.010, -0.008, 0.008, metal, metal)
+    h = obj('BRAKE.handle')
+    A.cylinder(Frame(h, at(0.0), up, (0.0, 1.0, 0.0), aft), 0.0045, 0, 0, -height, hi, metal, metal, n=12)
+    closed(Frame(h, at(hi), (0.0, 1.0, 0.0), up, aft), A.rrect(0.016, 0.022, 0.006), -0.040, 0.040, solid(KEY), solid(KEY))
+    XML.append('  <animation>\n    <type>translate</type>\n    <object-name>BRAKE.handle</object-name>\n'
+               '    <property>/controls/gear/brake-parking</property>\n    <factor>%.4f</factor>\n    <offset-m>%.4f</offset-m>\n'
+               '    <axis>\n      <x>%.4f</x>\n      <y>%.4f</y>\n      <z>%.4f</z>\n    </axis>\n  </animation>\n'
+               % ((BRAKE_TRAVEL, -BRAKE_TRAVEL) + up) + toggle_xml('BRAKE.handle', '/controls/gear/brake-parking'))
 
 
 # ---------------------------------------------------------------- the model file
@@ -828,11 +1102,16 @@ if __name__ == '__main__':
     call_panel(under)
     tcl('R', top)
     tcl('L', top)
-    tilt, FRAME = FRAME, None
-    body(tilt, top - KP_L - CONSOLE_AFT)
+    tilt = FRAME
+    sp, cp = math.sin(math.radians(PANEL_PITCH)), math.cos(math.radians(PANEL_PITCH))
+    FRAME = Frame(None, tilt.pt((0.0, 0.0, top - KP_L)), (sp, 0.0, cp), (0.0, 1.0, 0.0), (-cp, 0.0, sp))  # level: d up, z forward
+    aft_section(0.0)
+    FRAME = None
+    body(tilt, top - KP_L)
     glareshield()
     A.write(os.path.join(OUT, 'panel.ac'), OBJS)
     AT.im.save(os.path.join(OUT, TEX))
     Image.new('RGB', (4, 4), SCREEN_OFF).save(os.path.join(OUT, 'screen.png'))
+    rwr_face().save(os.path.join(OUT, RWR_TEX))
     open(os.path.join(OUT, 'panel.xml'), 'w').write(model_xml())
-    print('%d objects, %d keys; the atlas filled to %d px' % (len(OBJS), len(KEYS), AT.y + AT.row))
+    print('%d objects, %d keys; the atlas filled to %d px' % (len(OBJS), len(KEYS), AT.sky.max()))

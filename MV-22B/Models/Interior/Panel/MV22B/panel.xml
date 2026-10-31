@@ -3811,6 +3811,19 @@
 
   <animation>
     <type>pick</type>
+    <object-name>RADIO1.SEL</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("RADIO1", "SEL")</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>pick</type>
     <object-name>RADIO1.K1</object-name>
     <action>
       <button>0</button>
@@ -3831,6 +3844,19 @@
       <binding>
         <command>nasal</command>
         <script>displays.key("RADIO1", "K2")</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>pick</type>
+    <object-name>RADIO2.SEL</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("RADIO2", "SEL")</script>
       </binding>
     </action>
   </animation>
@@ -4063,14 +4089,14 @@
     <factor>40</factor>
     <offset-deg>-40</offset-deg>
     <center>
-      <x-m>0.0273</x-m>
+      <x-m>0.0245</x-m>
       <y-m>0.0870</y-m>
-      <z-m>0.1067</z-m>
+      <z-m>0.0999</z-m>
     </center>
     <axis>
-      <x>-0.8660</x>
+      <x>-0.9659</x>
       <y>0</y>
-      <z>-0.5000</z>
+      <z>-0.2588</z>
     </axis>
     <action>
       <binding>
@@ -4092,14 +4118,14 @@
     <min-deg>-25</min-deg>
     <max-deg>25</max-deg>
     <center>
-      <x-m>0.2652</x-m>
+      <x-m>0.1946</x-m>
       <y-m>0.2193</y-m>
-      <z-m>-0.1472</z-m>
+      <z-m>-0.1856</z-m>
     </center>
     <axis>
-      <x>0.6428</x>
+      <x>0.6463</x>
       <y>0.0000</y>
-      <z>0.7660</z>
+      <z>0.7631</z>
     </axis>
     <increase>
       <binding>
@@ -4123,9 +4149,9 @@
     <factor>0.1016</factor>
     <offset-m>-0.0508</offset-m>
     <axis>
-      <x>-0.5000</x>
+      <x>-0.2588</x>
       <y>0.0000</y>
-      <z>0.8660</z>
+      <z>0.9659</z>
     </axis>
   </animation>
 
@@ -4137,14 +4163,14 @@
     <min-deg>-25</min-deg>
     <max-deg>25</max-deg>
     <center>
-      <x-m>0.2652</x-m>
+      <x-m>0.1946</x-m>
       <y-m>-0.8607</y-m>
-      <z-m>-0.1472</z-m>
+      <z-m>-0.1856</z-m>
     </center>
     <axis>
-      <x>0.6428</x>
+      <x>0.6463</x>
       <y>0.0000</y>
-      <z>0.7660</z>
+      <z>0.7631</z>
     </axis>
     <increase>
       <binding>
@@ -4168,10 +4194,60 @@
     <factor>0.1016</factor>
     <offset-m>-0.0508</offset-m>
     <axis>
-      <x>-0.5000</x>
+      <x>-0.2588</x>
       <y>0.0000</y>
-      <z>0.8660</z>
+      <z>0.9659</z>
     </axis>
+  </animation>
+
+  <animation>
+    <type>translate</type>
+    <object-name>GEAR.handle</object-name>
+    <property>/controls/gear/gear-down</property>
+    <factor>-0.0250</factor>
+    <offset-m>0.0250</offset-m>
+    <axis>
+      <x>-0.8637</x>
+      <y>0.0000</y>
+      <z>0.5039</z>
+    </axis>
+  </animation>
+  <animation>
+    <type>pick</type>
+    <object-name>GEAR.handle</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>property-toggle</command>
+        <property>/controls/gear/gear-down</property>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>translate</type>
+    <object-name>BRAKE.handle</object-name>
+    <property>/controls/gear/brake-parking</property>
+    <factor>0.0400</factor>
+    <offset-m>-0.0400</offset-m>
+    <axis>
+      <x>0.5039</x>
+      <y>0.0000</y>
+      <z>0.8637</z>
+    </axis>
+  </animation>
+  <animation>
+    <type>pick</type>
+    <object-name>BRAKE.handle</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>property-toggle</command>
+        <property>/controls/gear/brake-parking</property>
+      </binding>
+    </action>
   </animation>
 
   <animation>
@@ -4181,9 +4257,9 @@
     <factor>1</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0440</x-m>
+      <x-m>0.0680</x-m>
       <y-m>-0.0620</y-m>
-      <z-m>0.3130</z-m>
+      <z-m>0.2970</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4209,9 +4285,9 @@
     <factor>1</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0440</x-m>
+      <x-m>0.0680</x-m>
       <y-m>-0.0260</y-m>
-      <z-m>0.3130</z-m>
+      <z-m>0.2970</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4237,9 +4313,9 @@
     <factor>2</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0440</x-m>
+      <x-m>0.0680</x-m>
       <y-m>0.0080</y-m>
-      <z-m>0.3130</z-m>
+      <z-m>0.2970</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4265,9 +4341,9 @@
     <factor>0.1</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0440</x-m>
+      <x-m>0.0680</x-m>
       <y-m>0.0480</y-m>
-      <z-m>0.3130</z-m>
+      <z-m>0.2970</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4293,9 +4369,9 @@
     <factor>0.5</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0440</x-m>
+      <x-m>0.0680</x-m>
       <y-m>0.0880</y-m>
-      <z-m>0.3130</z-m>
+      <z-m>0.2970</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4321,9 +4397,9 @@
     <factor>270</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0440</x-m>
+      <x-m>0.0680</x-m>
       <y-m>-0.0620</y-m>
-      <z-m>0.2790</z-m>
+      <z-m>0.2630</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4349,9 +4425,9 @@
     <factor>40</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0420</x-m>
-      <y-m>-0.5230</y-m>
-      <z-m>0.3030</z-m>
+      <x-m>0.0660</x-m>
+      <y-m>-0.4375</y-m>
+      <z-m>0.2845</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4377,9 +4453,9 @@
     <factor>270</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0420</x-m>
-      <y-m>-0.3610</y-m>
-      <z-m>0.3030</z-m>
+      <x-m>0.0660</x-m>
+      <y-m>-0.2405</y-m>
+      <z-m>0.2845</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4405,9 +4481,9 @@
     <factor>40</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0420</x-m>
-      <y-m>0.3670</y-m>
-      <z-m>0.3030</z-m>
+      <x-m>0.0660</x-m>
+      <y-m>0.4375</y-m>
+      <z-m>0.2845</z-m>
     </center>
     <axis>
       <x>-1.0000</x>
@@ -4433,9 +4509,9 @@
     <factor>270</factor>
     <offset-deg>0</offset-deg>
     <center>
-      <x-m>0.0420</x-m>
-      <y-m>0.5290</y-m>
-      <z-m>0.3030</z-m>
+      <x-m>0.0660</x-m>
+      <y-m>0.2405</y-m>
+      <z-m>0.2845</z-m>
     </center>
     <axis>
       <x>-1.0000</x>

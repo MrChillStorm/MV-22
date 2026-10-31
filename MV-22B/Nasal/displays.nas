@@ -615,11 +615,11 @@ var Readouts = {
 var Radio = {
     new: func(n) {
         var m = {parents: [Radio], n: n};
-        m.c = canvas.new({"name": "RADIO" ~ (n + 1), "size": [512, 80], "view": [512, 80], "mipmapping": 1});
+        m.c = canvas.new({"name": "RADIO" ~ (n + 1), "size": [512, 92], "view": [512, 92], "mipmapping": 1});
         m.c.addPlacement({"node": "RADIO" ~ (n + 1) ~ ".screen"});
         m.c.setColorBackground(0, 0, 0, 1);
         var g = m.c.createGroup();
-        m.t = txt(g, "", 256, 42, 48, GREEN, "center-center", MONO);
+        m.t = txt(g, "", 256, 48, 52, GREEN, "center-center", MONO);
         return m;
     },
     update: func {
