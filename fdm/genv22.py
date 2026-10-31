@@ -36,12 +36,19 @@ U = None                  # the aircraft's data module, set by configure()
 G0 = 32.174
 R2D = 180 / math.pi
 SIDES = (('r', 1), ('l', -1))
-# the rotors, the gimbals and the inflow run at the FDM rate; the airframe, engines and outputs every few frames
-AIRFRAME_EXECRATE = 4
+# Rates. In FlightGear every property read takes a lock, so a step costs what it reads; the rotors' blade elements and
+# gimbals and the drive train run at the FDM rate (480 Hz: the gimbals need it), the rest every few frames: the
+# Peters-He inflow with its gains and its forcing (time constants of a tenth of a second and more) and the controls
+# (pilot, nacelles, mixing, servos, governor, SCAS) at 120 Hz, the airframe at 60 Hz, the engines and outputs too
+INFLOW_EXECRATE = 4
+CONTROL_EXECRATE = 4
+AIRFRAME_EXECRATE = 8
 SLOW_EXECRATE = 8
 # Peters-He states (j, r): three axisymmetric (the hover's radial distribution) and the first harmonic
 PH_COS = [(1, 0), (3, 0), (5, 0), (2, 1)]
 PH_SIN = [(2, 1)]
+PHI10 = PH.phi(1, 0, 0.5)               # the first shape: the same at every radius (sqrt 3)
+assert all(abs(PH.phi(1, 0, x) - PHI10) < 1e-12 for x in (0.05, 0.5, 0.95))
 # ground effect on the induced velocity in hover, (1 + GE_K (R/Z)^2)^GE_EXP with Z the hub height [as the UH-60 and Bo 105
 # models: the UH-60 flight manual's shape], carried into forward flight with Heyson's ratio [NASA TN D-234]
 GE_K, GE_EXP, GE_ZR_MIN = 0.3, -0.5, 0.3
@@ -57,7 +64,7 @@ KEEP = {'aero/rotor/r/thrust-lbs', 'aero/rotor/l/thrust-lbs', 'aero/rotor/r/torq
         'aero/rotor/r/power-hp', 'aero/rotor/l/power-hp', 'aero/wing/download-lbs', 'aero/wing/lift-lbs',
         # read by Nasal/v22.nas and the gauges
         'drive/nr-pct', 'eng/power-available-hp', 'eng/xmsn-limit-hp', 'ctl/nacelle-cmd-limited-deg', 'ctl/cps-min-deg',
-        'ctl/cps-max-deg', 'gov/theta-deg'}
+        'ctl/cps-max-deg', 'gov/theta-deg', 'hh/state', 'hh/e-ft', 'hh/h-ft', 'hh/vN-cmd', 'hh/vE-cmd'}
 INLINE = True
 
 
@@ -95,6 +102,14 @@ def wrap180(e):
     return IFTHEN(GT(e, v(180)), D(e, v(360)), IFTHEN(LT(e, v(-180)), S(e, v(360)), e))
 
 
+def periodic(rows, *tabs):
+    """tables over -180..180 deg (rows) carried on to -360..360, so that an angle needs no wrapping into them"""
+    lo = [(a - 360, i) for i, a in enumerate(rows) if 0 <= a < 180]
+    hi = [(a + 360, i) for i, a in enumerate(rows) if -180 < a <= 0]
+    idx = lo + list(zip(rows, range(len(rows)))) + hi
+    return [a for a, i in idx], [[t[i] for a, i in idx] for t in tabs]
+
+
 def _odd(xs, ys):
     return [-x for x in reversed(xs[1:])] + list(xs), [-y for y in reversed(ys[1:])] + list(ys)
 
@@ -109,6 +124,7 @@ class Model:
         s.X, s.Y, s.Z, s.L, s.Mm, s.N = [], [], [], [], [], []
         s.segs, s.edges = segments(U.NSEG, U.R_ROOT, U.R)
         s.wake_tab = rotorwake.load(U)
+        s.inflow_start = {}
 
     def add(s, F, Mo):
         for lst, x in zip((s.X, s.Y, s.Z, s.L, s.Mm, s.N), tuple(F) + tuple(Mo)):
@@ -155,7 +171,8 @@ class Model:
         c.declare('ctl/scas-on', 1)
         for n in ('lon', 'lat', 'ped'):
             c.declare('scas/%s-in' % n, 0.0)
-        c.channel('pilot')
+        s.hover_hold()
+        c.channel('pilot', execrate=CONTROL_EXECRATE)
         c.fn('ctl/init-fast', IFTHEN(LT(p('simulation/sim-time-sec'), v(1.0)), v(1), MIN(v(1), MAX(v(0), p('ctl/init')))))
         init = GT(p('ctl/init-fast'), v(0.5))
         tcl = c.fn('ctl/tcl-norm', p('/controls/engines/engine[0]/throttle'), clip=('0', '1'),
@@ -173,7 +190,7 @@ class Model:
              clip=('-%g' % B.X_LON, '%g' % B.X_LON))
         c.fn('ctl/lat-in', S(M(lat, v(B.X_LAT), ff), M(sc, p('scas/lat-in'))), clip=('-%g' % B.X_LAT, '%g' % B.X_LAT))
         c.fn('ctl/ped-in', S(M(ped, v(B.X_PED)), M(sc, p('scas/ped-in'))), clip=('-%g' % B.X_PED, '%g' % B.X_PED))
-        c.channel('nacelles')
+        c.channel('nacelles', execrate=CONTROL_EXECRATE)
         # the nacelle angle follows its command at the conversion rate; it starts at the command
         nac = p('ctl/nacelle-deg')
         cmd = MAX(v(U.NACELLE_MIN), MIN(v(U.NACELLE_MAX), p('/controls/flight/nacelle-cmd-deg')))
@@ -187,14 +204,14 @@ class Model:
             hi_ = c.fn('ctl/cps-max-deg', IFTHEN(on, T1('velocities/ve-kts', uv, un), v(U.NACELLE_MAX)))
             cmd = c.fn('ctl/nacelle-cmd-limited-deg', MAX(lo_, MIN(hi_, cmd)))
         # this step's change, and its rate, from the angle before it: the next angle overwrites ctl/nacelle-deg
-        step = M(v(U.NACELLE_RATE), p('simulation/dt'))
+        step = M(v(U.NACELLE_RATE), p('simulation/channel-dt'))
         dn = c.fn('ctl/nacelle-step-deg', IFTHEN(init, D(cmd, nac), MAX(NEG(step), MIN(step, D(cmd, nac)))))
-        c.fn('ctl/nacelle-rate-rad_sec', IFTHEN(init, v(0), Q(dn, M(v(R2D), p('simulation/dt')))))
+        c.fn('ctl/nacelle-rate-rad_sec', IFTHEN(init, v(0), Q(dn, M(v(R2D), p('simulation/channel-dt')))))
         c.fn('ctl/nacelle-next', S(nac, dn), out='ctl/nacelle-deg')
         bm = c.fn('ctl/beta-m-deg', D(v(90), nac), desc='Bell\'s mast angle, 0 helicopter .. 90 airplane')
         c.fn('ctl/sin-nac', SIN(M(nac, v(1 / R2D))))
         c.fn('ctl/cos-nac', COS(M(nac, v(1 / R2D))))
-        c.channel('mixing')
+        c.channel('mixing', execrate=CONTROL_EXECRATE)
         bmt = lambda ys: T1('ctl/beta-m-deg', B.CTL_BETAM, ys)
         # collective at 0.75 R: Bell's lever schedule is the blade's pitch at the centre with its twist table (40.9 deg
         # root to tip, 6.375 at 0.75 R) [CR B-4, B-38]
@@ -228,7 +245,7 @@ class Model:
         c.declare('ctl/flaperon-override', 0)
         c.declare('ctl/flaperon-set-deg', 0.0)
         c.fn('ctl/flaperon-cmd-deg', IFTHEN(GT(p('ctl/flaperon-override'), v(0.5)), p('ctl/flaperon-set-deg'), fsch))
-        c.channel('servos')
+        c.channel('servos', execrate=CONTROL_EXECRATE)
         # swashplate and surface actuators: first-order, 0.05 s (estimate)
         for n in ['r/theta75', 'l/theta75', 'r/b1s', 'l/b1s', 'elevator', 'rudder', 'aileron', 'flaperon']:
             c.lag('ctl/%s-deg' % n, 'ctl/%s-cmd-deg' % n, 0.05)
@@ -241,7 +258,7 @@ class Model:
         [CR table CVIII]; the reference is the schedule's (104 % in helicopter and conversion modes, 84 % in airplane
         mode for the V-22) with the pilot's trim. Started at the trim's value."""
         c = s.ctl
-        c.channel('governor')
+        c.channel('governor', execrate=CONTROL_EXECRATE)
         c.declare('gov/int-deg', 0.0)
         c.declare('gov/kp', 0.6)              # deg per % (Bell's 0.1 deg/rpm at 589 rpm: 0.59)
         c.declare('gov/ki', 0.4)              # deg per % s
@@ -250,7 +267,7 @@ class Model:
         # rotor speed reference: airplane mode's below 1 deg of nacelle angle, rate limited (2 %/s)
         c.declare('gov/nr-ref-pct', U.NR_HELO)
         tgt = S(IFTHEN(LT(p('ctl/nacelle-deg'), v(1.0)), v(U.NR_APLN), v(U.NR_HELO)), p('/controls/rotor/nr-trim-pct'))
-        st = M(v(2.0), p('simulation/dt'))
+        st = M(v(2.0), p('simulation/channel-dt'))
         ref = c.fn('gov/nr-ref-next', IFTHEN(init, tgt, S(p('gov/nr-ref-pct'), MAX(NEG(st), MIN(st, D(tgt, p('gov/nr-ref-pct')))))),
                    out='gov/nr-ref-pct')
         nr = M(v(100 / U.OMEGA_100), p('rotor/omega-rad_sec'))
@@ -261,7 +278,7 @@ class Model:
         # its integral held at zero below: on a start the blades stay at the lever's flat pitch
         ga = c.fn('gov/engaged', MAX(v(0), MIN(v(1), Q(S(D(nr, ref), v(19)), v(10)))))
         c.fn('gov/int-next', IFTHEN(init, p('gov/int-deg'), IFTHEN(LT(ga, v(0.01)), v(0),
-                                                                MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/ki'), ga, err, p('simulation/dt'))))))),
+                                                                MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/ki'), ga, err, p('simulation/channel-dt'))))))),
              out='gov/int-deg')
         c.fn('gov/theta-deg', M(ga, MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/kp'), err))))))
 
@@ -269,7 +286,7 @@ class Model:
         """Stability and control augmentation, for the FlightGear aircraft (the validation runs the bare airframe,
         ctl/scas-on = 0). The V-22's fly-by-wire control laws are not public (it holds attitude in all modes [PD]), nor
         are the XV-15 SCAS's tables used: these are proportional-integral loops through the mixing, in inches of stick
-        and pedal, with half the stick's and pedals' travel as their authority (the V-22 flies by wire). Rate damping in
+        and pedal, with half the stick's travel and the pedals' full travel as their authority (the V-22 flies by wire). Rate damping in
         the three axes, for a rate time constant of about 0.5 s in the hover (the hover's control power per inch: pitch
         8.7, roll 8.1, yaw 4.8 deg/s^2, from the test programme's pulse responses), and attitude loops in pitch and roll
         of about 1.2 rad/s. A feed-forward of the level-flight trim's stick over the nacelle angle and the airspeed
@@ -285,19 +302,22 @@ class Model:
         is held. On the ground the references follow the aircraft. The gains fall with the dynamic pressure, against the
         surfaces' growing power."""
         c = s.ctl
-        c.channel('scas')
+        c.channel('scas', execrate=CONTROL_EXECRATE)
         c.declare('scas/kq', 13.0)        # in per rad/s
         c.declare('scas/ktheta', 10.0)    # in per rad
         c.declare('scas/ki-theta', 3.0)   # in per rad s
-        c.declare('scas/kp', 14.0)
-        c.declare('scas/kphi', 10.0)
+        c.declare('scas/kp', 20.0)        # roll: the hover hold's sideways loop works through it (14 and 10 overshot 67 %)
+        c.declare('scas/kphi', 20.0)
         c.declare('scas/ki-phi', 3.0)
         c.declare('scas/kr', 24.0)
         c.declare('scas/kpsi', 10.0)
         c.declare('scas/theta-cmd-deg', 20.0)   # attitude command at full stick
         c.declare('scas/phi-cmd-deg', 25.0)
         c.declare('scas/detent', 0.05)    # stick or pedals within this of their centre: at rest (fraction of travel)
-        auth, auth_ped = 0.5 * B.X_LON, 0.5 * B.X_PED
+        c.declare('scas/auth-in', 0.5 * B.X_LON)            # stick (pitch, roll), in
+        c.declare('scas/auth-ped-in', B.X_PED)              # pedals: the full travel, which the yaw's rate command needs in a
+                                                            # tailwind (half of it let a 35 kt one turn the aircraft)
+        auth, auth_ped = p('scas/auth-in'), p('scas/auth-ped-in')
         # gain schedule: 1 in the hover, 0.5 at 30 psf (about 95 kt), 0.15 at 170 psf (230 kt)
         k = c.fn('scas/gain', Q(v(1), S(v(1), Q(p('aero/qbar-psf'), v(30)))))
         c.washout('scas/q-wo', 'velocities/q-rad_sec', 5.0)
@@ -310,13 +330,22 @@ class Model:
         # the stick's direct path to the controls, cut to 30 % where it commands an attitude, so that the attitude
         # loop sets the response; back to full by 60 kt and with the nacelles below 50 deg
         low = M(MAX(v(0), MIN(v(1), Q(D(v(60), p('velocities/vc-kts')), v(20)))), MAX(v(0), MIN(v(1), Q(D(p('ctl/nacelle-deg'), v(50)), v(20)))))
-        c.fn('scas/stick-ff-calc', D(v(1), M(v(0.7), low)), out='scas/stick-ff')
+        hold_on = GT(p('hh/on'), v(0.5))
+        c.fn('scas/stick-ff-calc', M(D(v(1), hold_on), D(v(1), M(v(0.7), low))), out='scas/stick-ff')
         # the trim feed-forward: the level-flight trim's stick at the nacelle angle and the airspeed (trimmap.py), so
-        # that the stick's centre is trimmed flight through the conversion
+        # that the stick's centre is trimmed flight through the conversion; carried on past 90 deg (the nacelles tilted
+        # aft of vertical, as in a hover stop) along its slope from 75 to 90. Its airspeed is the forward one (equivalent,
+        # along the body's x axis): in rearward or sideward flight it is the hover's, where the airspeed's magnitude
+        # gave the forward flight's forward stick and pitched the nose down as the aircraft went backwards
         tf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trim_ff_v22.json')
         if U.NAME == 'V-22' and os.path.exists(tf):
             tm = json.load(open(tf))
-            c.fn('scas/lon-trim-calc', M(v(B.X_LON), T2('ctl/nacelle-deg', 'velocities/vc-kts', tm['nacelle'], tm['kcas'], tm['lon'])),
+            ns, lon_t = list(tm['nacelle']), [list(r) for r in tm['lon']]
+            if ns[-1] < U.NACELLE_MAX:
+                f = (U.NACELLE_MAX - ns[-1]) / (ns[-1] - ns[-2])
+                lon_t.append([b + (b - a) * f for a, b in zip(lon_t[-2], lon_t[-1])]); ns.append(U.NACELLE_MAX)
+            c.fn('scas/ff-kts', M(Q(p('velocities/u-aero-fps'), v(1.6878)), SQ(p('atmosphere/sigma'))), desc='forward airspeed, equivalent')
+            c.fn('scas/lon-trim-calc', M(v(B.X_LON), T2('ctl/nacelle-deg', 'scas/ff-kts', ns, tm['kcas'], lon_t)),
                  out='scas/lon-trim-in')
         rest = lambda prop: LT(ABS(p(prop)), p('scas/detent'))
         err = {}
@@ -327,11 +356,11 @@ class Model:
             c.declare(ref, 0.0)
             c.declare(integ, 0.0)
             hold = c.fn('scas/%s-hold' % ax, M(air, MAX(acah, rest(stick))), desc='1: the reference held')
-            stk = M(v(sg / R2D), p('scas/%s-cmd-deg' % ax), p(cmd))
-            c.fn('scas/%s-ref-next' % ax, IFTHEN(GT(hold, v(0.5)), p(ref), D(p(att), stk)), out=ref)
+            stk = M(v(sg / R2D), p('scas/%s-cmd-deg' % ax), p(cmd), D(v(1), hold_on))
+            c.fn('scas/%s-ref-next' % ax, IFTHEN(hold_on, p('hh/%s-ref-rad' % ax), IFTHEN(GT(hold, v(0.5)), p(ref), D(p(att), stk))), out=ref)
             err[ax] = c.fn('scas/%s-err-rad' % ax, D(p(att), S(p(ref), stk)), desc='attitude less its command')
-            c.fn('scas/%s-int-next' % ax, IFTHEN(init, v(0), IFTHEN(GT(hold, v(0.5)), MAX(v(-auth), MIN(v(auth),
-                 S(p(integ), M(k, p('scas/ki-' + ax), err[ax], p('simulation/dt'))))), p(integ))), out=integ)
+            c.fn('scas/%s-int-next' % ax, IFTHEN(init, v(0), IFTHEN(GT(hold, v(0.5)), MAX(NEG(auth), MIN(auth,
+                 S(p(integ), M(k, p('scas/ki-' + ax), err[ax], p('simulation/channel-dt'))))), p(integ))), out=integ)
         # heading hold: at low speed, pedals at rest, in the air
         c.declare('scas/psi-ref-rad', 0.0)
         hh = c.fn('scas/psi-hold', M(air, acah, rest('fcs/rudder-cmd-norm')))
@@ -340,11 +369,167 @@ class Model:
         epsi = c.fn('scas/psi-err-rad', M(hh, ATAN2(SIN(dpsi), COS(dpsi))))
         # signs: + forward stick pitches the nose down, + right stick rolls right, + right pedal yaws right
         c.fn('scas/lon-calc', S(M(k, S(M(p('scas/kq'), p('scas/q-wo')), M(p('scas/ktheta'), err['theta']))), p('scas/theta-int-in')),
-             clip=('-%g' % auth, '%g' % auth), out='scas/lon-in')
+             clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lon-in')
         c.fn('scas/lat-calc', NEG(S(M(k, S(M(p('scas/kp'), p('scas/p-wo')), M(p('scas/kphi'), err['phi']))), p('scas/phi-int-in'))),
-             clip=('-%g' % auth, '%g' % auth), out='scas/lat-in')
-        c.fn('scas/ped-calc', NEG(M(k, S(M(p('scas/kr'), p('scas/r-wo')), M(p('scas/kpsi'), epsi)))),
-             clip=('-%g' % auth_ped, '%g' % auth_ped), out='scas/ped-in')
+             clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lat-in')
+        # yaw: at low speed rate command, direction hold (the pedals command a yaw rate, scas/r-cmd-dps at full travel,
+        # held against the wind's weathervaning by an integrator; at rest the heading holds), the response type the
+        # hover's control laws use [ADS-33E-PRF; the AH-64D's]; above, rate damping through a washout. A rate damper
+        # alone let a steady yaw moment (a tailwind on the fins) turn the aircraft and made the pedals weak
+        c.declare('scas/r-cmd-dps', 30.0)
+        c.declare('scas/ki-r', 8.0)       # in per rad of yaw (the rate error integrated)
+        c.declare('scas/r-int-in', 0.0)
+        rcmd = c.fn('scas/r-cmd-rad_sec', M(p('ctl/ped-norm'), p('scas/r-cmd-dps'), v(1 / R2D), acah))
+        rerr = c.fn('scas/r-err-rad_sec', IFTHEN(GT(acah, v(0.5)), D(p('velocities/r-rad_sec'), rcmd), p('scas/r-wo')))
+        cdt = p('simulation/channel-dt')
+        c.fn('scas/r-int-next', IFTHEN(init, v(0), IFTHEN(GT(M(air, acah), v(0.5)),
+             MAX(NEG(auth_ped), MIN(auth_ped, D(p('scas/r-int-in'), M(k, p('scas/ki-r'), rerr, cdt)))),
+             M(p('scas/r-int-in'), MAX(v(0), D(v(1), Q(cdt, v(2))))))), out='scas/r-int-in')
+        c.fn('scas/ped-calc', S(NEG(M(k, S(M(p('scas/kr'), rerr), M(p('scas/kpsi'), epsi)))), p('scas/r-int-in')),
+             clip=('-scas/auth-ped-in', 'scas/auth-ped-in'), out='scas/ped-in')
+
+    def hover_hold(s):
+        """Hover hold (HVR CPLD on the flight control panel, or y), after the AH-64D's modern control laws, Bell's
+        automatic hover hold and ADS-33E-PRF's position hold and translational rate command [README]. Engaged at up to
+        40 kt over the ground with the nacelles past 70 deg, it sets the stop point, where the present velocity comes
+        to rest at 0.08 g, and flies one profile to it (towards the point at no more than sqrt(2 a d), linear within
+        its last few tens of feet), then holds it: position, the heading (the augmentation's heading hold) and the
+        height (radar below 500 ft, barometric above; HVR ALT HOLD takes the panel's radar height). Fore and aft go
+        through the nacelles with the fuselage held level (the V-22 hovers and translates on its nacelles), sideways
+        through the bank. The stick out of its detent commands a ground speed (10 kt at half travel, 2 kt with REM
+        HVR, the crew's fine positioning) with a first-order response, and on its release the stop point is set
+        again; past half travel, 45 kt, below 65 deg of nacelle or on the ground the hold lets go. The hold drives
+        the nacelle command and the lever, as a coupled mode drives its controls: the pilot moving the lever flies
+        through it, and the lever left alone for 1.5 s holds the new height. Gains are properties (hh/*)."""
+        c = s.ctl
+        KT, R_E = 1.6878, 20925646.0
+        STICK, GS_MAX, GS_DROP, NAC_MIN, NAC_DROP = 0.5, 40.0, 45.0, 70.0, 65.0
+        A_MAX, ROLL_MAX, ROLL_RATE, PITCH_RATE, VZ_MAX = 0.2 * G0, 12.0, 15.0, 3.0, 500 / 60.0
+        c.declare('hh/engage-cmd', 0)
+        c.declare('/instrumentation/mv22b/afcs/hvr-hold', 0)
+        c.declare('/instrumentation/mv22b/afcs/rem-hvr', 0)
+        c.declare('/autopilot/settings/target-agl-ft', 0.0)
+        for n in ('on', 'lat-t-rad', 'lon-t-rad', 'iN', 'iE', 'vf-cmd', 'vr-cmd', 'theta-ref-rad', 'phi-ref-rad', 'h-ref-ft',
+                  'alt-on', 'alt-radar', 'alt-fly', 'still-s', 'tcl-int', 'tcl-w', 'dropped', 'nudge-fwd-ft', 'nudge-right-ft'):
+            c.declare('hh/' + n, 0.0)
+        for n, x in (('decel-g', 0.08), ('kp', 0.4), ('kv-fwd', 0.8), ('kv-side', 0.5), ('ki', 0.06), ('i-max-g', 0.1), ('trc-kt', 10.0),
+                     ('trc-rem-kt', 2.0), ('trc-tau', 1.2), ('pitch-deg', 0.0), ('kh', 0.3), ('kpz', 0.08), ('kiz', 0.015)):
+            c.declare('hh/' + n, x)
+        c.channel('hover hold', execrate=CONTROL_EXECRATE)
+        dt = p('simulation/channel-dt')
+        NOT = lambda a: D(v(1), a)
+        lim = lambda x, lo, hi: MAX(v(lo), MIN(v(hi), x))
+        air, nac, gs = p('scas/airborne'), p('ctl/nacelle-deg'), Q(p('velocities/vg-fps'), v(KT))
+        lon, lat, det = p('fcs/elevator-cmd-norm'), p('fcs/aileron-cmd-norm'), p('scas/detent')
+        # engaged, refused, let go
+        out = c.fn('hh/stick-out', MAX(GT(ABS(lon), det), GT(ABS(lat), det)), desc='1: the stick out of its detent')
+        big = MAX(GT(ABS(lon), v(STICK)), GT(ABS(lat), v(STICK)))
+        can = M(air, p('ctl/scas-on'), LT(gs, v(GS_MAX)), GT(nac, v(NAC_MIN)))
+        stay = M(air, p('ctl/scas-on'), LT(gs, v(GS_DROP)), GT(nac, v(NAC_DROP)), NOT(big))
+        cmd, was = GT(p('hh/engage-cmd'), v(0.5)), GT(p('hh/on'), v(0.5))
+        on = c.fn('hh/on-new', M(cmd, IFTHEN(was, stay, can)))
+        rise = c.fn('hh/rise', M(on, NOT(was)))
+        c.fn('hh/dropped-next', IFTHEN(GT(M(was, NOT(on), cmd), v(0.5)), v(1), IFTHEN(GT(M(cmd, NOT(was), NOT(on)), v(0.5)), v(2),
+             IFTHEN(GT(rise, v(0.5)), v(0), p('hh/dropped')))), out='hh/dropped', desc='1: let go, 2: refused (Nasal clears it)')
+        c.fn('hh/on-next', on, out=['hh/on', 'hh/engage-cmd'])
+        onb = GT(on, v(0.5))
+        # the stop point, set on engaging and while the stick flies (the crew's nudges move it, ft forward and right)
+        la, lo = p('position/lat-geod-rad'), p('position/long-gc-rad')
+        cl = c.fn('hh/coslat', COS(la))
+        vN, vE, vg = p('velocities/v-north-fps'), p('velocities/v-east-fps'), p('velocities/vg-fps')
+        cp, sp = c.fn('hh/cpsi', COS(p('attitude/psi-rad'))), c.fn('hh/spsi', SIN(p('attitude/psi-rad')))
+        a = c.fn('hh/decel-fps2', M(p('hh/decel-g'), v(G0)))
+        k = Q(vg, M(v(2), a))
+        again = GT(MAX(rise, M(on, out)), v(0.5))
+        nf, nr = p('hh/nudge-fwd-ft'), p('hh/nudge-right-ft')
+        c.fn('hh/lat-t-next', IFTHEN(again, S(la, Q(M(vN, k), v(R_E))), S(p('hh/lat-t-rad'), Q(D(M(nf, cp), M(nr, sp)), v(R_E)))),
+             out='hh/lat-t-rad')
+        c.fn('hh/lon-t-next', IFTHEN(again, S(lo, Q(M(vE, k), M(v(R_E), cl))),
+                                     S(p('hh/lon-t-rad'), Q(S(M(nf, sp), M(nr, cp)), M(v(R_E), cl)))), out='hh/lon-t-rad')
+        c.fn('hh/nudge-clear', v(0), out=['hh/nudge-fwd-ft', 'hh/nudge-right-ft'])
+        # the profile to it: velocity commanded towards the point
+        eN = c.fn('hh/eN-ft', M(D(p('hh/lat-t-rad'), la), v(R_E)))
+        eE = c.fn('hh/eE-ft', M(D(p('hh/lon-t-rad'), lo), v(R_E), cl))
+        e = c.fn('hh/e-ft', SQ(S(SQR(eN), SQR(eE), v(0.01))), desc='distance to the hold point')
+        kp = p('hh/kp')
+        near = c.fn('hh/near', LT(M(kp, e), SQ(M(v(2), a, e))), desc='1: within the linear capture, 0: on the deceleration')
+        vp = c.fn('hh/vp-fps', MIN(M(kp, e), SQ(M(v(2), a, e)), v(GS_DROP * KT)))
+        # the stick's ground speed, heading axes (forward, right), first order; it starts from the present velocity
+        vf = c.fn('hh/vf-fps', S(M(vN, cp), M(vE, sp)))
+        vr = c.fn('hh/vr-fps', S(NEG(M(vN, sp)), M(vE, cp)))
+        rem = GT(p('/instrumentation/mv22b/afcs/rem-hvr'), v(0.5))
+        trc_k = Q(M(IFTHEN(rem, p('hh/trc-rem-kt'), p('hh/trc-kt')), v(KT)), v(STICK))
+        f1 = Q(dt, p('hh/trc-tau'))
+        for ax, stick, now in (('vf', lon, vf), ('vr', lat, vr)):
+            c.fn('hh/%s-cmd-next' % ax, IFTHEN(GT(M(on, out), v(0.5)),
+                 S(p('hh/%s-cmd' % ax), M(D(M(lim(stick, -STICK, STICK), trc_k), p('hh/%s-cmd' % ax)), f1)), now), out='hh/%s-cmd' % ax)
+        trc = GT(M(on, out), v(0.5))
+        vfc, vrc = p('hh/vf-cmd'), p('hh/vr-cmd')
+        vcN = c.fn('hh/vN-cmd', IFTHEN(trc, D(M(vfc, cp), M(vrc, sp)), Q(M(vp, eN), e)))
+        vcE = c.fn('hh/vE-cmd', IFTHEN(trc, S(M(vfc, sp), M(vrc, cp)), Q(M(vp, eE), e)))
+        # the velocity loop: its error and the profile's deceleration fed forward, the integrators in earth axes (they
+        # take up the wind, which stays put through a turn), the gains in heading axes: fore and aft through the
+        # nacelles is quick, sideways through the bank waits on the roll attitude's loop (about 1.2 rad/s)
+        er, ff, ii = {}, {}, {}
+        for ax, vc, vv, ee in (('N', vcN, vN, eN), ('E', vcE, vE, eE)):
+            er[ax] = c.fn('hh/d%s-fps' % ax, D(vc, vv))
+            imax = M(p('hh/i-max-g'), v(G0))
+            c.fn('hh/i%s-next' % ax, IFTHEN(GT(M(on, NOT(rise)), v(0.5)), MAX(NEG(imax), MIN(imax, S(p('hh/i' + ax), M(p('hh/ki'), er[ax], dt)))), v(0)),
+                 out='hh/i' + ax)
+            ff[ax] = c.fn('hh/ff%s-fps2' % ax, IFTHEN(trc, v(0), IFTHEN(GT(near, v(0.5)), NEG(M(kp, vv)), NEG(Q(M(a, ee), e)))))
+            ii[ax] = p('hh/i' + ax)
+        fwd = lambda x: S(M(x['N'], cp), M(x['E'], sp))
+        side = lambda x: S(NEG(M(x['N'], sp)), M(x['E'], cp))
+        af = c.fn('hh/af-fps2', lim(S(M(p('hh/kv-fwd'), fwd(er)), fwd(ff), fwd(ii)), -A_MAX, A_MAX), desc='acceleration commanded, forward')
+        ar = c.fn('hh/ar-fps2', lim(S(M(p('hh/kv-side'), side(er)), side(ff), side(ii)), -A_MAX, A_MAX), desc='acceleration commanded, right')
+        # to the controls: bank (rate limited, from the present one), the fuselage eased level, the nacelles tilted
+        rate = lambda r: M(v(r / R2D), dt)
+        phi = lim(ATAN2(ar, v(G0)), -ROLL_MAX / R2D, ROLL_MAX / R2D)
+        pr = p('hh/phi-ref-rad')
+        c.fn('hh/phi-ref-next', IFTHEN(GT(rise, v(0.5)), p('attitude/phi-rad'), S(pr, MAX(NEG(rate(ROLL_RATE)), MIN(rate(ROLL_RATE), D(phi, pr))))),
+             out='hh/phi-ref-rad')
+        # the nacelles take the fore and aft acceleration; what is past their range (75 deg forward, NACELLE_MAX aft, as
+        # a stop in a tailwind needs) the pitch attitude takes, nose up for aft
+        nraw = c.fn('hh/nacelle-want-deg', D(v(90), M(v(R2D), ATAN2(af, v(G0)))))
+        over = lim(D(nraw, lim(nraw, 75.0, U.NACELLE_MAX)), -10.0, 10.0)
+        tr = p('hh/theta-ref-rad')
+        c.fn('hh/theta-ref-next', IFTHEN(GT(rise, v(0.5)), p('attitude/theta-rad'),
+             S(tr, MAX(NEG(rate(PITCH_RATE)), MIN(rate(PITCH_RATE), D(Q(S(p('hh/pitch-deg'), over), v(R2D)), tr))))), out='hh/theta-ref-rad')
+        ncmd = '/controls/flight/nacelle-cmd-deg'
+        c.fn('hh/nacelle', IFTHEN(onb, lim(nraw, 75.0, U.NACELLE_MAX), p(ncmd)), out=ncmd, desc='the nacelle command, driven while the hold is on')
+        # the height: the lever driven (power: the governor keeps the rotor speed with the collective); the pilot's
+        # own movement of it flies through, and 1.5 s after it stops the height there is held
+        hvr = GT(p('/instrumentation/mv22b/afcs/hvr-hold'), v(0.5))
+        alt = c.fn('hh/alt-on-new', M(air, GT(nac, v(60)), MAX(on, hvr)))
+        alt_rise = c.fn('hh/alt-rise', M(alt, NOT(GT(p('hh/alt-on'), v(0.5)))))
+        c.fn('hh/alt-on-next', alt, out='hh/alt-on')
+        hagl = c.fn('hh/h-wheels-ft', D(p('position/h-agl-ft'), Q(D(p('inertia/cg-z-in'), v(U.MAIN_GEAR[2])), v(12))),
+                    desc='the wheels\' height, the radar height the displays and the HVR ALT knob show')
+        hsl = p('position/h-sl-ft')
+        c.fn('hh/alt-radar-next', MAX(hvr, IFTHEN(GT(alt_rise, v(0.5)), LT(hagl, v(500)), p('hh/alt-radar'))), out='hh/alt-radar',
+             desc='1: the radar height held, 0: the barometric altitude')
+        h = c.fn('hh/h-ft', IFTHEN(GT(p('hh/alt-radar'), v(0.5)), hagl, hsl))
+        thr = '/controls/engines/engine[0]/throttle'
+        dl = ABS(D(p(thr), p('hh/tcl-w')))
+        moved, moving = GT(dl, v(0.004)), GT(dl, v(1e-5))     # past the hold's own setting; at all
+        fly0 = GT(p('hh/alt-fly'), v(0.5))
+        c.fn('hh/still-next', IFTHEN(moving, v(0), S(p('hh/still-s'), dt)), out='hh/still-s')
+        cap = c.fn('hh/capture', MAX(alt_rise, M(fly0, NOT(moving), GT(p('hh/still-s'), v(1.5)))))
+        c.fn('hh/alt-fly-next', M(alt, IFTHEN(moved, v(1), IFTHEN(GT(cap, v(0.5)), v(0), p('hh/alt-fly')))), out='hh/alt-fly')
+        # the height captured where the present climb or sink stops, at 0.05 g
+        vz = p('velocities/h-dot-fps')
+        h_stop = c.fn('hh/h-stop-ft', S(h, Q(M(vz, ABS(vz)), v(2 * 0.05 * G0))))
+        tgt = '/autopilot/settings/target-agl-ft'
+        c.fn('hh/hvr-alt-set', IFTHEN(GT(M(cap, hvr), v(0.5)), MAX(v(0), h_stop), p(tgt)), out=tgt)
+        c.fn('hh/h-ref-next', IFTHEN(GT(cap, v(0.5)), h_stop, IFTHEN(hvr, p(tgt), p('hh/h-ref-ft'))), out='hh/h-ref-ft')
+        ez = c.fn('hh/vz-err-fps', D(lim(M(p('hh/kh'), D(p('hh/h-ref-ft'), h)), -VZ_MAX, VZ_MAX), vz))
+        drive = GT(M(alt, NOT(p('hh/alt-fly'))), v(0.5))
+        c.fn('hh/tcl-int-next', IFTHEN(drive, IFTHEN(GT(cap, v(0.5)), p(thr), lim(S(p('hh/tcl-int'), M(p('hh/kiz'), ez, dt)), 0, 1)), p(thr)),
+             out='hh/tcl-int')
+        c.fn('hh/lever', IFTHEN(drive, lim(S(p('hh/tcl-int'), M(p('hh/kpz'), ez)), 0, 1), p(thr)), out=[thr, 'hh/tcl-w'],
+             desc='the lever, driven while the height is held')
+        c.fn('hh/state', IFTHEN(NOT(onb), v(0), IFTHEN(trc, v(3), IFTHEN(GT(M(LT(gs, v(1)), LT(e, v(5))), v(0.5)), v(2), v(1)))),
+             desc='0 off, 1 closing on the point, 2 holding it, 3 the stick flying')
 
     # ------------------------------------------------------------ rotor geometry with the nacelle angle
     def hub_station(s, side):
@@ -431,8 +616,9 @@ class Model:
         wake frame; the hub-frame harmonic pairs are turned into it, stepped semi-implicitly, and turned back."""
         r = s.rot
         pre, apre = 'rotor/%s/ph' % side, 'aero/rotor/%s/ph' % side
-        r.channel('inflow %s' % side)
-        h = M(MAX(p('rotor/omega-rad_sec'), v(1.0)), p('simulation/dt'))
+        r.channel('inflow %s' % side, execrate=INFLOW_EXECRATE)
+        s.inflow_start[side] = len(r.channels) - 1
+        h = M(MAX(p('rotor/omega-rad_sec'), v(1.0)), p('simulation/channel-dt'))
         cd, sd = p(apre + '/cd'), p(apre + '/sd')
         rot = {1: (cd, sd), 2: (r.fn(pre + '/cd2', D(SQR(cd), SQR(sd))), r.fn(pre + '/sd2', M(v(2), cd, sd)))}
         sets = {'c': PH_COS, 's': PH_SIN}
@@ -513,23 +699,25 @@ class Model:
         g.fn(b_ + '/kge', S(v(1), M(D(kh, v(1)), T2(b_ + '/ge-z-r', b_ + '/ge-chi-deg', HG.ZR, HG.CHI_DEG, HG.RATIO))),
              'induced velocity in / out of ground effect')
         g.fn(b_ + '/vi-fps', M(p(b_ + '/kge'), v0), 'mean induced velocity with ground effect')
-        # Peters-He: flow parameters and gain matrices against the wake skew X = tan(chi / 2)
+        # Peters-He: flow parameters and gain matrices against the wake skew X = tan(chi / 2), and below the forcing:
+        # written at the start of the inflow channel, at its rate (ph)
+        ph = FCS('ph'); ph.channel('ph')
         WR = g.fn(b_ + '/ph/omega-r-fps', MAX(M(W, v(U.R)), v(30)))
-        X = g.fn(b_ + '/ph/X', Q(SIN(chi), S(v(1), COS(chi))))
-        VT = g.fn(b_ + '/ph/VT', Q(p(b_ + '/Vprime-fps'), WR))
+        X = ph.fn(b_ + '/ph/X', Q(SIN(chi), S(v(1), COS(chi))))
+        VT = ph.fn(b_ + '/ph/VT', Q(p(b_ + '/Vprime-fps'), WR))
         mu, lm, la = Q(Vip, WR), Q(v0, WR), Q(Vn, WR)
-        g.fn(b_ + '/ph/V', MAX(Q(v(5), WR), Q(S(SQR(mu), M(S(la, lm), la)), VT)))
+        ph.fn(b_ + '/ph/V', MAX(Q(v(5), WR), Q(S(SQR(mu), M(S(la, lm), la)), VT)))
         Xs = [0.05 * i for i in range(21)]
         for st, tg, kind in ((PH_COS, 'c', 'c'), (PH_SIN, 's', 's')):
             Li = [np.linalg.inv(PH.Lmat(st, x, kind)) for x in Xs]
             for i in range(len(st)):
                 for kk in range(len(st)):
                     Vk = VT if st[kk] == (1, 0) else p(b_ + '/ph/V')
-                    g.fn(b_ + '/ph/A%s%d-%d' % (tg, i, kk), M(T1(b_ + '/ph/X', Xs, [float(L_[i, kk]) for L_ in Li]), Vk))
+                    ph.fn(b_ + '/ph/A%s%d-%d' % (tg, i, kk), M(T1(b_ + '/ph/X', Xs, [float(L_[i, kk]) for L_ in Li]), Vk))
         nw = SQ(S(SQR(Vhx), SQR(Vhy)))
         slow = LT(nw, v(0.5))
-        g.fn(b_ + '/ph/cd', IFTHEN(slow, v(1), Q(Vhx, MAX(nw, v(0.5)))))
-        g.fn(b_ + '/ph/sd', IFTHEN(slow, v(0), NEG(Q(Vhy, MAX(nw, v(0.5))))))
+        ph.fn(b_ + '/ph/cd', IFTHEN(slow, v(1), Q(Vhx, MAX(nw, v(0.5)))))
+        ph.fn(b_ + '/ph/sd', IFTHEN(slow, v(0), NEG(Q(Vhy, MAX(nw, v(0.5))))))
         ph_tau = {('c', i): [] for i in range(len(PH_COS))}; ph_tau.update({('s', i): [] for i in range(len(PH_SIN))})
         rho, a_snd = p('atmosphere/rho-slugs_ft3'), p('atmosphere/a-fps')
         shapes = sorted({x for sts in (PH_COS, PH_SIN) for x in sts})
@@ -555,33 +743,37 @@ class Model:
             vher = S(NEG(M(Vhx, c)), M(Vhy, sn))
             wer = S(NEG(M(ps_a, c)), M(qs_a, sn))
             wet = S(M(ps_a, sn), M(qs_a, c))
-            t0 = g.fn(b + '/Vt0', vht)
-            t1 = g.fn(b + '/Vt1', D(M(cb, D(W, rs_a)), M(sb, wer)))
-            n0 = g.fn(b + '/Vn0', D(NEG(M(sb, vher)), M(cb, Vhz)))
-            n1 = g.fn(b + '/Vn1', D(bdot, wet))
-            vr = g.fn(b + '/Vr', S(M(cb, vher), NEG(M(sb, Vhz))))
-            # induced velocity of each Peters-He shape at the blade
+            # induced velocity of each Peters-He shape at the blade, along its normal (x cos b); the first shape's is the
+            # same at every radius and goes into the blade's own normal velocity
             trig = {1: (c, sn)}
             tf = lambda tg, rh: v(1) if rh == 0 else trig[rh][0 if tg == 'c' else 1]
-            vi_shape = {}
+            vi_shape, vi10 = {}, None
             for (jj, rh) in shapes:
                 lam = S(*[M(p('rotor/%s/ph/%s%d' % (side, tg, i)), tf(tg, rh)) if rh else p('rotor/%s/ph/%s%d' % (side, tg, i))
                           for sts, tg in ((PH_COS, 'c'), (PH_SIN, 's')) for i, st in enumerate(sts) if st == (jj, rh)])
-                vi_shape[(jj, rh)] = g.fn(b + '/vi-%d-%d' % (jj, rh), M(p(b_ + '/kge'), WR, lam))
-            FT, FN, FR, MF, QQ = [], [], [], [], []
+                if (jj, rh) == (1, 0):
+                    vi10 = M(v(PHI10), p(b_ + '/kge'), WR, lam, cb)
+                else:
+                    vi_shape[(jj, rh)] = g.fn(b + '/vi-%d-%d' % (jj, rh), M(p(b_ + '/kge'), WR, lam, cb))
+            t0 = g.fn(b + '/Vt0', vht)
+            t1 = g.fn(b + '/Vt1', D(M(cb, D(W, rs_a)), M(sb, wer)))
+            n0 = g.fn(b + '/Vn0', S(D(NEG(M(sb, vher)), M(cb, Vhz)), vi10))
+            n1 = g.fn(b + '/Vn1', D(bdot, wet))
+            vr = g.fn(b + '/Vr', S(M(cb, vher), NEG(M(sb, Vhz))))
+            FT, FN, DK, MF, QQ = [], [], [], [], []
             for j, (rr, dr) in enumerate(s.segs):
                 e = b + '/s%d' % j
                 tt, cli = SEC.interp_sections(U.SECTIONS, rr / U.R)
                 sec = SEC.Section(tt, cli)
                 al, mach, cl_tab, cd_tab = sec.tables()
+                al, (cl_tab, cd_tab) = periodic(al, cl_tab, cd_tab)
                 ch = chord(rr)
-                vi = S(*[M(v(PH.phi(jj, rh, rr / U.R)), vi_shape[(jj, rh)]) for (jj, rh) in shapes])
+                vi = [M(v(PH.phi(jj, rh, rr / U.R)), vi_shape[(jj, rh)]) for (jj, rh) in shapes if (jj, rh) != (1, 0)]
                 Vt = g.fn(e + '/Vt', S(t0, M(v(rr), t1)), 'blade velocity along its motion, ft/s')
-                Vnn = g.fn(e + '/Vn', S(n0, M(v(rr), n1), M(vi, cb)), 'blade velocity along its normal (up), ft/s')
+                Vnn = g.fn(e + '/Vn', S(n0, M(v(rr), n1), *vi), 'blade velocity along its normal (up), ft/s')
                 V2 = g.fn(e + '/V2', S(SQR(Vt), SQR(Vnn), v(1e-4)))
-                Vv = g.fn(e + '/V', SQ(V2))
-                ar = g.fn(e + '/alpha-raw', D(S(th0, v(twist(rr))), M(v(R2D), ATAN2(Vnn, Vt))))
-                g.fn(e + '/alpha-deg', wrap180(ar))
+                Vv = SQ(V2)
+                g.fn(e + '/alpha-deg', D(S(th0, v(twist(rr))), M(v(R2D), ATAN2(Vnn, Vt))), 'angle of attack, deg (-360..360)')
                 g.fn(e + '/mach', MIN(Q(Vv, a_snd), v(1.0)))
                 cl = g.fn(e + '/cl', T2(e + '/alpha-deg', e + '/mach', al, mach, cl_tab))
                 cd = g.fn(e + '/cd', S(T2(e + '/alpha-deg', e + '/mach', al, mach, cd_tab), v(U.DCD)))
@@ -591,14 +783,14 @@ class Model:
                 Dk = g.fn(e + '/Dk', M(v(0.5 * ch * dr), rho, cd, SQ(S(V2, SQR(vr)))), 'drag / V')
                 Ft = g.fn(e + '/Ft', NEG(S(M(Lk, Vnn), M(Dk, Vt))), 'force along the blade motion, lbf')
                 Fn = g.fn(e + '/Fn', D(M(Lk, Vt), M(Dk, Vnn)), 'force along the blade normal (up), lbf')
-                FT.append(Ft); FN.append(Fn); FR.append(NEG(M(Dk, vr)))
+                FT.append(Ft); FN.append(Fn); DK.append(Dk)
                 MF.append(M(v(rr), Fn)); QQ.append(M(v(rr), Ft))
-            ft, fn, fr = g.fn(b + '/FT', S(*FT)), g.fn(b + '/FN', S(*FN)), g.fn(b + '/FR', S(*FR))
+            ft, fn, fr = g.fn(b + '/FT', S(*FT)), g.fn(b + '/FN', S(*FN)), g.fn(b + '/FR', NEG(M(vr, S(*DK))))
             mf = g.fn(b + '/Mflap', S(*MF), 'aerodynamic flap moment about the gimbal, ft lbf (up +)')
             qb = g.fn(b + '/Q', M(cb, S(*QQ)), 'aerodynamic moment about the shaft, in the rotation\'s sense, ft lbf')
             # the inflow's forcing: each shape's moment of the normal loads along the shaft
             for (jj, rh) in shapes:
-                shp = g.fn(b + '/Fn-%d-%d' % (jj, rh), M(cb, S(*[M(v(PH.phi(jj, rh, rr / U.R)), p(b + '/s%d/Fn' % j)) for j, (rr, dr) in enumerate(s.segs)])))
+                shp = ph.fn(b + '/Fn-%d-%d' % (jj, rh), M(cb, S(*[M(v(PH.phi(jj, rh, rr / U.R)), p(b + '/s%d/Fn' % j)) for j, (rr, dr) in enumerate(s.segs)])))
                 for sts, tg in ((PH_COS, 'c'), (PH_SIN, 's')):
                     for i, st in enumerate(sts):
                         if st == (jj, rh):
@@ -620,7 +812,8 @@ class Model:
         for (tg, i), terms in ph_tau.items():
             rh = (PH_COS if tg == 'c' else PH_SIN)[i][1]
             kb = 1 / U.TIP_LOSS ** 2
-            g.fn(b_ + '/ph/tau-%s%d' % (tg, i), Q(M(v(kb / (2 * math.pi) if rh == 0 else kb / math.pi), S(*terms)), qn))
+            ph.fn(b_ + '/ph/tau-%s%d' % (tg, i), Q(M(v(kb / (2 * math.pi) if rh == 0 else kb / math.pi), S(*terms)), qn))
+        s.rot.channels[s.inflow_start[side]][1][0:0] = ph.channels[0][1]
         Fs = [g.fn(b_ + '/F%s-s' % a, S(*x)) for a, x in zip('xyz', (Fx, Fy, Fz))]
         # moments on the airframe in shaft axes: the hub spring's (and its damping and stop) and the drive's reaction
         C = 0.02 * 2 * math.sqrt(U.K_HUB * U.NB * U.I_BLADE / 2)
@@ -1140,10 +1333,38 @@ def build(out, fg=False):
              pre + '-aero.xml': '<!-- generated by fdm/genv22.py -->\n<aerodynamics>\n%s\n%s\n</aerodynamics>\n' % (mdl.g.xml(), mdl.axes())}
     if INLINE:
         inline_single_use(texts, extra=[fdm_file()], keep=KEEP)
+    if fg and U.NAME != 'XV-15':
+        texts[pre + '-displays.xml'] = display_data()
     for name, t in texts.items():
         open(os.path.join(out, 'Systems', name), 'w').write('<?xml version="1.0"?>\n' + t)
     open(os.path.join(out, pre + '.xml'), 'w').write(fdm_file())
     return len(mdl.g.items)
+
+
+def display_data():
+    """what the cockpit's flight display (Nasal/displays.nas) draws from the model's data: the conversion
+    protection's boundaries, and the power to hover with its ground effect"""
+    from data import v22_flight as VF
+    (lv, ln), (uv, un) = U.CPS
+    w0, h0 = VF.HOVER_CEILING[0]
+    row = lambda tag, xs: ''.join('<%s>%g</%s>' % (tag, x, tag) for x in xs)
+    return ('<!-- generated by fdm/genv22.py: the flight display\'s data (Nasal/displays.nas) -->\n<PropertyList>\n'
+            '  <!-- conversion protection: equivalent airspeed (kt) and the least, the most nacelle angle (deg) -->\n'
+            '  <cps>\n    <lower>%s%s</lower>\n    <upper>%s%s</upper>\n  </cps>\n'
+            '  <!-- airplane mode\'s airspeed limit (KCAS, Mach) at 84 %% rotor speed, and at 100 %%; the high sink rate\n'
+            '       warning\'s boundary: KCAS, ft/min -->\n'
+            '  <apln><vmo-kt>%g</vmo-kt><mmo>%g</mmo><vmo-100-kt>%g</vmo-100-kt></apln>\n'
+            '  <vrs>%s%s</vrs>\n'
+            '  <!-- the power to hover out of ground effect at 100 %% rotor speed, standard sea level: the hover ceiling\'s\n'
+            '       weight there, which the drive\'s torque limit is fitted to; the rotor\'s radius and the ground effect on\n'
+            '       its induced velocity, (1 + k (R/Z)^2)^exp with Z the hub\'s height (above the main wheels\' contact\n'
+            '       here, the nacelles up) -->\n'
+            '  <hover>\n    <weight-lb>%g</weight-lb>\n    <power-hp>%g</power-hp>\n    <altitude-ft>%g</altitude-ft>\n'
+            '    <radius-ft>%.3f</radius-ft>\n    <hub-height-ft>%.2f</hub-height-ft>\n    <ge-k>%g</ge-k>\n'
+            '    <ge-exp>%g</ge-exp>\n  </hover>\n</PropertyList>\n'
+            % (row('kt', lv), row('nac', ln), row('kt', uv), row('nac', un), U.VMO_APLN, U.MMO_APLN, U.VMO_APLN_100,
+               row('kt', U.VRS_SINK[0]), row('sink-fpm', U.VRS_SINK[1]), w0, U.P_XMSN_100, h0, U.R,
+               (U.WL_PIV + U.DZ_HUB - U.MAIN_GEAR[2]) / 12, GE_K, GE_EXP))
 
 
 if __name__ == '__main__':

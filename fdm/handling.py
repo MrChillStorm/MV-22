@@ -9,6 +9,7 @@ import sys, math
 import numpy as np
 import harness as H
 from data import bell301 as B
+from genv22 import CONTROL_EXECRATE
 
 AX = {'lon': 'fcs/elevator-cmd-norm', 'lat': 'fcs/aileron-cmd-norm', 'ped': 'fcs/rudder-cmd-norm',
       'tcl': '/controls/engines/engine[0]/throttle', 'nac': '/controls/flight/nacelle-cmd-deg'}
@@ -26,14 +27,17 @@ def free(V, nacelle, events, T, every=0.1):
     ff0 = f['ctl/theta75-deg'] - f['gov/int-deg']
     f[AX['tcl']] = tcl
     f[AX['nac']] = nacelle
-    f.run()
+    # (the controls' channels run every CONTROL_EXECRATE frames: what they compute is read after a whole period)
+    for _ in range(CONTROL_EXECRATE):
+        f.run()
     # the collective stays the trim's: the governor's integral takes back the lever's feed forward
     f['gov/int-deg'] = x[0] - (f['ctl/theta75-deg'] - f['gov/int-deg'] - ff0)
     f['ctl/init'] = 0; f['drive/hold-rpm'] = 0; f['ctl/scas-on'] = 1; f['ctl/cps-on'] = 1
-    H.freeze(f, False)
     for a in ('lon', 'lat', 'ped'):
         f[AX[a]] = 0.0
-    f.run()
+    for _ in range(CONTROL_EXECRATE):
+        f.run()
+    H.freeze(f, False)
     f['scas/theta-int-in'] = x[1] * B.X_LON - f['scas/lon-trim-in']; f['scas/phi-int-in'] = x[2] * B.X_LAT
     for ax in ('theta', 'phi', 'psi'):
         f['scas/%s-ref-rad' % ax] = f['attitude/%s-rad' % ax]

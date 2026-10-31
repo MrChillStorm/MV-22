@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <system name="V-22 airframe">
 
-<channel name="airframe" execrate="4">
+<channel name="airframe" execrate="8">
 <fcs_function name="aero/wing/flap-index"><description>Bell's flap setting: -1 F4, 0 F1, 1 F2, 2 F3</description><function><table><independentVar lookup="row">ctl/flaperon-deg</independentVar><tableData>
 -17.5 -1
 0 0

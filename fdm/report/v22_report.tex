@@ -136,9 +136,15 @@ A Python script writes the model from the transcribed tables (Table~\ref{tab:mod
 with each aircraft's data. JSBSim evaluates aerodynamic functions on demand, so the function graph must be free of cycles; every
 quantity that depends on its own past, the gimbals' tilt and rate, the rotor azimuth and speed, the wake states, the nacelle angle,
 the engines' states, the governor's and the augmentation's integrators, therefore lives in flight-control-system channels, which
-JSBSim runs once per frame in a fixed order and which can write properties back. These integrate explicitly at 480\,Hz, the
-rate FlightGear runs the model at: at 104\,\% rotor speed 5.2$^\circ$ of azimuth per step. The airframe's wake and ground-effect
-tables run every fourth frame, the engines and the outputs to FlightGear every eighth. The same XML runs in FlightGear and in the
+JSBSim runs once per frame in a fixed order and which can write properties back. The blade elements, the gimbals and the drive
+train integrate explicitly at 480\,Hz, the rate FlightGear runs the model at: at 104\,\% rotor speed 5.2$^\circ$ of azimuth per
+step. The rest runs every few frames, which JSBSim's channels allow: the wake states with their gains and forcing (time constants
+of a tenth of a second and more) and the controls, mixing, servos, governor and augmentation, every fourth (120\,Hz), the airframe
+with its wake and ground-effect tables, the engines and the outputs to FlightGear every eighth. In FlightGear every property read
+takes a lock, so a step costs what it reads; with these rates and the blade elements' terms arranged for it (the first wake
+shape's and the flap angle's share of the normal velocity taken per blade, the angle of attack into tables carried on to
+$\pm$360$^\circ$ instead of wrapped) a step reads about 3200 properties, 4300 at the FDM rate throughout; the ceilings, speeds and
+download are the same to five digits, the trims within 0.2\,\% of power and 0.04$^\circ$ of attitude. The same XML runs in FlightGear and in the
 offline harness used here; FlightGear sets only the pilot's controls and reads the outputs.
 
 \begin{table}[t]
@@ -200,8 +206,10 @@ integral within Bell's collective limits.
 The V-22 flies by wire and holds attitude in all modes~\cite{pd}; its control laws are not public. The FlightGear aircraft has a
 stability augmentation of a common rotorcraft structure: rate damping in three axes for a 0.5\,s rate time constant in the hover;
 attitude command and heading hold below 50\,kt with the nacelles above 60$^\circ$ and rate command with attitude hold above, switched without a
-transient because both share one reference~\cite{patent}; a feed-forward of the level-flight trim's stick against nacelle angle and airspeed,
-from the model's own trims, so that the stick's centre is trimmed flight through the conversion; and integrators that take up the rest.
+transient because both share one reference~\cite{patent}; in yaw below 50\,kt rate command, direction hold, the pedals commanding a yaw rate
+(30$^\circ$/s at full travel) held against the wind by an integrator, the hover's response type in ADS-33E~\cite{ads33}; a feed-forward of
+the level-flight trim's stick against nacelle angle and forward airspeed, from the model's own trims, so that the stick's centre is trimmed
+flight through the conversion; and integrators that take up the rest. A hover hold (Section~\ref{sec:hoverhold}) works through it.
 The comparisons of Section~\ref{sec:results} fly the bare airframe, the augmentation off.
 
 \subsection{Engines, drive and mass}
@@ -238,7 +246,8 @@ and flap settings, the flaperons at 0.625 of the flap~\cite{tx};
 \item \emph{V-22 performance}: the maximum level speed in airplane mode at 84\,\% rotor speed, where the power required meets the engines'
 power or the drive's limit; the hover ceiling out of ground effect at 100\,\% rotor speed (the 1986 chart's); trims through the conversion
 at 34\,000\,lb by nacelle angle;
-\item \emph{handling} with the augmentation on: single keyboard steps in the hover, a hands-off conversion, an engine start.
+\item \emph{handling} with the augmentation on: single keyboard steps in the hover, a hands-off conversion, an engine start;
+\item \emph{the hover hold}: its stops from up to 39\,kt, ADS-33E's position hold turn in up to 35\,kt of wind, its stick and lever.
 \end{itemize}
 
 % =====================================================================================================================
@@ -360,12 +369,36 @@ conversion from 40\,kt, the nacelles commanded from 90 to 60$^\circ$; (c) the tr
 (d) an engine start on the ground, lever down.}\label{fig:handling}
 \end{figure*}
 These are not comparisons but checks of the FlightGear aircraft's augmentation (Fig.~\ref{fig:handling}). In the hover one press of the stick forward gives
-\NHdTheta$^\circ$ of pitch, held, and one to the right \NHdPhi$^\circ$ of roll after an overshoot; the heading holds with the pedals centred. With the
+\NHdTheta$^\circ$ of pitch, held, and one to the right \NHdPhi$^\circ$ of roll after a small overshoot; one of the pedals turns it at
+\NHdYaw$^\circ$/s and the heading holds where they are let go. With the
 nacelles commanded from 90 to 60$^\circ$ at 40\,kt and nothing else touched, the aircraft accelerates to \NCvEnd\,kt with its pitch between \NCthMin{} and
 \NCthMax$^\circ$: the trim feed-forward takes up the trim's change, the stick's trim moving from \NTmAft\,\% of its travel aft of centre in the hover at
 75$^\circ$ to \NTmFwd\,\% forward at 120\,kt at 90$^\circ$, which the bare aircraft would have the pilot hold. The nacelles stop at the corridor's lower boundary until the airspeed allows 60$^\circ$, and later move on
 past it as the upper boundary comes down. Cold, with the lever down, the engines spool up one after the other and the rotors reach their governed speed
 \NStNr\,s after the first engine's start.
+
+\subsection{The hover hold}\label{sec:hoverhold}
+\begin{figure*}[t]
+\centering\includegraphics[width=\textwidth]{hover_hold.pdf}
+\caption{The hover hold, reference loading, augmentation on: (a) engaged from 10, 20 and 39\,kt, the ground speed, the pitch attitude
+(dotted) and the distance flown over the stop it showed (dashed); (b) ADS-33E-PRF's position hold check, a 360$^\circ$ turn on the pedals in
+about 30\,s in a steady wind from the north, the track about the hold point; (c) the stick out of its detent and back; (d) the lever moved
+down for 4\,s and left.}\label{fig:hoverhold}
+\end{figure*}
+The hover hold (HVR CPLD) follows the AH-64D's modern control laws~\cite{harding}, Bell's automatic hover hold~\cite{bellhh} and
+ADS-33E's position hold and translational rate command~\cite{ads33}, with the V-22's own way of translating: on its nacelles, the
+fuselage level~\cite{fsf}, as NASA's large tiltrotor's translational rate command does~\cite{malpica}. Engaged at up to 40\,kt over the ground, it sets the stop point, where the present velocity comes to rest at
+0.08\,$g$, and flies one profile to it, then holds it and the height (radar height below 500\,ft, the barometric altitude above); the
+nacelles take the fore and aft acceleration, the bank the sideways, the pitch only what is past the nacelles' range. Engaged at
+\NHhStopV\,kt it stops \NHhStopD\,ft on, holding \NHhStopT\,s after; every stop ends within \NHhStopErr\,ft of the point it showed, the pitch
+within \NHhStopPitch$^\circ$ (Fig.~\ref{fig:hoverhold}a). In ADS-33E's check, a turn on the pedals in about 30\,s, the aircraft stays within
+\NHhTurnCalm\,ft of the point in still air, which meets the 10\,ft circle, \NHhTurnTwenty\,ft in 20\,kt of wind and \NHhTurnGale\,ft in 35\,kt, about
+twice the circle's radius, its attitudes within \NHhTurnAttGale$^\circ$ against the 18$^\circ$ allowed (Fig.~\ref{fig:hoverhold}b). The stick out of
+its detent commands a ground speed: \NHhTrcV\,kt for a quarter of its travel, reached to 63\,\% in \NHhTrcT\,s (2.5--5\,s), overshooting by
+\NHhTrcOver\,kt, and on its release the aircraft stops and holds where it does (Fig.~\ref{fig:hoverhold}c). The hold drives the lever and
+the pilot can fly through it: moved for 4\,s and left, the aircraft settles \NHhLeverDh\,ft lower, held within \NHhLeverHold\,ft
+(Fig.~\ref{fig:hoverhold}d). The hold's sideways loop works through the roll attitude's, which needed twice its first gains; the 35\,kt
+turn's errors come from the wind's loads turning with the aircraft faster than the hold's integrators follow.
 
 % =====================================================================================================================
 \section{Corrections found during validation}\label{sec:review}
@@ -389,6 +422,17 @@ in forward flight are now gear up, the V-22's drag refitted, and the XV-15's sho
 \item \emph{The nacelle rate.} The nacelles' tilt rate, which moves the hubs and adds to the shafts' pitch rate in the flapping, was taken after
 the step had already set the new nacelle angle, so it was zero throughout. Taken from the step itself it changes no trim, and the pitch attitude
 through the conversion run (Section~\ref{sec:handling}) by up to 1.6$^\circ$.
+\item \emph{The handling runs' start.} The harness let the aircraft go one frame after setting the lever and centring the stick, before the
+controls' chain (the mixing, its actuators, the governor) had carried them through, and set the augmentation's integrators from that frame's
+values: the hover run began with a 2\,\% sag in rotor speed, drifted 3\,kt and lost 40\,ft that the aircraft does not. It now waits a whole
+period of the controls' channels (four frames) before letting go, and the hover holds its rotor speed and height from the start.
+\item \emph{The trim feed-forward in rearward flight.} The augmentation's trim feed-forward looked its stick up against the airspeed's
+magnitude, so that flying backwards it gave the forward stick of forward flight: in FlightGear the aircraft let go in the hover drifted aft,
+pitched nose down and diverged with the augmentation's integrator at its limit. It takes the forward airspeed now (the hover's stick in
+rearward and sideward flight), carried past 90$^\circ$ of nacelle along its slope from 75 to 90.
+\item \emph{Yaw at low speed.} The augmentation only damped the yaw rate, through a washout: a steady yaw moment, a tailwind on the fins,
+turned the aircraft at will, and the pedals, opposed by the damper, were weak (a keyboard step turned it 0.6$^\circ$). Below 50\,kt the pedals
+now command a yaw rate, held by an integrator with the pedals' full travel.
 \end{enumerate}
 
 % =====================================================================================================================
@@ -453,6 +497,14 @@ its flight test in airplane mode.
 \bibitem{hk} H.\,H.\ Heyson and S.\ Katzoff, \emph{Induced Velocities Near a Lifting Rotor with Nonuniform Disk Loading}, NACA Report 1319, 1957.
 \bibitem{ph} D.\,A.\ Peters and C.\,J.\ He, \emph{Finite State Induced Flow Models, Part II: Three-Dimensional Rotor Disk}, Journal of Aircraft 32(2), 1995.
 \bibitem{metu} Middle East Technical University, M.Sc.\ thesis on forward flight trim and longitudinal stability codes (Peters--He finite-state wake equations).
+\bibitem{ads33} US Army Aviation and Missile Command, \emph{Aeronautical Design Standard Performance Specification, Handling Qualities
+Requirements for Military Rotorcraft}, ADS-33E-PRF, 2000.
+\bibitem{harding} J.~W. Harding, M.~H. Mansur, M.~B. Tischler, S.~J. Moody and R.~C. McCann, \emph{Optimization and Piloted Simulation
+Results of the AH-64D Modern Control Laws}, AHS 63rd Annual Forum, 2007.
+\bibitem{malpica} C.~A. Malpica, B. Lawrence, J. Lindsey, C.~R. Theodore and C.~L. Blanken, \emph{Handling Qualities of a Large Civil
+Tiltrotor in Hover using Translational Rate Command}, AHS 68th Annual Forum, 2012.
+\bibitem{bellhh} Bell Helicopter Textron, \emph{Flight control laws for automatic hover hold}, US patent application 2013/0138270, 2013.
+\bibitem{fsf} Flight Safety Foundation, \emph{Helicopter Safety}, November--December 1988 (the V-22's handling in VTOL mode).
 \bibitem{patent} Boeing, \emph{Control law mode switching between rate command and attitude command control systems}, US patent 5\,596\,499, 1997.
 \bibitem{tis} M.\,B.\ Tischler, J.\,G.\,M.\ Leung and D.\,C.\ Dugan, \emph{Identification and Verification of Frequency-Domain Models for XV-15 Tilt-Rotor Aircraft Dynamics}, NASA TM-86009, 1984.
 \bibitem{jsbsim} JSBSim Development Team, \emph{JSBSim: an open-source flight dynamics model}, version 1.3.3.

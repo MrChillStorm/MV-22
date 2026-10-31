@@ -8,7 +8,7 @@ from these by mktables.py and figures.py). Regenerate the harness's models first
 
 Stages: hover (hover_rotor.py), xv15_<set> for the sets of data/xv15_flight.py and xv15_nac0_gear (sweep.py), download (download.py),
 polar (airframe_polar.py), speed, ceiling<alt>, conversion<nacelle> (performance.py), handling_hover,
-handling_conversion, start (handling.py)."""
+handling_conversion, start (handling.py), hover_hold_stop, hover_hold_turn, hover_hold_controls (hoverhold.py)."""
 import os, sys, json, time
 from multiprocessing import Pool
 import numpy as np
@@ -92,8 +92,25 @@ def start():
     dump('start', HD.start())
 
 
+def hover_hold(what):
+    """the hover hold (hoverhold.py): its stops from 10, 20 and 39 kt; ADS-33's 360 deg turn in 0, 20 and 35 kt of wind;
+    the stick's translational rate and the lever's fly-through"""
+    import hoverhold as HH
+    def thin(r, keys, step=2):             # every 0.2 s, the series the figures and numbers use
+        return {k: (r[k][::step] if isinstance(r[k], list) else r[k]) for k in r if k in keys or not isinstance(r[k], list)}
+    if what == 'stop':
+        out = [thin(HH.stop(V), ('t', 'n', 'gs', 'theta', 'phi', 'nac', 'dist', 'state')) for V in (10.0, 20.0, 39.0)]
+    elif what == 'turn':
+        out = [thin(HH.turn(w), ('t', 'n', 'e', 'psi', 'theta', 'phi', 'dist', 'turning'), 5) for w in (0.0, 20.0, 35.0)]
+    else:
+        keys = ('t', 'gs', 'dist', 'h', 'tcl', 'theta', 'state')
+        out = dict(trc=thin(HH.trc(), keys), lever=thin(HH.lever(), keys))
+    dump('hover_hold_' + what, out)
+
+
 STAGES = dict(hover=hover, xv15_nac0_gear=xv15_gear, download=download, polar=polar, speed=speed, start=start,
               handling_hover=lambda: handling('hover'), handling_conversion=lambda: handling('conversion'),
+              **{'hover_hold_' + w: (lambda w=w: hover_hold(w)) for w in ('stop', 'turn', 'controls')},
               **{'xv15_' + s: (lambda s=s: xv15(s)) for s in ('nac90', 'nac60', 'nac30', 'nac0f20', 'nac0')},
               **{'ceiling%d' % a: (lambda a=a: ceiling(a)) for a in CEILING_ALTS},
               **{'conversion%d' % n: (lambda n=n: conversion(n)) for n in NACELLES})

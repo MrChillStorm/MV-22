@@ -153,8 +153,8 @@ def handling():
     ax.plot(h['t'], h['psi'], '-', color='#1b7837', label=r'heading $\Delta\psi$')
     for t, a, v in h['events']:
         ax.axvline(t, color=C_REF, lw=0.6, ls=':')
-        ax.text(t, 2.4, ' %s %+.2f' % (a, v), fontsize=6, rotation=90, va='top')
-    ax.set_xlabel('time, s'); ax.set_ylabel('deg'); ax.set_ylim(-2.5, 2.5); ax.legend(frameon=False, fontsize=6.3, loc='lower left'); tag(ax, 'a')
+        ax.text(t, 2.9, ' %s %+.2f' % (a, v), fontsize=6, rotation=90, va='top')
+    ax.set_xlabel('time, s'); ax.set_ylabel('deg'); ax.set_ylim(-10, 3); ax.legend(frameon=False, fontsize=6.3, loc='lower left'); tag(ax, 'a')
     c = res('handling_conversion')
     ax = axs[0, 1]
     ax.plot(c['t'], c['theta'], '-', color=C_MOD, label=r'pitch $\theta$, deg')
@@ -182,7 +182,48 @@ def handling():
     save(fig, 'handling')
 
 
+def hover_hold():
+    fig, axs = plt.subplots(2, 2, figsize=(W2, 3.7))
+    ax = axs[0, 0]
+    for r, c in zip(res('hover_hold_stop'), ('#2166ac', '#1b7837', C_MOD)):
+        t = [a - 1.0 for a in r['t']]
+        ax.plot(t, r['gs'], '-', color=c, label='%.0f kt' % r['V'])
+        ax.plot(t, r['theta'], ':', color=c, lw=0.8)
+        n0 = r['n'][int(round(1.0 / 0.2))]
+        ax.plot(t, [10 * (a - n0) / r['shown_ft'] for a in r['n']], '--', color=c, lw=0.8)
+    ax.axhline(10, color=C_REF, lw=0.5, ls='-')
+    ax.set_xlim(-1, 40); ax.set_ylim(-3, 42)
+    ax.set_xlabel('time from engaging, s'); ax.set_ylabel('ground speed, kt; pitch, deg (dotted)')
+    ax.text(30, 11, 'distance / shown stop (dashed), x10', fontsize=6, ha='center')
+    ax.legend(frameon=False, fontsize=6.3, loc='upper right'); tag(ax, 'a')
+    ax = axs[0, 1]
+    th = np.linspace(0, 2 * np.pi, 100)
+    ax.plot(5 * np.cos(th), 5 * np.sin(th), '-', color=C_REF, lw=0.8, label='10 ft circle')
+    for r, c in zip(res('hover_hold_turn'), ('#2166ac', '#1b7837', C_MOD)):
+        w = [i for i, t in enumerate(r['t']) if r['t_on'] <= t <= r['t_off'] + 10]
+        n0, e0 = np.array(r['n'])[w[0]], np.array(r['e'])[w[0]]
+        ax.plot([r['e'][i] - e0 for i in w], [r['n'][i] - n0 for i in w], '-', color=c, lw=0.9, label='%.0f kt wind' % r['wind_kt'])
+    ax.set_aspect('equal'); ax.set_xlabel('east, ft'); ax.set_ylabel('north, ft (wind from north)')
+    ax.legend(frameon=False, fontsize=6.3, loc='upper right'); tag(ax, 'b')
+    c = res('hover_hold_controls')
+    ax = axs[1, 0]
+    tr = c['trc']
+    ax.plot(tr['t'], tr['gs'], '-', color=C_MOD, label='ground speed, kt')
+    ax.plot(tr['t'], tr['theta'], '-', color='#2166ac', lw=0.8, label='pitch, deg')
+    ax.axvline(5, color=C_REF, lw=0.6, ls=':'); ax.axvline(25, color=C_REF, lw=0.6, ls=':')
+    ax.text(5, 6.5, ' stick +0.25', fontsize=6); ax.text(25, 6.5, ' released', fontsize=6)
+    ax.set_xlabel('time, s'); ax.set_ylim(-2, 7); ax.legend(frameon=False, fontsize=6.3, loc='upper right', bbox_to_anchor=(1.0, 0.9)); tag(ax, 'c')
+    ax = axs[1, 1]
+    lv = c['lever']
+    ax.plot(lv['t'], [a - lv['h0'] for a in lv['h']], '-', color=C_MOD, label='height change, ft')
+    ax.plot(lv['t'], [100 * (a - lv['tcl'][0]) for a in lv['tcl']], '-', color='#2166ac', lw=0.8, label='lever, % from its start')
+    ax.axvspan(0, 4, color='#eeeeee', lw=0); ax.text(2, 1.5, 'lever\nmoved', fontsize=6, ha='center')
+    ax.set_xlabel('time, s'); ax.legend(frameon=False, fontsize=6.3, loc='lower right'); tag(ax, 'd')
+    fig.tight_layout(w_pad=1.2, h_pad=0.8)
+    save(fig, 'hover_hold')
+
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
-    for fn in (hover, xv15, download_polar, perf, conversion, handling):
+    for fn in (hover, xv15, download_polar, perf, conversion, handling, hover_hold):
         fn()

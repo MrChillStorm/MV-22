@@ -245,6 +245,24 @@
       </binding>
     </key>
 
+    <key n="121">
+      <name>y</name>
+      <desc>Hover hold (HVR CPLD) on / off</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "HVRCPLD")</script>
+      </binding>
+    </key>
+
+    <key n="89">
+      <name>Y</name>
+      <desc>Hover height hold (HVR ALT HOLD) on / off</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "HVRHOLD")</script>
+      </binding>
+    </key>
+
   </keyboard>
 
 </PropertyList>

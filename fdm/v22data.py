@@ -18,6 +18,8 @@ simulation data of it [CR] (data/bell301.py), scaled by geometry; each such valu
   [FS]  V-22 Osprey fact sheet (NAVAIR PMA-275, about 2001; refs/web/popasmoke-V22factsheet.pdf): weights, fuel
         capacity, crew and troop seats
   [GS]  GlobalSecurity.org, "V-22 fuel system": the MV-22's tanks, their capacities and the transfer sequence
+  [GL]  GlobalSecurity.org, "V-22 Osprey" (its operating limits): airspeed in airplane mode, the high sink rate
+        warning's boundary (the cockpit's flight display draws them)
   [3D]  the FlightGear V-22's 3-D model (MV-22B/Models/v22.ac and v22.xml): placement of the nacelle pivot, hubs,
         wing, tail and wheels, so that the flight model and the visual model agree
 
@@ -51,6 +53,11 @@ NACELLE_RATE = 8.0                                            # deg/s, conversio
 # conversion protection [PD fig. 5]: the lower boundary's (equivalent airspeed kt, least nacelle angle) and the upper
 # boundary's (kt, greatest nacelle angle), traced
 CPS = (([0, 35, 70, 93, 107, 125], [75, 75, 60, 40, 20, 0]), ([0, 130, 150, 175, 200], [97.5, 97.5, 60, 30, 0]))
+# the operating limits the flight display draws [GL]: airplane mode's airspeed, 280 KCAS or Mach 0.48, whichever is
+# less, at 84 % rotor speed, 220 KCAS at 100 %; the high sink rate warning's boundary (the vortex ring state's), a
+# descent of 800 ft/min up to 30 KCAS, rising to 1600 at 60 and none past it
+VMO_APLN, MMO_APLN, VMO_APLN_100 = 280.0, 0.48, 220.0
+VRS_SINK = ([30, 60], [800, 1600])
 # rotor splay: the shafts are splayed 2.5 deg outboard in helicopter mode [RC 6.2]; left out
 
 # ---------------------------------------------------------------- proprotors [RC fig. 4, 16; AC table 1; WJ]

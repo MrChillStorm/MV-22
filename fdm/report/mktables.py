@@ -43,10 +43,10 @@ def tabular(cols, head, rows, foot=''):
 def model_table():
     root = os.path.join(FDM, 'root', 'aircraft', 'mv22b', 'Systems')
     files = [('mv22b-aero.xml', 'the aerodynamic functions: blade segments of both rotors, gimbal moments, wing strips in the wakes, fuselage, empennage; the six axes', 'function'),
-             ('mv22b-rotors.xml', 'gimbals, rotor azimuth, Peters--He wake states of each rotor', 'fcs'),
+             ('mv22b-rotors.xml', 'gimbals, rotor azimuth, Peters--He wake states of each rotor with their gains and forcing', 'fcs'),
              ('mv22b-airframe.xml', 'ring-vortex wake at the wing, stabiliser and fins; ground effect', 'fcs'),
              ('mv22b-drive.xml', 'engines, torque limit, interconnected drive and rotor speed, rotor brake, fuel', 'fcs'),
-             ('mv22b-controls.xml', 'pilot controls, mixing, nacelles and conversion protection, flaperons, governor, augmentation, servos', 'fcs'),
+             ('mv22b-controls.xml', 'pilot controls, mixing, nacelles and conversion protection, flaperons, governor, augmentation, hover hold, servos', 'fcs'),
              ('mv22b-outputs.xml', 'properties for the 3-D model and the instruments', 'fcs')]
     rows, nfun, nfcs = [], 0, 0
     for fn, what, kind in files:
@@ -237,6 +237,8 @@ def handling_numbers():
     num('NHdTheta', th[i].mean() - th0)
     i = (t > 22) & (t < 26)
     num('NHdPhi', ph[i].mean())
+    i = (t > 32) & (t < 36)
+    num('NHdYaw', abs(np.polyfit(t[i], ps[i], 1)[0]))
     c = R('handling_conversion')
     tc = np.array(c['t']); thc = np.array(c['theta'])
     num('NCthMin', thc.min()); num('NCthMax', thc.max()); num('NCvEnd', c['kcas'][-1], '%.0f')
@@ -247,9 +249,35 @@ def handling_numbers():
     num('NStNr', ts[np.argmax(nr > 103.5)], '%.0f')
 
 
+def hover_hold_numbers():
+    st = R('hover_hold_stop')
+    num('NHhStopErr', max(abs(r['stop_n_ft'] - r['shown_ft']) for r in st))
+    num('NHhStopPitch', max(max(abs(a) for a in r['theta']) for r in st))
+    r = st[-1]
+    t, sta = np.array(r['t']), np.array(r['state'])
+    num('NHhStopV', r['V'], '%.0f'); num('NHhStopD', r['shown_ft'], '%.0f'); num('NHhStopT', t[np.argmax(sta == 2)] - 1.0, '%.0f')
+    for r in R('hover_hold_turn'):
+        t, d, tu = np.array(r['t']), np.array(r['dist']), np.array(r['turning'])
+        w = (t > r['t_on']) & (t < r['t_off'] + 10)
+        key = {0: 'Calm', 20: 'Twenty', 35: 'Gale'}[int(r['wind_kt'])]
+        num('NHhTurn' + key, d[w].max())
+        num('NHhTurnAtt' + key, max(np.abs(r['theta'])[w].max(), np.abs(r['phi'])[w].max()))
+        num('NHhTurnT' + key, r['t_off'] - r['t_on'], '%.0f')
+    c = R('hover_hold_controls')
+    tr = c['trc']
+    t, gs = np.array(tr['t']), np.array(tr['gs'])
+    i = (t >= 5) & (t < 25)
+    vss = gs[(t > 20) & (t < 25)].mean()
+    num('NHhTrcV', vss); num('NHhTrcT', t[i][np.argmax(gs[i] >= 0.632 * vss)] - 5.0); num('NHhTrcOver', max(0.0, gs[i].max() - vss))
+    lv = c['lever']
+    t, h = np.array(lv['t']), np.array(lv['h'])
+    num('NHhLeverDh', abs(h[-1] - lv['h0']), '%.0f'); num('NHhLeverHold', max(0.1, np.ptp(h[t > t[-1] - 10])))
+
+
 if __name__ == '__main__':
     os.makedirs(TAB, exist_ok=True)
-    for fn in (model_table, params_table, hover_table, xv15_table, download_table, polar_table, perf_table, conversion_table, handling_numbers):
+    for fn in (model_table, params_table, hover_table, xv15_table, download_table, polar_table, perf_table, conversion_table, handling_numbers,
+               hover_hold_numbers):
         fn()
     open(os.path.join(TAB, 'numbers.tex'), 'w').write(''.join('\\newcommand{\\%s}{%s}\n' % kv for kv in sorted(NUM.items())))
     print('%d numbers' % len(NUM))

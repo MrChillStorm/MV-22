@@ -6,7 +6,9 @@
 # The V-22's display formats are not public in detail; these follow its published layout (four 6 in square
 # multifunction displays with flight, navigation and system formats, the CDU's EICAS and status pages, a standby
 # flight display) with the flight model's own quantities: nacelle angle and the conversion protection's limits,
-# torque, rotor speed, the drive's torque limit, the five tanks.
+# torque, rotor speed, the drive's torque limit, the five tanks. The flight format goes past the V-22's own, after
+# human-factors studies of display design (see the Flight object): the limits it draws come from the flight model's
+# data through Systems/mv22b-displays.xml (fdm/genv22.py).
 #
 # Each display's luminance (cd/m2, /instrumentation/mv22b/displays/<unit>/luminance) is what the screen's lit effect
 # emits. Its photocell follows the light outside, here the sun's elevation (night with the sun 6 deg below the horizon,
@@ -30,10 +32,77 @@ var SKY = [0.16, 0.40, 0.78];
 var GROUND = [0.44, 0.28, 0.13];
 var LEVELS = {night: 6, dusk: 30, day: 8000};      # cd/m2 at full brightness: NIGHT, DAY at dusk and in full sun
 
-# a property's value, d when it has none (Nasal's "or" would take a zero for none too)
+# a property's value, d when it has none (Nasal's "or" would take a zero for none too); the nodes are kept, so that a
+# path is looked up once, not on every update
+var NODES = {};
 var num = func(p, d = 0) {
-    var v = getprop(p);
+    var n = NODES[p];
+    if (n == nil) n = NODES[p] = props.globals.getNode(p, 1);
+    var v = n.getValue();
     return v == nil ? d : v;
+}
+
+# Canvas writes only when the value changes. Each write is a property set (a lookup, a lock and its listeners, a text's
+# layout), and most of what a format draws holds from one update to the next; the elements a format keeps to update
+# get their own setters that skip the value they already have (cache_writes walks a format's members once).
+var cached = func(e) {
+    if (e["_w"] != nil) return;
+    e._w = {};
+    if (isa(e, canvas.Text)) {
+        var st = e.setText;
+        e.setText = func(s) { if (me._w["t"] != s) { me._w["t"] = s; call(st, [s], me); } return me; };
+    }
+    var tr = e.setTranslation;
+    e.setTranslation = func {
+        var a = size(arg) == 1 ? arg[0] : arg;
+        var w = me._w;
+        if (w["x"] != a[0] or w["y"] != a[1]) { w["x"] = a[0]; w["y"] = a[1]; call(tr, [a[0], a[1]], me); }
+        return me;
+    };
+    var ro = e.setRotation;
+    e.setRotation = func(r) { if (me._w["r"] != r) { me._w["r"] = r; call(ro, [r], me); } return me; };
+    var vi = e.setVisible;
+    e.setVisible = func(v) { v = v ? 1 : 0; if (me._w["v"] != v) { me._w["v"] = v; call(vi, [v], me); } return me; };
+    if (isa(e, canvas.Text) or isa(e, canvas.Path)) {
+        var co = e.setColor; var cf = e.setColorFill;
+        e.setColor = func { colour(me, "c", co, arg) };
+        e.setColorFill = func { colour(me, "f", cf, arg) };
+    }
+}
+
+# a colour given as one vector (the same one: the constants above) is cached, as separate components it is not
+var colour = func(e, k, f, a) {
+    if (size(a) == 1 and typeof(a[0]) == "vector") {
+        if (e._w[k] == a[0]) return e;
+        e._w[k] = a[0];
+    } else e._w[k] = nil;
+    call(f, a, e);
+    return e;
+}
+
+# a path drawn again only when what it shows has changed (key: its inputs as shown, a number or a string)
+var changed = func(e, key) {
+    if (e["_k"] == key) return 0;
+    e._k = key;
+    return 1;
+}
+
+# a path of a fixed shape (n lines of k points) whose coordinates are rewritten in place: no nodes made and removed
+var fixed_path = func(p, n, k) {
+    var cmds = []; var coords = [];
+    for (var l = 0; l < n; l += 1)
+        for (var i = 0; i < k; i += 1) { append(cmds, i ? p.VG_LINE_TO_ABS : p.VG_MOVE_TO_ABS); append(coords, 0, 0); }
+    p.setData(cmds, coords);
+    return p._node.getChildren("coord");
+}
+
+var cache_writes = func(x, depth = 0) {
+    if (depth > 5) return;
+    if (typeof(x) == "vector") { foreach (var y; x) cache_writes(y, depth + 1); return; }
+    if (typeof(x) != "hash") return;
+    if (isa(x, canvas.Element)) return cached(x);
+    if (isa(x, props.Node) or isa(x, canvas.Canvas)) return;
+    foreach (var k; keys(x)) if (k != "parents") cache_writes(x[k], depth + 1);
 }
 
 var JSB = "/fdm/jsbsim/";
@@ -75,201 +144,982 @@ var tape = func(g, x, w, lo, hi, step, label, px, cy, side, fmt) {
 }
 
 # the key labels beside a bezel's keys: top T1..T5, left L1..L7, right R1..R7 (on a 512 screen: the keys are 26 mm
-# apart along the top, 21.5 mm down the sides, 3360 px per m: fdm/cockpit/panel.py)
-var labels = func(g, top, left, right) {
+# apart along the top, 21.5 mm down the sides, 3360 px per m: fdm/cockpit/panel.py), in a group of their own; backed:
+# on a dark ground, to show over a format's own drawing
+var labels = func(g, top, left, right, backed = 0) {
+    var l = g.createChild("group");
+    var put = func(s, x, y, fs, align) {
+        if (backed) {
+            var w = size(s) * fs * 0.55 + 8;
+            var x0 = align == "left-center" ? x - 4 : align == "right-center" ? x - w + 4 : x - w / 2;
+            box(l, x0, y - fs / 2 - 4, w, fs + 8, [0, 0, 0, 0.85], [0, 0, 0, 0.85], 1);
+        }
+        txt(l, s, x, y, fs, CYAN, align);
+    }
     for (var i = 0; i < size(top); i += 1)
-        if (top[i] != "") txt(g, top[i], 256 + (i - 2) * 87.4, 14, 18, CYAN);
+        if (top[i] != "") put(top[i], 256 + (i - 2) * 87.4, 14, 18, "center-center");
     for (var i = 0; i < size(left); i += 1)
-        if (left[i] != "") txt(g, left[i], 6, 39 + 72.2 * i, 17, CYAN, "left-center");
+        if (left[i] != "") put(left[i], 6, 39 + 72.2 * i, 17, "left-center");
     for (var i = 0; i < size(right); i += 1)
-        if (right[i] != "") txt(g, right[i], 506, 39 + 72.2 * i, 17, CYAN, "right-center");
+        if (right[i] != "") put(right[i], 506, 39 + 72.2 * i, 17, "right-center");
+    return l;
 }
 
+# ---------------------------------------------------------------- the flight model's data for the flight format
+# Systems/mv22b-displays.xml, written by fdm/genv22.py from the model's data: the conversion protection's boundaries
+# and the power to hover (read into /instrumentation/mv22b/displays/data at the start)
+var DATA = "/instrumentation/mv22b/displays/data/";
+var R2D = 180 / math.pi;
+var KT = 0.592484;                   # kt per ft/s
+
+var column = func(path, tag) {
+    var out = [];
+    foreach (var c; props.globals.getNode(path).getChildren(tag)) append(out, c.getValue());
+    return out;
+}
+
+var interp = func(x, xs, ys) {
+    if (x <= xs[0]) return ys[0];
+    for (var i = 1; i < size(xs); i += 1)
+        if (x <= xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+    return ys[-1];
+}
+
+var clamp = func(x, lo, hi) { math.max(lo, math.min(hi, x)) };
+
+# the conversion protection: its least and most nacelle angle at an equivalent airspeed, and the other way round, the
+# least and most airspeed its boundaries allow the nacelles' angle (the indicated airspeed is taken for the
+# equivalent: they differ by under 2 % below 10 000 ft and 200 kt)
+var corridor = {
+    load: func {
+        me.lv = column(DATA ~ "cps/lower", "kt"); me.ln = column(DATA ~ "cps/lower", "nac");
+        me.uv = column(DATA ~ "cps/upper", "kt"); me.un = column(DATA ~ "cps/upper", "nac");
+        me.sk = column(DATA ~ "vrs", "kt"); me.ss = column(DATA ~ "vrs", "sink-fpm");
+    },
+    nac_min: func(v) { interp(v, me.lv, me.ln) },
+    nac_max: func(v) { interp(v, me.uv, me.un) },
+    # where a falling boundary (vs, ns) crosses the angle n: the first crossing (v_min) or the last (v_max)
+    cross: func(n, vs, ns, last) {
+        var out = nil;
+        for (var i = 1; i < size(vs); i += 1)
+            if (ns[i - 1] > ns[i] and n <= ns[i - 1] and n >= ns[i]) {
+                var v = vs[i - 1] + (vs[i] - vs[i - 1]) * (ns[i - 1] - n) / (ns[i - 1] - ns[i]);
+                if (!last) return v;
+                out = v;
+            }
+        return out;
+    },
+    v_min: func(n) { n >= me.ln[0] ? 0 : n <= me.ln[-1] ? me.lv[-1] : me.cross(n, me.lv, me.ln, 0) },
+    v_max: func(n) { n > me.un[0] ? 0 : n <= me.un[-1] ? me.uv[-1] : me.cross(n, me.uv, me.un, 1) },
+    # in airplane mode the operating limit instead: at the low rotor speed its KCAS or Mach, whichever is less
+    v_apln: func(ias) {
+        var a = DATA ~ "apln/";
+        if (num(JSB ~ "drive/nr-pct") > 94) return num(a ~ "vmo-100-kt");
+        return math.min(num(a ~ "vmo-kt"), ias * num(a ~ "mmo") / math.max(0.05, num("/velocities/mach")));
+    },
+    # the high sink rate warning's boundary (ft/min of descent) at an airspeed, nil past it
+    vrs_sink: func(kt) { kt > me.sk[-1] ? nil : interp(kt, me.sk, me.ss) },
+};
+
+# the power to hover (hp) at the present weight and air density: out of ground effect, or in it with the wheels 10 ft
+# over the ground, the ground effect slowing the induced velocity as the flight model's does; FM: the induced power's
+# share of the power to hover (about the rotors' figure of merit, estimate)
+var FM = 0.75;
+var hover_power = func(ige) {
+    var h = DATA ~ "hover/";
+    var p = num(h ~ "power-hp") * math.pow(num(JSB ~ "inertia/weight-lbs") / num(h ~ "weight-lb"), 1.5)
+          / math.sqrt(math.max(0.2, num(JSB ~ "atmosphere/sigma", 1)));
+    if (!ige) return p;
+    var z = num(h ~ "hub-height-ft") + 10;
+    var kge = math.pow(1 + num(h ~ "ge-k") * math.pow(num(h ~ "radius-ft") / z, 2), num(h ~ "ge-exp"));
+    return p * (1 - FM + FM * kge);
+}
+
+# a moving tape with its ticks inside its box (x0..x1): side -1 on its right edge (the airspeed), 1 on its left (the
+# altitude); returns the group to translate by the value times px
+var tape_in = func(g, x0, x1, lo, hi, step, label, px, side) {
+    var t = g.createChild("group");
+    var xe = side < 0 ? x1 : x0;
+    for (var v = lo; v <= hi; v += step) {
+        var y = CY - v * px; var big = math.mod(v, label) == 0;
+        line(t, [[xe, y], [xe + side * (big ? 10 : 6), y]], WHITE, 1.5);
+        if (big) txt(t, sprintf("%d", v), xe + side * 14, y, 15, WHITE, side < 0 ? "right-center" : "left-center");
+    }
+    return t;
+}
+
+var lowpass = func(y, x, dt, tau) { y + (x - y) * math.min(1, dt / tau) };
+
 # ---------------------------------------------------------------- the flight format
+# One format for every regime, after the human-factors studies the README lists: the flight path marker with its
+# acceleration chevron at the centre; 10 s trend vectors on the tapes; the limits where the eye already is (the
+# conversion corridor's airspeeds for the nacelles' angle on the speed tape, the vortex ring state's sink rate for
+# the airspeed on the vertical speed scale, the margin to the first power limit in one bar with the power to hover in
+# and out of ground effect); a ground grid in perspective; the corridor itself, where the aircraft is in it and where
+# it is going. Slowing below 30 kt with the nacelles past 75 deg it turns to the hover: the flight path marker gives
+# way to the drift seen from above as a target to fly to: the stop ball on a line from the centre, opposite where the
+# ground velocity will be in 3 s (drifting aft it is ahead, the stick goes towards it, and it comes back to the centre
+# as the drift is about to stop), the hover point, the radar height on a stretched tape. Past 60 deg of bank or 25 deg
+# of pitch the clutter goes and an arrow shows the way to roll level.
+var AX0 = 96; var AY0 = 46; var AX1 = 416; var AY1 = 330;      # the attitude's window
+var CX = 256; var CY = 178; var K = 6.0;                       # its centre (the aircraft's waterline), px per deg
+var GROUND_BAND = [0.43, 0.27, 0.12];
+var GRID = [0.62, 0.45, 0.28];
+var GRID_HALF = 6;                       # the ground grid: lines each side of the aircraft, each way
+var GRID_S = [-1, -0.6, -0.35, -0.2, -0.1, 0, 0.1, 0.2, 0.35, 0.6, 1];     # its points along a line, x its length
+var HOVER_IN = 30; var HOVER_OUT = 40;                         # kt ground speed into and out of the hover format
+var RING = 62;                                                 # px: 10 kt, or 60 ft, from the hover display's centre
+
 var Flight = {
     new: func(g) {
-        var m = {parents: [Flight]};
-        m.g = g;
-        var cx = 256; var cy = 230;
-        m.cx = cx; m.cy = cy; m.k = 5.0;                     # px per deg of pitch
-        # the attitude
-        var win = clip(g.createChild("group"), 118, 92, 394, 368);
-        m.att = win.createChild("group").setCenter(cx, cy);
+        var m = {parents: [Flight], g: g, t0: systime(), ias0: 0, dias: 0, dtas: 0, tas0: 0, af: 0, ar: 0, vf0: 0, vr0: 0,
+                 hover: 0, mark: nil, n: 0};
+        # ---- the attitude: sky, ground and its grid, the horizon, the pitch ladder
+        var win = clip(g.createChild("group"), AX0, AY0, AX1, AY1);
+        m.att = win.createChild("group").setCenter(CX, CY);
         m.pitch = m.att.createChild("group");
-        box(m.pitch, cx - 600, cy - 900, 1200, 900, SKY, SKY, 1);
-        box(m.pitch, cx - 600, cy, 1200, 900, GROUND, GROUND, 1);
-        line(m.pitch, [[cx - 600, cy], [cx + 600, cy]], WHITE, 2);
-        for (var p = -60; p <= 60; p += 5) {
+        box(m.pitch, CX - 700, CY - 1000, 1400, 1000, SKY, SKY, 1);
+        box(m.pitch, CX - 700, CY, 1400, 1000, GROUND, GROUND, 1);
+        m.grid = m.pitch.createChild("path").setColor(GRID).setStrokeLineWidth(1);
+        m.gridc = fixed_path(m.grid, 2 * (2 * GRID_HALF + 1), size(GRID_S));
+        line(m.pitch, [[CX - 700, CY], [CX + 700, CY]], WHITE, 2);
+        m.ladder = m.pitch.createChild("group");
+        for (var p = -80; p <= 80; p += 5) {
             if (p == 0) continue;
-            var y = cy - p * m.k; var w = math.mod(p, 10) == 0 ? 46 : 22;
-            line(m.pitch, [[cx - w, y], [cx + w, y]], WHITE, 2);
+            var y = CY - p * K; var w = math.mod(p, 10) == 0 ? 34 : 16;
+            line(m.ladder, [[CX - w, y], [CX + w, y]], WHITE, 2);
             if (math.mod(p, 10) == 0) {
-                txt(m.pitch, sprintf("%d", math.abs(p)), cx - w - 16, y, 16);
-                txt(m.pitch, sprintf("%d", math.abs(p)), cx + w + 16, y, 16);
+                txt(m.ladder, sprintf("%d", math.abs(p)), CX - w - 14, y, 15);
+                txt(m.ladder, sprintf("%d", math.abs(p)), CX + w + 14, y, 15);
             }
         }
-        # the roll scale and its pointer
-        foreach (var a; [-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60]) {
-            var r0 = 128; var r1 = math.mod(a, 30) == 0 ? 142 : 136;
-            var s = math.sin(a * D2R); var c = math.cos(a * D2R);
-            line(g, [[cx + r0 * s, cy - r0 * c], [cx + r1 * s, cy - r1 * c]], WHITE, 2);
+        m.ladder_h = m.pitch.createChild("group");                    # the hover's: short, unlabelled
+        foreach (var p; [-10, -5, 5, 10])
+            line(m.ladder_h, [[CX - (math.mod(p, 10) == 0 ? 16 : 8), CY - p * K], [CX + (math.mod(p, 10) == 0 ? 16 : 8), CY - p * K]], GREY, 2);
+        # the bank scale, its pointer
+        foreach (var a; [-60, -45, -30, -20, -10, 10, 20, 30, 45, 60]) {
+            var r1 = math.mod(a, 30) == 0 ? 129 : 124; var s = math.sin(a * D2R); var c = math.cos(a * D2R);
+            line(g, [[CX + 118 * s, CY - 118 * c], [CX + r1 * s, CY - r1 * c]], WHITE, 2);
         }
-        m.roll = g.createChild("group").setCenter(cx, cy);
-        line(m.roll, [[cx, cy - 126], [cx - 8, cy - 112], [cx + 8, cy - 112], [cx, cy - 126]], WHITE, 2);
-        # the aircraft symbol
-        line(g, [[cx - 60, cy], [cx - 22, cy], [cx - 12, cy + 10], [cx, cy], [cx + 12, cy + 10], [cx + 22, cy], [cx + 60, cy]], AMBER, 4);
-        # the airspeed tape (KCAS) and its readout
-        var sw = clip(g.createChild("group"), 30, 92, 110, 368);
-        box(g, 30, 92, 80, 276, GREY, nil, 1);
-        m.spd = tape(sw, 30, 80, 0, 400, 10, 20, 3.0, cy, -1, "%d");
-        box(g, 34, cy - 16, 72, 32, WHITE, [0, 0, 0], 2);
-        m.spdtxt = txt(g, "0", 100, cy, 24, WHITE, "right-center", MONO);
-        m.gs = txt(g, "GS 0", 70, 384, 18, GREEN);
-        # the altitude tape and its readout
-        var aw = clip(g.createChild("group"), 402, 92, 482, 368);
-        box(g, 402, 92, 80, 276, GREY, nil, 1);
-        m.alt = tape(aw, 402, 80, -1000, 30000, 100, 500, 0.30, cy, 1, "%d");
-        box(g, 404, cy - 16, 92, 32, WHITE, [0, 0, 0], 2);
-        m.alttxt = txt(g, "0", 492, cy, 22, WHITE, "right-center", MONO);
-        m.vs = txt(g, "VS 0", 442, 384, 18, GREEN);
-        m.ralt = txt(g, "", cx, cy + 112, 22, GREEN, "center-center", MONO);
-        # the heading tape
-        var hw = clip(g.createChild("group"), 118, 38, 394, 74);
-        m.hdg = hw.createChild("group");
-        for (var h = -40; h <= 400; h += 5) {
-            var x = cx + h * 4;
-            line(m.hdg, [[x, 74], [x, math.mod(h, 10) == 0 ? 62 : 67]], WHITE, 2);
+        line(g, [[CX, CY - 117], [CX - 7, CY - 129], [CX + 7, CY - 129], [CX, CY - 117]], WHITE, 2).setColorFill(WHITE);
+        m.roll = g.createChild("group").setCenter(CX, CY);
+        line(m.roll, [[CX, CY - 116], [CX - 7, CY - 104], [CX + 7, CY - 104], [CX, CY - 116]], WHITE, 2).setColorFill(WHITE);
+        # the aircraft's waterline, small: the flight path is the symbol to fly
+        line(g, [[CX - 16, CY], [CX - 7, CY], [CX - 3, CY + 5], [CX, CY], [CX + 3, CY + 5], [CX + 7, CY], [CX + 16, CY]], AMBER, 3);
+        # the flight path marker and its acceleration chevron (flight path acceleration in g, as degrees)
+        m.fpv = g.createChild("group");
+        m.fpv.createChild("path").circle(8, 0, 0).setColor(GREEN).setStrokeLineWidth(2.5);
+        line(m.fpv, [[-24, 0], [-8, 0]], GREEN, 2.5); line(m.fpv, [[8, 0], [24, 0]], GREEN, 2.5); line(m.fpv, [[0, -8], [0, -16]], GREEN, 2.5);
+        m.chev = line(m.fpv, [[-38, -6], [-30, 0], [-38, 6]], GREEN, 2.5);
+        # ---- the hover: the stop ball on its line (a target: opposite the ground velocity 3 s on), the hover point
+        m.hov = g.createChild("group").setTranslation(CX, CY + 46);
+        for (var a = 0; a < 360; a += 12) {
+            var a0 = a * D2R; var a1 = (a + 6) * D2R;
+            line(m.hov, [[RING * math.cos(a0), RING * math.sin(a0)], [RING * math.cos(a1), RING * math.sin(a1)]], WHITE, 1.5);
+        }
+        m.hov.createChild("path").circle(RING / 2, 0, 0).setColor(GREY).setStrokeLineWidth(1);
+        line(m.hov, [[-7, 0], [7, 0]], AMBER, 2.5); line(m.hov, [[0, -9], [0, 6]], AMBER, 2.5);
+        m.vel = m.hov.createChild("path").setColor(WHITE).setStrokeLineWidth(3);
+        m.ball = m.hov.createChild("path").circle(6, 0, 0).setColor(GREEN).setStrokeLineWidth(2.5);
+        m.hpt = m.hov.createChild("group");
+        box(m.hpt, -9, -9, 18, 18, MAGENTA, nil, 2.5);
+        m.hptf = box(m.hpt, -6, -6, 12, 12, MAGENTA, MAGENTA, 1);
+        m.hptxt = txt(m.hpt, "", 14, 0, 13, MAGENTA, "left-center");
+        txt(m.hov, "10 KT", RING + 4, -4, 12, WHITE, "left-center");
+        # ---- the airspeed tape: the corridor's limits for the nacelles' angle red, the trend, the selected speed
+        var sw = clip(g.createChild("group"), 44, AY0, 92, AY1);
+        box(sw, 44, AY0, 48, AY1 - AY0, [0.07, 0.07, 0.08], [0.07, 0.07, 0.08], 1);
+        m.spd = tape_in(sw, 44, 92, 0, 400, 10, 20, 2.2, -1);
+        m.vlim = sw.createChild("path").setColor(RED).setColorFill(RED).setStrokeLineWidth(1);
+        m.sbug = line(g, [[92, 0], [101, -7], [101, 7], [92, 0]], CYAN, 2);
+        m.strend = g.createChild("path").setColor(GREEN).setStrokeLineWidth(2.5);
+        box(g, 42, CY - 15, 51, 30, WHITE, [0, 0, 0], 2);
+        m.spdtxt = txt(g, "0", 88, CY, 22, WHITE, "right-center", MONO);
+        m.ssel = txt(g, "", 68, AY0 - 9, 15, CYAN);
+        m.gs = txt(g, "", 68, AY1 + 11, 15);
+        # ---- the altitude tape: baro, in the hover the radar height stretched; the ground rising on it
+        var aw = clip(g.createChild("group"), 420, AY0, 468, AY1);
+        box(aw, 420, AY0, 48, AY1 - AY0, [0.07, 0.07, 0.08], [0.07, 0.07, 0.08], 1);
+        m.gnd = aw.createChild("path").setColor(AMBER).setColorFill(GROUND_BAND).setStrokeLineWidth(2);
+        m.altb = tape_in(aw, 420, 468, -2000, 30000, 100, 200, 0.32, 1);
+        m.altr = tape_in(aw, 420, 468, 0, 400, 10, 50, 2.6, 1);
+        m.abug = line(g, [[420, 0], [411, -7], [411, 7], [420, 0]], CYAN, 2);
+        m.atrend = g.createChild("path").setColor(GREEN).setStrokeLineWidth(2.5);
+        box(g, 419, CY - 15, 58, 30, WHITE, [0, 0, 0], 2);
+        m.alttxt = txt(g, "0", 424, CY, 21, WHITE, "left-center", MONO);
+        m.asel = txt(g, "", 444, AY0 - 9, 15, CYAN);
+        m.altlow = txt(g, "", 444, AY1 + 11, 15, GREEN);
+        # ---- the vertical speed: its scale square-rooted, the vortex ring state's sink rate at this airspeed
+        var vx = 488;
+        line(g, [[vx, m.vsy(2000)], [vx, m.vsy(-2000)]], [0.3, 0.3, 0.32], 2);
+        foreach (var f; [-2000, -1000, -500, 0, 500, 1000, 2000]) line(g, [[vx - 4, m.vsy(f)], [vx + 4, m.vsy(f)]], WHITE, 1.5);
+        foreach (var f; [-2000, -1000, 1000, 2000]) txt(g, sprintf("%d", math.abs(f) / 1000), vx + 12, m.vsy(f), 12, GREY);
+        m.vrs = g.createChild("path").setStrokeLineWidth(6);
+        m.vrsred = g.createChild("path").setColor(RED).setStrokeLineWidth(6);
+        m.vrstxt = txt(g, "VRS", vx, m.vsy(-2000) + 13, 12, RED);
+        m.vsptr = g.createChild("path").setColor(WHITE).setStrokeLineWidth(2.5);
+        m.vstxt = txt(g, "", vx, AY0 - 9, 13);
+        # ---- the heading arc: a card turning under a fixed index, the ground track, the selected heading, the wind
+        var hx = CX; var hy = 432; var hr = 66;
+        m.hx = hx; m.hy = hy;
+        var cw = clip(g.createChild("group"), hx - hr - 12, hy - hr - 10, hx + hr + 12, hy - 18);
+        m.card = cw.createChild("group").setCenter(hx, hy);
+        for (var h = 0; h < 360; h += 5) {
+            var a = (h - 90) * D2R; var r1 = hr - (math.mod(h, 10) == 0 ? 9 : 5);
+            line(m.card, [[hx + hr * math.cos(a), hy + hr * math.sin(a)], [hx + r1 * math.cos(a), hy + r1 * math.sin(a)]], WHITE, 1.5);
             if (math.mod(h, 30) == 0) {
-                var v = math.mod(h + 360, 360) / 10;
-                var s = v == 0 ? "N" : v == 9 ? "E" : v == 18 ? "S" : v == 27 ? "W" : sprintf("%d", v);
-                txt(m.hdg, s, x, 50, 18);
+                var s = h == 0 ? "N" : h == 90 ? "E" : h == 180 ? "S" : h == 270 ? "W" : sprintf("%d", h / 10);
+                txt(m.card, s, hx + (hr - 20) * math.cos(a), hy + (hr - 20) * math.sin(a), 13).setRotation(h * D2R);
             }
         }
-        box(g, cx - 26, 30, 52, 26, WHITE, [0, 0, 0], 2);
-        m.hdgtxt = txt(g, "000", cx, 43, 20, WHITE, "center-center", MONO);
-        # the AFCS modes
-        m.modes = txt(g, "", cx, 84, 16, GREEN);
-        # the nacelle angle against the conversion protection's limits (an arc, 0 at the right, 90 up)
-        var nx = 70; var ny = 486; var nr = 46;
-        m.nx = nx; m.ny = ny; m.nr = nr;
-        for (var a = 0; a <= 90; a += 15)
-            line(g, [[nx + nr * math.cos(a * D2R), ny - nr * math.sin(a * D2R)], [nx + (nr - 8) * math.cos(a * D2R), ny - (nr - 8) * math.sin(a * D2R)]], WHITE, 2);
-        m.nac = line(g, [[nx, ny], [nx + nr - 4, ny]], GREEN, 3).setCenter(nx, ny);
-        m.cpsmin = line(g, [[nx + nr, ny], [nx + nr + 10, ny]], AMBER, 4).setCenter(nx, ny);
-        m.cpsmax = line(g, [[nx + nr, ny], [nx + nr + 10, ny]], AMBER, 4).setCenter(nx, ny);
-        m.nactxt = txt(g, "NAC 90", nx + 6, ny - 60, 20, GREEN, "left-center");
-        # power and rotor speed, flaperons, gear, the augmentation's mode
-        m.tq = txt(g, "TQ 0 0", 210, 418, 20, GREEN, "left-center", MONO);
-        m.nr = txt(g, "NR 0", 210, 444, 20, GREEN, "left-center", MONO);
-        m.flap = txt(g, "FLAP 0", 210, 470, 18, WHITE, "left-center");
-        m.gear = txt(g, "GEAR DN", 330, 470, 18, WHITE, "left-center");
-        m.scas = txt(g, "", 330, 444, 18, CYAN, "left-center");
-        m.brake = txt(g, "", 330, 418, 18, AMBER, "left-center");
+        m.trk = cw.createChild("group").setCenter(hx, hy);
+        line(m.trk, [[hx, hy - hr - 6], [hx + 5, hy - hr], [hx, hy - hr + 6], [hx - 5, hy - hr], [hx, hy - hr - 6]], GREEN, 2);
+        m.hbug = cw.createChild("group").setCenter(hx, hy);
+        box(m.hbug, hx - 5, hy - hr - 8, 10, 8, CYAN, nil, 2);
+        box(g, hx - 21, hy - hr - 24, 42, 20, WHITE, [0, 0, 0], 2);
+        m.hdgtxt = txt(g, "000", hx, hy - hr - 14, 16, WHITE, "center-center", MONO);
+        m.wind = g.createChild("group").setTranslation(hx + 52, hy - hr - 14);
+        line(m.wind, [[0, -8], [0, 8]], WHITE, 2); line(m.wind, [[-4, -3], [0, -8], [4, -3]], WHITE, 2);
+        m.windtxt = txt(g, "", hx + 64, hy - hr - 14, 13, WHITE, "left-center");
+        # ---- the conversion corridor: airspeed across, nacelle angle up; the aircraft in it, its 10 s trend; the
+        # angles allowed at the selected speed
+        var x0 = 22; var y0 = 372; var w = 118; var h = 106;
+        m.cvx = func(v) { x0 + 6 + v / 220 * (w - 12) };
+        m.cny = func(n) { y0 + h - 8 - n / 100 * (h - 18) };
+        box(g, x0, y0, w, h, [0.07, 0.07, 0.08], [0.07, 0.07, 0.08], 1);
+        var allowed = g.createChild("path").setColorFill([0.20, 0.22, 0.25]).setColor([0.20, 0.22, 0.25]);
+        allowed.moveTo(m.cvx(corridor.lv[0]), m.cny(corridor.ln[0]));
+        for (var i = 1; i < size(corridor.lv); i += 1) allowed.lineTo(m.cvx(corridor.lv[i]), m.cny(corridor.ln[i]));
+        for (var i = size(corridor.uv) - 1; i >= 0; i -= 1) allowed.lineTo(m.cvx(corridor.uv[i]), m.cny(corridor.un[i]));
+        allowed.close();
+        foreach (var b; [[corridor.lv, corridor.ln], [corridor.uv, corridor.un]]) {
+            var pts = [];
+            for (var i = 0; i < size(b[0]); i += 1) append(pts, [m.cvx(b[0][i]), m.cny(b[1][i])]);
+            line(g, pts, RED, 2);
+        }
+        foreach (var n; [0, 30, 60, 90]) txt(g, sprintf("%d", n), x0 + 3, m.cny(n), 10, GREY, "left-center");
+        foreach (var v; [100, 200]) txt(g, sprintf("%d", v), m.cvx(v), y0 + h - 3, 10, GREY);
+        m.cband = g.createChild("path").setColor(CYAN).setStrokeLineWidth(3);
+        m.ctrend = g.createChild("path").setColor(GREEN).setStrokeLineWidth(2);
+        m.cdot = g.createChild("path").circle(5, 0, 0).setColor(WHITE).setColorFill(WHITE);
+        m.nactxt = txt(g, "NAC 90", x0 + w / 2, y0 - 11, 17);
+        # ---- power: the margin to the first limit (the transmission's torque or the engines' power), the power to
+        # hover in and out of ground effect, the rotor's speed
+        var px = 428; var py = 372; var pw = 26; var ph = 106;
+        m.py = func(pct) { py + ph - clamp(pct, 0, 110) / 110 * ph };
+        box(g, px, py, pw, ph, GREY, nil, 1.5);
+        m.pbar = g.createChild("path").setStrokeLineWidth(1);
+        line(g, [[px - 4, m.py(100)], [px + pw + 4, m.py(100)]], RED, 2.5);
+        line(g, [[px - 4, m.py(90)], [px + pw + 4, m.py(90)]], AMBER, 1.5);
+        m.oge = g.createChild("group"); line(m.oge, [[px - 8, 0], [px, 0]], CYAN, 2.5); txt(m.oge, "OGE", px - 10, -5, 11, CYAN, "right-center");
+        m.ige = g.createChild("group"); line(m.ige, [[px - 8, 0], [px, 0]], CYAN, 2.5); txt(m.ige, "IGE", px - 10, 6, 11, CYAN, "right-center");
+        m.pwrtxt = txt(g, "", px + pw / 2, py - 11, 16);
+        txt(g, "NR", px + pw + 26, py + ph / 2 - 8, 11, GREY);
+        m.nrtxt = txt(g, "", px + pw + 26, py + ph / 2 + 7, 17, WHITE, "center-center", MONO);
+        # ---- the modes, the configuration, the recovery arrow
+        m.modes = txt(g, "", CX, 22, 16, GREEN);
+        m.alert = txt(g, "", CX, 40, 16, AMBER);
+        m.config = txt(g, "", CX, 497, 14);
+        m.recover = g.createChild("path").setColor(RED).setColorFill(RED);
         return m;
     },
+    vsy: func(fpm) { CY - (fpm < 0 ? -1 : 1) * math.sqrt(math.min(2000, math.abs(fpm)) / 2000) * 128 },
+    key: func(k) {
+        if (k == "R7") me.mark = [num("/position/latitude-deg"), num("/position/longitude-deg")];
+    },
     update: func {
+        var t = systime(); var dt = clamp(t - me.t0, 0.01, 0.5); me.t0 = t;
         var pitch = num("/orientation/pitch-deg"); var roll = num("/orientation/roll-deg");
-        me.att.setRotation(-roll * D2R);
-        me.pitch.setTranslation(0, pitch * me.k);
-        me.roll.setRotation(-roll * D2R);
-        var ias = math.max(0, num("/instrumentation/airspeed-indicator/indicated-speed-kt"));
-        me.spd.setTranslation(0, ias * 3.0);
-        me.spdtxt.setText(sprintf("%d", ias));
-        me.gs.setText(sprintf("GS %d", num("/velocities/groundspeed-kt")));
-        var alt = num("/instrumentation/altimeter/indicated-altitude-ft");
-        me.alt.setTranslation(0, alt * 0.30);
-        me.alttxt.setText(sprintf("%d", math.round(alt / 10) * 10));
-        me.vs.setText(sprintf("VS %+d", math.round(num("/velocities/vertical-speed-fps") * 6) * 10));
-        var agl = num("/position/altitude-agl-ft");
-        me.ralt.setText(agl < 5000 ? sprintf("R %d", math.round(agl)) : "");
         var hdg = num("/orientation/heading-magnetic-deg", num("/orientation/heading-deg"));
-        me.hdg.setTranslation(-hdg * 4, 0);
-        me.hdgtxt.setText(sprintf("%03d", math.mod(math.round(hdg) + 359, 360) + 1));
-        me.modes.setText(afcs_modes());
+        var thdg = num("/orientation/heading-deg");
+        var ias = math.max(0, num("/instrumentation/airspeed-indicator/indicated-speed-kt"));
+        var tas = num(JSB ~ "velocities/vtrue-kts");
+        var alt = num("/instrumentation/altimeter/indicated-altitude-ft");
+        var agl = num("/position/gear-agl-m") / 0.3048;                        # the radar height: 0 on the wheels
+        var vs = num("/velocities/vertical-speed-fps") * 60;
+        var vn = num("/velocities/speed-north-fps") * KT; var ve = num("/velocities/speed-east-fps") * KT;
+        var gs = math.sqrt(vn * vn + ve * ve);
+        var vf = vn * math.cos(thdg * D2R) + ve * math.sin(thdg * D2R);           # ground velocity, kt: forward, right
+        var vr = -vn * math.sin(thdg * D2R) + ve * math.cos(thdg * D2R);
         var nac = num(JSB ~ "ctl/nacelle-deg", 90);
-        me.nac.setRotation(-nac * D2R);
-        me.cpsmin.setRotation(-num(JSB ~ "ctl/cps-min-deg", 0) * D2R);
-        me.cpsmax.setRotation(-math.min(97.5, num(JSB ~ "ctl/cps-max-deg", 97.5)) * D2R);
+        # rates, filtered: airspeed (kt/s) for its trend, true airspeed for the flight path's acceleration, the
+        # ground velocity's for the stop ball
+        me.dias = lowpass(me.dias, (ias - me.ias0) / dt, dt, 0.8); me.ias0 = ias;
+        me.dtas = lowpass(me.dtas, (tas - me.tas0) / dt, dt, 0.5); me.tas0 = tas;
+        me.af = lowpass(me.af, (vf - me.vf0) / dt, dt, 0.5); me.vf0 = vf;
+        me.ar = lowpass(me.ar, (vr - me.vr0) / dt, dt, 0.5); me.vr0 = vr;
+        var hold = num(JSB ~ "hh/on"); var hstate = num(JSB ~ "hh/state");
+        if (me.hover and !hold and (gs > HOVER_OUT or nac < 70)) { me.hover = 0; me.mark = nil; }
+        elsif (!me.hover and ((gs < HOVER_IN and nac > 75) or hold)) me.hover = 1;
+        var unusual = math.abs(roll) > 60 or pitch > 25 or pitch < -25;
+        # ---- the attitude
+        me.att.setRotation(-roll * D2R);
+        me.pitch.setTranslation(0, pitch * K);
+        me.roll.setRotation(-roll * D2R);
+        me.ladder.setVisible(!me.hover); me.ladder_h.setVisible(me.hover);
+        me.n += 1;
+        if (math.mod(me.n, 2) == 0) me.draw_grid(num("/position/altitude-agl-ft"), thdg, unusual);
+        # the flight path marker: the ground-relative velocity's angles off the aircraft's axes
+        var u = num(JSB ~ "velocities/u-fps"); var v = num(JSB ~ "velocities/v-fps"); var w = num(JSB ~ "velocities/w-fps");
+        var show_fpv = !me.hover and !unusual and gs > 25 and u > 10;
+        me.fpv.setVisible(show_fpv);
+        if (show_fpv) {
+            var fx = clamp(math.atan2(v, u) * R2D * K, AX0 - CX + 30, AX1 - CX - 30);
+            var fy = clamp(math.atan2(w, u) * R2D * K, AY0 - CY + 20, AY1 - CY - 20);
+            me.fpv.setTranslation(CX + fx, CY + fy);
+            me.chev.setTranslation(0, -clamp(me.dtas / KT / 32.17 * R2D * K, -60, 60));
+        }
+        # the hover: the line and the stop ball opposite the velocity, now and 3 s ahead (a target), the hover point
+        me.hov.setVisible(me.hover and !unusual);
+        if (me.hover) {
+            var sc = RING / 10;
+            # one vector for both, its length held within 1.4 rings (14 kt) and its direction kept
+            var bx = -(vr + me.ar * 3) * sc; var by = (vf + me.af * 3) * sc;
+            var len = math.sqrt(bx * bx + by * by); var f = len > RING * 1.4 ? RING * 1.4 / len : 1;
+            bx = math.round(bx * f); by = math.round(by * f);
+            if (changed(me.vel, bx * 1000 + by)) me.vel.reset().moveTo(0, 0).lineTo(bx, by);
+            me.ball.setTranslation(bx, by);
+            # the hover hold's point (filled once it holds it), or where the aircraft last stopped
+            if (hold) me.mark = [num(JSB ~ "hh/lat-t-rad") * R2D, num(JSB ~ "hh/lon-t-rad") * R2D];
+            elsif (me.mark == nil and gs < 1.5 and agl > 3) me.mark = [num("/position/latitude-deg"), num("/position/longitude-deg")];
+            me.hpt.setVisible(me.mark != nil);
+            me.hptf.setVisible(hold and hstate == 2);
+            if (me.mark != nil) {
+                var dn = (me.mark[0] - num("/position/latitude-deg")) * 364567;
+                var de = (me.mark[1] - num("/position/longitude-deg")) * 364567 * math.cos(me.mark[0] * D2R);
+                var pf = dn * math.cos(thdg * D2R) + de * math.sin(thdg * D2R);
+                var pr = -dn * math.sin(thdg * D2R) + de * math.cos(thdg * D2R);
+                var d = math.sqrt(pf * pf + pr * pr); var k = d > 60 ? 60 / d : 1;
+                if (d > 600 and !hold) me.mark = nil;         # left behind: the next stop sets another
+                me.hpt.setTranslation(pr * k * RING / 60, -pf * k * RING / 60);
+                me.hptxt.setText(sprintf("%d FT", math.round(d)));
+            }
+        }
+        # the recovery arrow: roll toward level, the shorter way
+        var s = roll > 0 ? -1 : 1;                    # roll left when banked right
+        if (changed(me.recover, unusual ? s : 0)) {
+            me.recover.reset();
+            if (unusual) me.recover.moveTo(CX - s * 40, 92).lineTo(CX + s * 20, 92).lineTo(CX + s * 20, 78).lineTo(CX + s * 50, 102)
+                      .lineTo(CX + s * 20, 126).lineTo(CX + s * 20, 112).lineTo(CX - s * 40, 112).close();
+        }
+        # ---- the airspeed
+        me.spd.setTranslation(0, ias * 2.2);
+        me.spdtxt.setText(sprintf("%d", ias));
+        me.gs.setText(sprintf("GS %d", math.round(gs)));
+        var sy = func(kt) { CY - (kt - ias) * 2.2 };
+        var vmin = corridor.v_min(nac); var vmax = nac > 0.5 ? corridor.v_max(nac) : corridor.v_apln(ias);
+        var bands = [];
+        foreach (var r; [[0, vmin], [vmax, 450]])
+            if (r[1] > r[0] + 0.5 and sy(r[0]) > AY0 and sy(r[1]) < AY1)
+                append(bands, math.round(clamp(sy(r[1]), AY0, AY1)), math.round(clamp(sy(r[0]), AY0, AY1)));
+        if (changed(me.vlim, size(bands) ? sprintf("%d %d %d %d", bands[0], bands[1], size(bands) > 2 ? bands[2] : 0, size(bands) > 2 ? bands[3] : 0) : "")) {
+            me.vlim.reset();
+            for (var b = 0; b < size(bands); b += 2) me.vlim.rect(84, bands[b], 8, bands[b + 1] - bands[b]);
+        }
+        var ssel = num("/autopilot/settings/target-speed-kt");
+        me.sbug.setTranslation(0, clamp(sy(ssel), AY0 + 8, AY1 - 8));
+        me.ssel.setText(me.hover or ssel <= 0 ? "" : sprintf("%d", ssel));
+        me.sbug.setVisible(!me.hover and ssel > 0);
+        var tr = clamp(me.dias * 10, -60, 60);
+        if (math.abs(tr) <= 1) tr = 0;
+        if (changed(me.strend, math.round(tr * 2.2))) {
+            me.strend.reset();
+            if (tr != 0) me.strend.moveTo(95, CY).lineTo(95, sy(ias + tr)).moveTo(91, sy(ias + tr) + (tr > 0 ? 6 : -6))
+                             .lineTo(95, sy(ias + tr)).lineTo(99, sy(ias + tr) + (tr > 0 ? 6 : -6));
+        }
+        # ---- the altitude: baro, or the radar height in the hover near the ground
+        var rad = me.hover and agl < 300;
+        var hv = rad ? agl : alt; var px = rad ? 2.6 : 0.32;
+        var ay = func(ft) { CY - (ft - hv) * px };
+        me.altb.setVisible(!rad); me.altr.setVisible(rad);
+        if (rad) me.altr.setTranslation(0, agl * 2.6); else me.altb.setTranslation(0, alt * 0.32);
+        me.alttxt.setText(sprintf("%d", rad ? math.round(agl) : math.round(alt / 10) * 10));
+        me.alttxt.setColor(rad ? GREEN : WHITE);
+        var g0 = math.round(ay(rad ? 0 : alt - agl));
+        if (changed(me.gnd, g0 < AY1 ? math.max(AY0, g0) : -1)) {
+            me.gnd.reset();
+            if (g0 < AY1) me.gnd.rect(420, math.max(AY0, g0), 48, AY1 - math.max(AY0, g0));
+        }
+        var asel = num("/autopilot/settings/target-altitude-ft");
+        me.abug.setVisible(!rad and asel > 0); me.abug.setTranslation(0, clamp(ay(asel), AY0 + 8, AY1 - 8));
+        me.asel.setText(rad ? "RAD ALT" : asel > 0 ? sprintf("%d", asel) : ""); me.asel.setColor(rad ? GREEN : CYAN);
+        me.altlow.setText(rad ? sprintf("MSL %d", math.round(alt / 10) * 10) : agl < 5000 ? sprintf("R %d", math.round(agl)) : "");
+        me.altlow.setColor(rad ? GREY : GREEN);
+        var th = clamp(vs / 6, -400 / px, 400 / px);
+        var ty = math.abs(th * px) > 2 ? math.round(ay(hv + th)) : 0;
+        if (changed(me.atrend, ty)) {
+            me.atrend.reset();
+            if (ty) me.atrend.moveTo(416, CY).lineTo(416, ty);
+        }
+        # ---- the vertical speed and the vortex ring state's boundary
+        var lim = corridor.vrs_sink(ias);
+        var near = 0;
+        if (changed(me.vrs, lim == nil ? -1 : math.round(lim / 10))) {
+            me.vrs.reset(); me.vrsred.reset();
+            if (lim != nil) {
+                me.vrs.setColor(AMBER).moveTo(488, me.vsy(-lim * 0.75)).lineTo(488, me.vsy(-lim));
+                me.vrsred.moveTo(488, me.vsy(-lim)).lineTo(488, me.vsy(-2000));
+            }
+        }
+        if (lim != nil) near = vs < -lim * 0.75;
+        me.vrstxt.setVisible(lim != nil);
+        if (changed(me.vsptr, math.round(me.vsy(vs)))) me.vsptr.reset().moveTo(470, CY).lineTo(490, me.vsy(vs));
+        me.vstxt.setText(sprintf("%+d", math.round(vs / 10) * 10));
+        me.vstxt.setColor(near ? (vs < -lim ? RED : AMBER) : WHITE);
+        # ---- heading, track, the selected heading, the wind
+        me.card.setRotation(-hdg * D2R);
+        me.hdgtxt.setText(sprintf("%03d", math.mod(math.round(hdg) + 359, 360) + 1));
+        var trk = gs > 3 ? math.atan2(ve, vn) * R2D - thdg : 0;
+        me.trk.setRotation(trk * D2R); me.trk.setVisible(gs > 3);
+        me.hbug.setRotation((num("/autopilot/settings/heading-bug-deg") - hdg) * D2R);
+        var wkt = num("/environment/wind-speed-kt");
+        me.wind.setRotation((num("/environment/wind-from-heading-deg") - thdg + 180) * D2R).setVisible(wkt > 2);
+        me.windtxt.setText(wkt > 2 ? sprintf("%03d/%d", math.mod(math.round(num("/environment/wind-from-heading-deg")) + 359, 360) + 1, math.round(wkt)) : "");
+        # ---- the conversion corridor
+        var nrate = num(JSB ~ "ctl/nacelle-rate-rad_sec") * R2D;
+        me.cdot.setTranslation(me.cvx(math.min(ias, 220)), me.cny(nac));
+        var c0 = [me.cvx(math.min(ias, 220)), me.cny(nac)];
+        var c1 = [me.cvx(clamp(ias + me.dias * 10, 0, 220)), me.cny(clamp(nac + nrate * 10, 0, 97.5))];
+        if (changed(me.ctrend, sprintf("%d %d %d %d", c0[0], c0[1], c1[0], c1[1])))
+            me.ctrend.reset().moveTo(c0[0], c0[1]).lineTo(c1[0], c1[1]);
+        if (changed(me.cband, !me.hover and ssel > 0 ? ssel : -1)) {
+            me.cband.reset();
+            if (!me.hover and ssel > 0)
+                me.cband.moveTo(me.cvx(ssel), me.cny(corridor.nac_min(ssel))).lineTo(me.cvx(ssel), me.cny(corridor.nac_max(ssel)));
+        }
         me.nactxt.setText(sprintf("NAC %d", math.round(nac)));
-        me.tq.setText(sprintf("TQ %3d %3d", num("/engines/engine[0]/torque-pct"), num("/engines/engine[1]/torque-pct")));
-        me.nr.setText(sprintf("NR %3d", num(JSB ~ "drive/nr-pct")));
-        me.flap.setText(sprintf("FLAP %d", num(JSB ~ "ctl/flaperon-deg")));
+        # ---- power, per engine: the busier engine's against its share of the transmission's torque limit or its own
+        # power available, whichever is less; with the rotor stopped the transmission's at 100 % rotor speed, the
+        # engines' not yet one. The power to hover is shared by the two engines
+        var p = math.max(num(JSB ~ "eng[0]/power-hp"), num(JSB ~ "eng[1]/power-hp"));
+        var xm = num(JSB ~ "eng/xmsn-limit-hp"); var av = num(JSB ~ "eng/power-available-hp");
+        if (xm < 50) xm = num(DATA ~ "hover/power-hp") / 2;
+        var lim_p = av > 50 ? math.min(xm, av) : xm;
+        var pct = p / lim_p * 100;
+        if (changed(me.pbar, math.round(me.py(pct)))) me.pbar.reset().rect(431, me.py(pct), 20, me.py(0) - me.py(pct) - 1);
+        me.pbar.setColorFill(pct > 100 ? RED : pct > 90 ? AMBER : GREEN).setColor(pct > 100 ? RED : pct > 90 ? AMBER : GREEN);
+        me.pwrtxt.setText(sprintf("%d%% %s", math.round(pct), av > 50 and av < xm ? "ENG" : "TQ"));
+        me.pwrtxt.setColor(pct > 100 ? RED : pct > 90 ? AMBER : WHITE);
+        var vtol = nac > 60;
+        me.oge.setVisible(vtol); me.ige.setVisible(vtol);
+        if (vtol) {
+            me.oge.setTranslation(0, me.py(hover_power(0) / 2 / lim_p * 100));
+            me.ige.setTranslation(0, me.py(hover_power(1) / 2 / lim_p * 100));
+        }
+        me.nrtxt.setText(sprintf("%d", num(JSB ~ "drive/nr-pct")));
+        # ---- the modes and the configuration
+        var am = afcs_modes();
+        me.modes.setText(me.hover and !hold ? "HOVER" ~ (am == "" ? "" : "  " ~ am) : am);
+        me.alert.setText(hold_alert());
         var gear = num(JSB ~ "gear/gear-pos-norm", 1);
-        me.gear.setText(gear > 0.99 ? "GEAR DN" : gear < 0.01 ? "GEAR UP" : "GEAR TRANS");
-        me.scas.setText(num(JSB ~ "scas/attitude-command") > 0.5 ? "ATT CMD" : "RATE CMD");
-        me.brake.setText(num("/controls/rotor/brake") > 0.05 ? "ROTOR BRAKE" : "");
+        me.config.setText(sprintf("%s   FLAP %d   %s%s", gear > 0.99 ? "GEAR DN" : gear < 0.01 ? "GEAR UP" : "GEAR TRANS",
+                                  num(JSB ~ "ctl/flaperon-deg"), num(JSB ~ "scas/attitude-command") > 0.5 ? "ATT CMD" : "RATE CMD",
+                                  num("/controls/rotor/brake") > 0.05 ? "   ROTOR BRAKE" : ""));
+    },
+    # the ground grid: lines north-south and east-west on the ground, spaced by the height, seen from the aircraft:
+    # depression below the horizon and azimuth off the heading, in degrees (the pitch ladder's scale)
+    draw_grid: func(agl, thdg, unusual) {
+        me.grid.setVisible(!unusual and agl >= 5);
+        if (unusual or agl < 5) return;
+        var h = math.max(agl, 20);
+        var D = h < 400 ? 100 : h < 2000 ? 500 : h < 8000 ? 2000 : 8000;
+        var lat = num("/position/latitude-deg"); var lon = num("/position/longitude-deg");
+        var n0 = math.mod(lat * 364567, D); var e0 = math.mod(lon * 364567 * math.cos(lat * D2R), D);
+        var c = math.cos(thdg * D2R); var sn = math.sin(thdg * D2R);
+        var near = h * 0.7; var far = math.min(h * 40, D * 14);
+        var gc = me.gridc; var n = 0;
+        # points behind the near limit drawn at it, below the window's clip
+        for (var dir = 0; dir < 2; dir += 1)
+            for (var j = -GRID_HALF; j <= GRID_HALF; j += 1) {
+                var off = j * D - (dir ? e0 : n0);
+                foreach (var a; GRID_S) {
+                    var along = a * far;
+                    var dn = dir ? along : off; var de = dir ? off : along;
+                    var f = math.max(near, dn * c + de * sn); var r = -dn * sn + de * c;
+                    gc[n].setDoubleValue(CX + math.atan2(r, f) * R2D * K);
+                    gc[n + 1].setDoubleValue(CY + math.atan2(h, f) * R2D * K);
+                    n += 2;
+                }
+            }
     },
 };
 
-# ---------------------------------------------------------------- the navigation format (a horizontal situation display)
+# ---------------------------------------------------------------- the navigation format
+# A moving map, track up (north up on a key), after the studies the README lists: the terrain coloured by its clearance
+# below the height the aircraft will have when it gets there (60 s ahead at most; below 90 kt the helicopter's tighter
+# bands); the route, its waypoints and the landing zone (the route's last point) with the approach into the wind; the
+# conversion planner's points on the route, where to begin slowing down (DECEL) and converting (CONV) to arrive in a
+# hover at the landing zone at a comfortable deceleration; the path 30 and 60 s ahead in the turn; traffic; the fuel's
+# endurance and range; under it the profile along the track: the terrain, the aircraft's path, the selected altitude.
+# Below 100 ft above the ground the terrain is measured from 100 ft up, so the flat ground around a hover or a landing
+# stays quiet and only what rises above it is coloured; where the scenery has no elevation yet the map is dim magenta.
+# Keys: R1 / R2 the range, R3 track or north up, R4 the terrain.
+var NM_DEG = 60.0;                       # NM per degree of latitude
+var MAP_X = 256; var MAP_Y = 330; var MAP_R = 290;   # the aircraft, the outer range arc's radius (px)
+var MAP_CLIP = [16, 40, 496, 372];
+var RANGES = [1, 2, 5, 10, 20, 40, 80];  # NM to the outer arc
+var CELL = 10;                           # px: the terrain's sample spacing
+var SAMPLES = 45;                        # elevations looked up per update (10 Hz: the map's sweep about 2 s)
+var ROWS = 4;                            # rows of the terrain drawn per update, into the hidden one of two sets
+var SIDE = 62;                           # deg: the map's sector each side of the track
+var NEXT = [1, 2, 3, 0]; var SQ_X = [0, 1, 1, 0]; var SQ_Y = [0, 0, 1, 1];      # a square's corners, clockwise
+var DECEL_KTS = 1.5;                     # kt/s: the planner's deceleration (about 0.08 g)
+var CONV_KT = 150;                       # the planner's speed to begin the conversion at
+var TERRAIN = [[0.60, 0.12, 0.12], [0.55, 0.40, 0.08], [0.10, 0.30, 0.14], [0.22, 0.06, 0.22]];   # red, amber, green, no data
+var FLOOR_AGL = 100;                     # ft: the terrain's reference height near the ground
+var TRAFFIC_MAX = 12; var WPT_MAX = 16;
+
 var Nav = {
     new: func(g) {
-        var m = {parents: [Nav]};
-        var cx = 256; var cy = 290; var r = 170;
-        m.cx = cx; m.cy = cy;
-        m.rose = g.createChild("group").setCenter(cx, cy);
-        for (var a = 0; a < 360; a += 5) {
-            var s = math.sin(a * D2R); var c = math.cos(a * D2R);
-            var r1 = math.mod(a, 10) == 0 ? r - 14 : r - 8;
-            line(m.rose, [[cx + r * s, cy - r * c], [cx + r1 * s, cy - r1 * c]], WHITE, 2);
-            if (math.mod(a, 30) == 0) {
-                var v = a / 10;
-                var t = txt(m.rose, v == 0 ? "N" : v == 9 ? "E" : v == 18 ? "S" : v == 27 ? "W" : sprintf("%d", v), cx + (r - 30) * s, cy - (r - 30) * c, 20);
-                t.setRotation(a * D2R);
+        var m = {parents: [Nav], range_i: 3, north: 0, terrain: 1, cells: [], elev: [], prof: [], idx: 0, rate: 0,
+                 trk0: nil, t0: systime()};
+        # the terrain's sample points: a grid over the map, those in its sector or a little outside it (gi: the grid
+        # to the samples, -1 where there is none)
+        m.nx = int((MAP_CLIP[2] - MAP_CLIP[0]) / CELL) + 1; m.ny = int((MAP_CLIP[3] - MAP_CLIP[1]) / CELL) + 1;
+        m.gi = [];
+        var near = 1.5 * CELL;
+        for (var j = 0; j < m.ny; j += 1)
+            for (var i = 0; i < m.nx; i += 1) {
+                var x = MAP_CLIP[0] + i * CELL; var y = MAP_CLIP[1] + j * CELL;
+                var dx = x - MAP_X; var dy = y - MAP_Y; var r = math.sqrt(dx * dx + dy * dy);
+                var sx = (dx < 0 ? -1 : 1) * math.sin(SIDE * D2R); var sy = -math.cos(SIDE * D2R);
+                var inside = r <= MAP_R + near and (r < near or math.abs(math.atan2(dx, -dy)) * R2D <= SIDE
+                                                     or math.abs(dx * sy - dy * sx) <= near);
+                append(m.gi, inside ? size(m.cells) : -1);
+                if (inside) { append(m.cells, [x, y, dx, dy]); append(m.elev, nil); }
+            }
+        setsize(m.prof, 41);
+        var map = clip(g.createChild("group"), MAP_CLIP[0], MAP_CLIP[1], MAP_CLIP[2], MAP_CLIP[3]);
+        # the terrain's colours painted over each other (green, amber, red, then no data), twice: one set shown while the
+        # other is drawn a few rows an update
+        m.sets = []; m.front = 0; m.drow = -1;
+        for (var n = 0; n < 2; n += 1) {
+            var set = setsize([], size(TERRAIN));
+            var sg = map.createChild("group");
+            foreach (var b; [2, 1, 0, 3])
+                set[b] = sg.createChild("path").setColorFill(TERRAIN[b]).setColor(TERRAIN[b]).setStrokeLineWidth(1);
+            if (n == 1) sg.hide();
+            append(m.sets, {g: sg, p: set});
+        }
+        # the sector's edge: black outside it, under everything else
+        var mask = map.createChild("path").setColorFill(0, 0, 0).setColor(0, 0, 0).setStrokeLineWidth(1);
+        var L = MAP_CLIP[0]; var T = MAP_CLIP[1]; var R = MAP_CLIP[2]; var B = MAP_CLIP[3];
+        var ys = MAP_Y - (MAP_X - L) / math.sin(SIDE * D2R) * math.cos(SIDE * D2R);
+        mask.moveTo(L, ys).lineTo(MAP_X, MAP_Y).lineTo(R, ys).lineTo(R, B).lineTo(L, B).close();
+        var a0 = math.atan2(MAP_X - L, math.sqrt(MAP_R * MAP_R - (MAP_X - L) * (MAP_X - L)));
+        mask.moveTo(L, T);
+        for (var i = 0; i <= 40; i += 1) {
+            var a = -a0 + 2 * a0 * i / 40;
+            mask.lineTo(MAP_X + MAP_R * math.sin(a), MAP_Y - MAP_R * math.cos(a));
+        }
+        mask.lineTo(R, T).close();
+        # the range arcs, the compass card on the outer one
+        m.arcs = map.createChild("path").setColor(GREY).setStrokeLineWidth(1.5);
+        foreach (var f; [1, 0.5]) {
+            for (var a = -SIDE; a <= SIDE; a += 2) {
+                var px = MAP_X + MAP_R * f * math.sin(a * D2R); var py = MAP_Y - MAP_R * f * math.cos(a * D2R);
+                if (a == -SIDE) m.arcs.moveTo(px, py); else m.arcs.lineTo(px, py);
             }
         }
-        # the course pointer and deviation bar, the heading bug, the bearing pointer
-        m.crs = m.rose.createChild("group").setCenter(cx, cy);
-        line(m.crs, [[cx, cy - r + 16], [cx, cy - 60]], MAGENTA, 3);
-        line(m.crs, [[cx - 9, cy - r + 30], [cx, cy - r + 16], [cx + 9, cy - r + 30]], MAGENTA, 3);
-        line(m.crs, [[cx, cy + 60], [cx, cy + r - 16]], MAGENTA, 3);
-        foreach (var d; [-2, -1, 1, 2]) m.crs.createChild("path").circle(4, cx + d * 30, cy).setColor(WHITE).setStrokeLineWidth(2);
-        m.dev = line(m.crs, [[cx, cy - 56], [cx, cy + 56]], MAGENTA, 3);
-        m.bug = line(m.rose, [[cx - 10, cy - r - 2], [cx - 10, cy - r - 12], [cx + 10, cy - r - 12], [cx + 10, cy - r - 2]], CYAN, 3).setCenter(cx, cy);
-        m.brg = line(m.rose, [[cx, cy - r + 20], [cx, cy + r - 20]], GREEN, 2).setCenter(cx, cy);
-        line(g, [[cx, cy - r - 16], [cx, cy - r + 4]], WHITE, 3);              # the lubber line
-        line(g, [[cx - 16, cy], [cx + 16, cy]], AMBER, 3);
-        line(g, [[cx, cy - 18], [cx, cy + 22]], AMBER, 3);
-        # the data
-        m.hdgtxt = txt(g, "HDG 000", 70, 50, 20, WHITE, "left-center", MONO);
-        m.crstxt = txt(g, "CRS 000", 70, 76, 18, MAGENTA, "left-center", MONO);
-        m.bugtxt = txt(g, "SEL 000", 70, 100, 18, CYAN, "left-center", MONO);
-        m.wpt = txt(g, "", 442, 50, 20, GREEN, "right-center", MONO);
-        m.dist = txt(g, "", 442, 76, 18, GREEN, "right-center", MONO);
-        m.nav = txt(g, "", 442, 100, 18, MAGENTA, "right-center", MONO);
-        m.gs = txt(g, "GS 0", 70, 486, 18, WHITE, "left-center", MONO);
-        m.tas = txt(g, "TAS 0", 70, 464, 18, WHITE, "left-center", MONO);
-        m.wind = txt(g, "", 442, 486, 18, WHITE, "right-center", MONO);
-        m.windarrow = line(g, [[440, 430], [440, 460], [434, 450], [440, 460], [446, 450]], WHITE, 2).setCenter(440, 445);
-        m.r = r;
+        m.rlab = [txt(map, "", MAP_X - MAP_R * 0.5 * math.sin(62 * D2R) - 4, MAP_Y - MAP_R * 0.5 * math.cos(62 * D2R) - 10, 13, GREY),
+                  txt(map, "", MAP_X - MAP_R * math.sin(62 * D2R) + 22, MAP_Y - MAP_R * math.cos(62 * D2R) - 4, 13, GREY)];
+        var cardclip = clip(g.createChild("group"), MAP_CLIP[0], MAP_CLIP[1], MAP_CLIP[2], MAP_Y - MAP_R * 0.5);
+        m.card = cardclip.createChild("group").setCenter(MAP_X, MAP_Y);
+        for (var h = 0; h < 360; h += 5) {
+            var a = h * D2R; var r1 = MAP_R - (math.mod(h, 10) == 0 ? 10 : 5);
+            line(m.card, [[MAP_X + MAP_R * math.sin(a), MAP_Y - MAP_R * math.cos(a)], [MAP_X + r1 * math.sin(a), MAP_Y - r1 * math.cos(a)]], WHITE, 1.5);
+            if (math.mod(h, 30) == 0) {
+                var s = h == 0 ? "N" : h == 90 ? "E" : h == 180 ? "S" : h == 270 ? "W" : sprintf("%d", h / 10);
+                txt(m.card, s, MAP_X + (MAP_R - 20) * math.sin(a), MAP_Y - (MAP_R - 20) * math.cos(a), 14).setRotation(a);
+            }
+        }
+        # the route, its waypoints, the landing zone and its approach into the wind, the planner's points
+        m.route = map.createChild("path").setColor(MAGENTA).setStrokeLineWidth(2.5);
+        m.wpts = [];
+        for (var i = 0; i < WPT_MAX; i += 1) {
+            var w = map.createChild("group");
+            line(w, [[0, -7], [7, 0], [0, 7], [-7, 0], [0, -7]], MAGENTA, 2);
+            append(m.wpts, {g: w, t: txt(w, "", 11, 0, 13, MAGENTA, "left-center")});
+        }
+        m.lz = map.createChild("group");
+        m.lz.createChild("path").circle(9, 0, 0).setColor(WHITE).setStrokeLineWidth(2);
+        line(m.lz, [[-6, 0], [6, 0]], WHITE, 2); line(m.lz, [[0, -6], [0, 6]], WHITE, 2);
+        m.lzt = txt(m.lz, "", 14, -2, 13, WHITE, "left-center");
+        m.hold = map.createChild("group");           # the hover hold's point
+        box(m.hold, -8, -8, 16, 16, MAGENTA, nil, 2.5);
+        m.holdf = box(m.hold, -5, -5, 10, 10, MAGENTA, MAGENTA, 1);
+        m.wind_app = map.createChild("path").setColor(CYAN).setStrokeLineWidth(2);
+        m.wind_txt = txt(map, "", 0, 0, 12, CYAN, "right-center");
+        m.plan = [];
+        foreach (var p; [["DECEL", AMBER], ["CONV", GREEN], ["HOVER", CYAN]]) {
+            var pg = map.createChild("group");
+            pg.createChild("path").circle(5, 0, 0).setColorFill(p[1]).setColor(p[1]);
+            txt(pg, p[0], -10, 0, 13, p[1], "right-center");
+            append(m.plan, pg);
+        }
+        # traffic
+        m.traffic = [];
+        for (var i = 0; i < TRAFFIC_MAX; i += 1) {
+            var t = map.createChild("group");
+            var d = t.createChild("path").moveTo(0, -7).lineTo(7, 0).lineTo(0, 7).lineTo(-7, 0).close();
+            var tt = txt(t, "", 0, -15, 12, CYAN);
+            var ar = t.createChild("path").setStrokeLineWidth(1.8);
+            append(m.traffic, {g: t, d: d, t: tt, a: ar});
+        }
+        # the path ahead, the aircraft
+        m.path = map.createChild("path").setColor(WHITE).setStrokeLineWidth(2);
+        m.pathc = fixed_path(m.path, 1, 21);
+        m.dots = [];
+        for (var i = 0; i < 2; i += 1) append(m.dots, map.createChild("path").circle(3, 0, 0).setColor(WHITE).setColorFill(WHITE));
+        m.acft = g.createChild("path").moveTo(MAP_X, MAP_Y - 13).lineTo(MAP_X + 9, MAP_Y + 9).lineTo(MAP_X, MAP_Y + 4)
+                  .lineTo(MAP_X - 9, MAP_Y + 9).close().setColor(WHITE).setColorFill(WHITE).setCenter(MAP_X, MAP_Y);
+        # the wind; the top strip; the fuel
+        m.wind = g.createChild("group").setTranslation(64, 300);
+        line(m.wind, [[0, -14], [0, 14]], WHITE, 2.5); line(m.wind, [[-5, -6], [0, -14], [5, -6]], WHITE, 2.5);
+        m.windtxt = txt(g, "", 64, 326, 13);
+        box(g, MAP_X - 25, 6, 50, 22, WHITE, [0, 0, 0], 2);
+        m.trktxt = txt(g, "000", MAP_X, 17, 16, WHITE, "center-center", MONO);
+        m.trklab = txt(g, "TRK", MAP_X - 31, 17, 12, GREY, "right-center");
+        m.wpt = txt(g, "", 22, 14, 15, MAGENTA, "left-center");
+        m.wptd = txt(g, "", 22, 32, 14, WHITE, "left-center");
+        m.rng = txt(g, "", 490, 14, 15, CYAN, "right-center");
+        m.mode = txt(g, "", 490, 32, 13, GREY, "right-center");
+        m.now = txt(g, "", MAP_X, 56, 15, AMBER);
+        m.fuel = txt(g, "", 490, MAP_Y + 4, 13, GREEN, "right-center");
+        m.fuelr = txt(g, "", 490, MAP_Y + 22, 13, GREEN, "right-center");
+        # ---- the profile along the track
+        var vx0 = 40; var vx1 = 492; var vy0 = 384; var vy1 = 486;
+        m.v = [vx0, vx1, vy0, vy1];
+        box(g, vx0, vy0, vx1 - vx0, vy1 - vy0, [0.25, 0.25, 0.27], [0.04, 0.04, 0.05], 1);
+        m.vterr = g.createChild("path").setColorFill([0.36, 0.25, 0.13]).setColor([0.36, 0.25, 0.13]);
+        m.vterrc = fixed_path(m.vterr, 1, 43);
+        m.vsel = g.createChild("path").setColor(CYAN).setStrokeLineWidth(1.5);
+        m.vlz = g.createChild("path").setColor(WHITE).setStrokeLineWidth(2);
+        m.vfpa = g.createChild("path").setColor(GREEN).setStrokeLineWidth(2.5);
+        m.vacft = g.createChild("path").setColor(WHITE).setColorFill(WHITE);
+        m.vscale = [txt(g, "", vx0 - 3, 0, 11, GREY, "right-center"), txt(g, "", vx0 - 3, 0, 11, GREY, "right-center")];
+        txt(g, "PROFILE ALONG TRACK", vx1 - 8, vy0 + 10, 11, GREY, "right-center");
         return m;
     },
-    update: func {
-        var hdg = num("/orientation/heading-magnetic-deg", num("/orientation/heading-deg"));
-        me.rose.setRotation(-hdg * D2R);
-        var crs = num("/instrumentation/nav[0]/radials/selected-deg");
-        me.crs.setRotation(crs * D2R);
-        var dev = num("/instrumentation/nav[0]/heading-needle-deflection-norm");
-        me.dev.setTranslation(dev * 60, 0);
-        var bug = num("/autopilot/settings/heading-bug-deg");
-        me.bug.setRotation(bug * D2R);
-        var brg = getprop("/autopilot/route-manager/wp/bearing-deg");
-        if (brg != nil and num("/autopilot/route-manager/active") > 0) {
-            me.brg.show(); me.brg.setRotation((brg - num("/environment/magnetic-variation-deg")) * D2R);
-            me.wpt.setText(getprop("/autopilot/route-manager/wp/id") or "");
-            me.dist.setText(sprintf("%.1f NM", num("/autopilot/route-manager/wp/dist")));
-        } else {
-            me.brg.hide(); me.wpt.setText(""); me.dist.setText("");
+    key: func(k) {
+        if (k == "R1") me.range_i = math.min(size(RANGES) - 1, me.range_i + 1);
+        elsif (k == "R2") me.range_i = math.max(0, me.range_i - 1);
+        elsif (k == "R3") me.north = !me.north;
+        elsif (k == "R4") me.terrain = !me.terrain;
+        if (k == "R1" or k == "R2" or k == "R3") {                         # the cells are elsewhere now: a new sweep
+            foreach (var set; me.sets) { foreach (var p; set.p) p.reset(); set.g.hide(); }
+            me.idx = 0; me.drow = -1;
         }
-        me.nav.setText(num("/instrumentation/nav[0]/in-range") ? (getprop("/instrumentation/nav[0]/nav-id") or "") : "");
-        me.hdgtxt.setText(sprintf("HDG %03d", math.mod(math.round(hdg) + 359, 360) + 1));
-        me.crstxt.setText(sprintf("CRS %03d", crs));
-        me.bugtxt.setText(sprintf("SEL %03d", bug));
-        me.gs.setText(sprintf("GS %d", num("/velocities/groundspeed-kt")));
-        me.tas.setText(sprintf("TAS %d", num("/velocities/airspeed-kt")));
-        var wd = num("/environment/wind-from-heading-deg"); var ws = num("/environment/wind-speed-kt");
-        me.wind.setText(sprintf("%03d/%d", wd, ws));
-        me.windarrow.setRotation((wd + 180 - num("/orientation/heading-deg")) * D2R);
+    },
+    update: func {
+        var t = systime(); var dt = clamp(t - me.t0, 0.01, 0.5); me.t0 = t;
+        var lat = num("/position/latitude-deg"); var lon = num("/position/longitude-deg");
+        var coslat = math.cos(lat * D2R);
+        var alt = num("/position/altitude-ft");                                   # true: the terrain is too
+        var vs = num("/velocities/vertical-speed-fps") * 60;
+        var floor = alt - num("/position/gear-agl-m") / 0.3048 + FLOOR_AGL;
+        var vn = num("/velocities/speed-north-fps") * KT; var ve = num("/velocities/speed-east-fps") * KT;
+        var gs = math.sqrt(vn * vn + ve * ve);
+        var thdg = num("/orientation/heading-deg");
+        var trk = gs > 20 ? math.atan2(ve, vn) * R2D : thdg;
+        var magvar = num("/environment/magnetic-variation-deg");
+        var up = me.north ? 0 : trk;
+        var rng = RANGES[me.range_i]; var k = MAP_R / rng;
+        var cu = math.cos(up * D2R); var su = math.sin(up * D2R);
+        # world (NM east, north of the aircraft) to the map, and back
+        var to_map = func(de, dn) { [MAP_X + (de * cu - dn * su) * k, MAP_Y - (de * su + dn * cu) * k] };
+        var of = func(la, lo) { [(lo - lon) * NM_DEG * coslat, (la - lat) * NM_DEG] };
+        # ---- the terrain and the profile: a few elevations each update; the colours when the sweep is through
+        for (var i = 0; i < SAMPLES; i += 1) {
+            if (me.idx >= size(me.cells) + 41) {
+                me.idx = 0;
+                if (me.drow < 0) me.start_terrain(alt, vs, gs, k, floor);
+            }
+            if (me.idx < size(me.cells)) {
+                var c = me.cells[me.idx];
+                var a = c[2] / k; var b = -c[3] / k;               # NM right, ahead on the map
+                var de = a * cu + b * su; var dn = -a * su + b * cu;
+                var e = geo.elevation(lat + dn / NM_DEG, lon + de / (NM_DEG * coslat));
+                me.elev[me.idx] = e == nil ? nil : e / 0.3048;
+            } else {
+                var j = me.idx - size(me.cells);                     # the profile: along the track
+                var d = rng * j / 40;
+                var e = geo.elevation(lat + d * math.cos(trk * D2R) / NM_DEG, lon + d * math.sin(trk * D2R) / (NM_DEG * coslat));
+                me.prof[j] = e == nil ? 0 : e / 0.3048;
+            }
+            me.idx += 1;
+        }
+        if (me.drow >= 0) me.draw_rows();
+        me.sets[me.front].g.setVisible(me.terrain);
+        # ---- the card, the range labels, the aircraft
+        me.card.setRotation(-(up - magvar) * D2R);
+        me.acft.setRotation((me.north ? trk : 0) * D2R);
+        me.rlab[0].setText(sprintf("%g", rng / 2)); me.rlab[1].setText(sprintf("%g", rng));
+        # ---- the route: the aircraft to the active waypoint and on; the landing zone at its end
+        me.route.reset();
+        foreach (var w; me.wpts) w.g.hide();
+        me.lz.hide(); me.wind_app.reset(); me.wind_txt.setText("");
+        foreach (var p; me.plan) p.hide();
+        var now = "";
+        var n = num("/autopilot/route-manager/route/num");
+        var cur = num("/autopilot/route-manager/current-wp");
+        var legs = [];                                     # [east, north] from the aircraft: the remaining route
+        if (num("/autopilot/route-manager/active") and n > 0 and cur < n) {
+            append(legs, [0, 0]);
+            for (var i = cur; i < n; i += 1) {
+                var wp = "/autopilot/route-manager/route/wp[" ~ i ~ "]/";
+                append(legs, of(num(wp ~ "latitude-deg"), num(wp ~ "longitude-deg")));
+            }
+            var pt = to_map(legs[0][0], legs[0][1]); me.route.moveTo(pt[0], pt[1]);
+            for (var i = 1; i < size(legs); i += 1) {
+                pt = to_map(legs[i][0], legs[i][1]); me.route.lineTo(pt[0], pt[1]);
+                if (i < size(legs) - 1 and i - 1 < WPT_MAX) {
+                    me.wpts[i - 1].g.setTranslation(pt[0], pt[1]).show();
+                    me.wpts[i - 1].t.setText(getprop("/autopilot/route-manager/route/wp[" ~ (cur + i - 1) ~ "]/id") or "");
+                }
+            }
+            # the landing zone, the approach into the wind
+            me.lz.setTranslation(pt[0], pt[1]).show();
+            me.lzt.setText(getprop("/autopilot/route-manager/route/wp[" ~ (n - 1) ~ "]/id") or "LZ");
+            var wf = num("/environment/wind-from-heading-deg");
+            if (num("/environment/wind-speed-kt") > 3) {
+                var a = (wf + 180 - up) * D2R;                 # the approach comes from downwind
+                for (var s = 14; s < 70; s += 10)
+                    me.wind_app.moveTo(pt[0] + s * math.sin(a), pt[1] - s * math.cos(a)).lineTo(pt[0] + (s + 5) * math.sin(a), pt[1] - (s + 5) * math.cos(a));
+                me.wind_txt.setTranslation(pt[0] + 74 * math.sin(a) + 8, pt[1] - 74 * math.cos(a)).setText(sprintf("INTO WIND %03d", math.mod(math.round(wf - magvar) + 359, 360) + 1));
+            }
+            # the planner: back along the route from the landing zone
+            var togo = 0;
+            for (var i = 1; i < size(legs); i += 1)
+                togo += math.sqrt(math.pow(legs[i][0] - legs[i - 1][0], 2) + math.pow(legs[i][1] - legs[i - 1][1], 2));
+            if (gs > 40) {
+                var d_dec = gs * gs / (2 * DECEL_KTS * 3600);
+                var d_conv = math.pow(math.min(gs, CONV_KT), 2) / (2 * DECEL_KTS * 3600);
+                var marks = [gs > CONV_KT ? d_dec : nil, d_conv, 0.05];
+                for (var j = 0; j < 3; j += 1) {
+                    if (marks[j] == nil) continue;
+                    if (marks[j] >= togo) { if (j < 2 and now == "") now = j == 0 ? "DECEL NOW" : "CONVERT NOW"; continue; }
+                    var p = me.back(legs, marks[j]);
+                    var q = to_map(p[0], p[1]);
+                    me.plan[j].setTranslation(q[0], q[1]).show();
+                }
+            }
+            var wid = getprop("/autopilot/route-manager/route/wp[" ~ cur ~ "]/id") or "";
+            var d0 = math.sqrt(math.pow(legs[1][0], 2) + math.pow(legs[1][1], 2));
+            me.wpt.setText(wid);
+            var ete = gs > 10 ? d0 / gs * 60 : 0;
+            me.wptd.setText(gs > 10 ? sprintf("%.1f NM  %d:%02d", d0, int(ete), math.mod(int(ete * 60), 60)) : sprintf("%.1f NM", d0));
+        } else {
+            me.wpt.setText(""); me.wptd.setText("");
+        }
+        me.now.setText(now);
+        # ---- the hover hold's point
+        var hold = num(JSB ~ "hh/on");
+        me.hold.setVisible(hold);
+        if (hold) {
+            var o = of(num(JSB ~ "hh/lat-t-rad") * R2D, num(JSB ~ "hh/lon-t-rad") * R2D);
+            var q = to_map(o[0], o[1]);
+            me.hold.setTranslation(q[0], q[1]);
+            me.holdf.setVisible(num(JSB ~ "hh/state") == 2);
+        }
+        # ---- the path ahead: the turn 60 s on, dots at 30 and 60 s
+        var hd = gs > 20 ? trk : thdg;
+        if (me.trk0 != nil) {
+            var dpsi = math.mod(hd - me.trk0 + 540, 360) - 180;
+            me.rate = lowpass(me.rate, dpsi / dt, dt, 1.5);
+        }
+        me.trk0 = hd;
+        me.path.setVisible(gs > 15); me.dots[0].setVisible(gs > 15); me.dots[1].setVisible(gs > 15);
+        if (gs > 15) {
+            var w = me.rate * D2R; var v = gs / 3600;
+            var rot = (me.north ? trk : 0) * D2R;
+            var n = 0;
+            for (var s = 0; s <= 60; s += 3) {
+                var a = math.abs(w) < 1e-4 ? 0 : v / w * (1 - math.cos(w * s));
+                var b = math.abs(w) < 1e-4 ? v * s : v / w * math.sin(w * s);
+                var x = MAP_X + (a * math.cos(rot) + b * math.sin(rot)) * k; var y = MAP_Y - (-a * math.sin(rot) + b * math.cos(rot)) * k;
+                me.pathc[n].setDoubleValue(x); me.pathc[n + 1].setDoubleValue(y); n += 2;
+                if (s == 30 or s == 60) me.dots[s == 30 ? 0 : 1].setTranslation(x, y);
+            }
+        }
+        # ---- traffic
+        var shown = 0;
+        foreach (var kind; ["aircraft", "multiplayer"]) {
+            foreach (var a; props.globals.getNode("/ai/models", 1).getChildren(kind)) {
+                if (shown >= TRAFFIC_MAX) break;
+                if (!(a.getValue("valid") or 0)) continue;
+                var o = of(a.getValue("position/latitude-deg") or 0, a.getValue("position/longitude-deg") or 0);
+                var q = to_map(o[0], o[1]);
+                if (math.sqrt(math.pow(q[0] - MAP_X, 2) + math.pow(q[1] - MAP_Y, 2)) > MAP_R) continue;
+                var rel = ((a.getValue("position/altitude-ft") or 0) - num("/position/altitude-ft")) / 100;
+                var near = math.abs(rel) < 10 and math.sqrt(o[0] * o[0] + o[1] * o[1]) < 2;
+                var col = near ? AMBER : CYAN;
+                var tr = me.traffic[shown];
+                tr.g.setTranslation(q[0], q[1]).show();
+                tr.d.setColor(col).setColorFill(col);
+                tr.t.setText(sprintf("%+03d", math.round(rel))).setColor(col).setTranslation(0, rel > 0 ? -15 : 15);
+                var tvs = (a.getValue("velocities/vertical-speed-fps") or 0) * 60;
+                tr.a.reset().setColor(col);
+                if (math.abs(tvs) > 500) {
+                    var sgn = tvs > 0 ? -1 : 1;
+                    tr.a.moveTo(11, -5 * sgn).lineTo(11, 5 * sgn).moveTo(8, 2 * sgn).lineTo(11, 5 * sgn).lineTo(14, 2 * sgn);
+                }
+                shown += 1;
+            }
+        }
+        for (var i = shown; i < TRAFFIC_MAX; i += 1) me.traffic[i].g.hide();
+        # ---- the wind, the strips, the fuel
+        var wf = num("/environment/wind-from-heading-deg"); var ws = num("/environment/wind-speed-kt");
+        me.wind.setRotation((wf + 180 - up) * D2R).setVisible(ws > 2);
+        me.windtxt.setText(ws > 2 ? sprintf("%03d/%d", math.mod(math.round(wf - magvar) + 359, 360) + 1, math.round(ws)) : "");
+        me.trktxt.setText(sprintf("%03d", math.mod(math.round(trk - magvar) + 359, 360) + 1));
+        me.trklab.setText(me.north ? "TRK  N UP" : "TRK");
+        me.rng.setText(sprintf("%g NM", rng));
+        me.mode.setText((me.north ? "N UP" : "TRK UP") ~ (me.terrain ? "  TERR" : ""));
+        var flow = num("/engines/engine[0]/fuel-flow-pph") + num("/engines/engine[1]/fuel-flow-pph");
+        var fuel = num("/consumables/fuel/total-fuel-lbs");
+        if (flow > 50) {
+            var h = (fuel - flow / 3) / flow;                  # to a 20 min reserve
+            me.fuel.setText(sprintf("FUEL %d:%02d", int(math.max(0, h)), math.mod(int(math.max(0, h) * 60), 60)));
+            me.fuelr.setText(gs > 30 ? sprintf("%d NM AT RES", math.max(0, h) * gs) : "");
+            var low = h < 0.33;
+            me.fuel.setColor(low ? AMBER : GREEN); me.fuelr.setColor(low ? AMBER : GREEN);
+        } else {
+            me.fuel.setText(""); me.fuelr.setText("");
+        }
+        # ---- the profile
+        me.draw_profile(alt, vs, gs, rng, legs);
+    },
+    # the point d NM back along the route (legs: [east, north] from the aircraft) from its end
+    back: func(legs, d) {
+        for (var i = size(legs) - 1; i > 0; i -= 1) {
+            var a = legs[i - 1]; var b = legs[i];
+            var L = math.sqrt(math.pow(b[0] - a[0], 2) + math.pow(b[1] - a[1], 2));
+            if (d <= L) { var f = L > 0 ? d / L : 0; return [b[0] + (a[0] - b[0]) * f, b[1] + (a[1] - b[1]) * f]; }
+            d -= L;
+        }
+        return legs[0];
+    },
+    # the terrain's clearance at each sample point when a sweep is through, and whether it has an elevation there (the
+    # neighbours' mean, so that the edges of the scenery's tiles come out smooth too)
+    start_terrain: func(alt, vs, gs, k, floor) {
+        me.bands = gs > 90 ? [100, 500, 1500, 0.5] : [0, 100, 300, 0.5];      # the last: no data
+        var clr = setsize([], size(me.cells));
+        for (var i = 0; i < size(me.cells); i += 1) {
+            var e = me.elev[i];
+            if (e == nil) continue;
+            var c = me.cells[i];
+            var dist = math.sqrt(c[2] * c[2] + c[3] * c[3]) / k;
+            clr[i] = math.max(floor, alt + vs * math.min(60, dist / math.max(gs, 30) * 3600) / 60) - e;
+        }
+        var nx = me.nx; var gi = me.gi;
+        var known = setsize([], size(me.cells));
+        for (var j = 0; j < me.ny; j += 1)
+            for (var i = 0; i < nx; i += 1) {
+                var q = gi[j * nx + i];
+                if (q < 0) continue;
+                var n = 0; var sum = 0;
+                for (var jj = math.max(0, j - 1); jj <= math.min(me.ny - 1, j + 1); jj += 1)
+                    for (var ii = math.max(0, i - 1); ii <= math.min(nx - 1, i + 1); ii += 1) {
+                        var r = gi[jj * nx + ii];
+                        if (r >= 0) { n += 1; if (clr[r] != nil) sum += 1; }
+                    }
+                known[q] = sum / n;
+            }
+        me.clr = clr; me.known = known; me.drow = 0;
+        foreach (var p; me.sets[1 - me.front].p) p.reset();
+    },
+    # each square of four sample points: the part of it below each band's clearance, the edges interpolated between the
+    # corners (marching squares), whole squares merged along the rows; the sets swapped when the last row is drawn
+    draw_rows: func {
+        var nx = me.nx; var gi = me.gi; var clr = me.clr; var bands = me.bands;
+        var paths = me.sets[1 - me.front].p;
+        for (var j = me.drow; j < math.min(me.drow + ROWS, me.ny - 1); j += 1) {
+            var y = MAP_CLIP[1] + j * CELL;
+            var run = [-1, -1, -1, -1];
+            for (var i = 0; i < nx; i += 1) {
+                var x = MAP_CLIP[0] + i * CELL;
+                var vv = nil;
+                if (i < nx - 1) {
+                    var q = [gi[j * nx + i], gi[j * nx + i + 1], gi[(j + 1) * nx + i + 1], gi[(j + 1) * nx + i]];
+                    if (q[0] >= 0 and q[1] >= 0 and q[2] >= 0 and q[3] >= 0) {
+                        var v = [clr[q[0]], clr[q[1]], clr[q[2]], clr[q[3]]];
+                        var n = 0; var sum = 0;
+                        foreach (var c; v) if (c != nil) { n += 1; sum += c; }
+                        var fill = n ? sum / n : 1e6;          # no elevation: the square's mean clearance
+                        vv = [[], [], [], [me.known[q[0]], me.known[q[1]], me.known[q[2]], me.known[q[3]]]];
+                        foreach (var c; v) {
+                            var w = c == nil ? fill : c;
+                            append(vv[0], w); append(vv[1], w); append(vv[2], w);
+                        }
+                    }
+                }
+                for (var b = 0; b < 4; b += 1) {
+                    var t = bands[b];
+                    var n = 0;
+                    if (vv != nil) foreach (var c; vv[b]) if (c < t) n += 1;
+                    if (n == 4) { if (run[b] < 0) run[b] = x; continue; }
+                    if (run[b] >= 0) { paths[b].rect(run[b], y, x - run[b], CELL); run[b] = -1; }
+                    if (n > 0) me.square(paths[b], x, y, vv[b], t);
+                }
+            }
+        }
+        me.drow += ROWS;
+        if (me.drow >= me.ny - 1) {
+            me.sets[me.front].g.hide();
+            me.front = 1 - me.front; me.drow = -1;
+        }
+    },
+    # the part of a square (corners clockwise from the top left) where v < t
+    square: func(p, x, y, v, t) {
+        var first = 1;
+        for (var c = 0; c < 4; c += 1) {
+            var d = NEXT[c];
+            var pts = [];
+            if (v[c] < t) append(pts, [x + SQ_X[c] * CELL, y + SQ_Y[c] * CELL]);
+            if ((v[c] < t) != (v[d] < t)) {
+                var f = (t - v[c]) / (v[d] - v[c]);
+                append(pts, [x + (SQ_X[c] + (SQ_X[d] - SQ_X[c]) * f) * CELL, y + (SQ_Y[c] + (SQ_Y[d] - SQ_Y[c]) * f) * CELL]);
+            }
+            foreach (var pt; pts) {
+                if (first) p.moveTo(pt[0], pt[1]); else p.lineTo(pt[0], pt[1]);
+                first = 0;
+            }
+        }
+        p.close();
+    },
+    draw_profile: func(alt, vs, gs, rng, legs) {
+        var v = me.v; var top = alt + 1000;
+        foreach (var e; me.prof) if (e != nil) top = math.max(top, e + 500);
+        top = math.ceil(top / 1000) * 1000;
+        var vx = func(d) { v[0] + 6 + d / rng * (v[1] - v[0] - 12) };
+        var vy = func(ft) { v[3] - 4 - clamp(ft, 0, top) / top * (v[3] - v[2] - 10) };
+        var tc = me.vterrc;
+        tc[0].setDoubleValue(vx(0)); tc[1].setDoubleValue(vy(0));
+        for (var j = 0; j <= 40; j += 1) {
+            tc[2 * j + 2].setDoubleValue(vx(rng * j / 40)); tc[2 * j + 3].setDoubleValue(vy(me.prof[j] == nil ? 0 : me.prof[j]));
+        }
+        tc[84].setDoubleValue(vx(rng)); tc[85].setDoubleValue(vy(0));
+        var sel = num("/autopilot/settings/target-altitude-ft");
+        me.vsel.reset();
+        if (sel > 0) me.vsel.moveTo(vx(0), vy(sel)).lineTo(vx(rng), vy(sel));
+        me.vacft.reset().moveTo(vx(0) - 6, vy(alt) - 5).lineTo(vx(0) + 7, vy(alt)).lineTo(vx(0) - 6, vy(alt) + 5).close();
+        var gam = gs > 10 ? vs / (gs * 101.27) : 0;          # the path: ft per ft of ground
+        me.vfpa.reset().moveTo(vx(0), vy(alt)).lineTo(vx(rng * 0.6), vy(alt + gam * rng * 0.6 * 6076));
+        me.vlz.reset();
+        if (size(legs) > 1) {
+            var togo = 0;
+            for (var i = 1; i < size(legs); i += 1)
+                togo += math.sqrt(math.pow(legs[i][0] - legs[i - 1][0], 2) + math.pow(legs[i][1] - legs[i - 1][1], 2));
+            if (togo < rng) {
+                var lze = geo.elevation(num("/autopilot/route-manager/route/wp[" ~ (num("/autopilot/route-manager/route/num") - 1) ~ "]/latitude-deg"),
+                                        num("/autopilot/route-manager/route/wp[" ~ (num("/autopilot/route-manager/route/num") - 1) ~ "]/longitude-deg"));
+                var ly = vy(lze == nil ? 0 : lze / 0.3048);
+                me.vlz.moveTo(vx(togo) - 7, ly).lineTo(vx(togo) + 7, ly).moveTo(vx(togo), ly).lineTo(vx(togo), ly - 12);
+            }
+        }
+        me.vscale[0].setTranslation(v[0] - 3, vy(top / 2)).setText(sprintf("%gK", top / 2000));
+        me.vscale[1].setTranslation(v[0] - 3, vy(top)).setText(sprintf("%gK", top / 1000));
     },
 };
 
@@ -367,6 +1217,9 @@ var Fuel = {
 
 # ---------------------------------------------------------------- the multifunction display
 var MFD_PAGES = ["FLT", "NAV", "ENG", "FUEL"];
+var ON_DEMAND = {FLT: 1, NAV: 1};
+var PERIOD = {FLT: 1, NAV: 2, ENG: 4, FUEL: 4};     # 20 Hz ticks per update: the flight format 20 Hz, the map 10, the systems 5          # the formats whose key labels show only for a while after a key is pressed
+var LABEL_TIME = 5;                # s
 
 var Mfd = {
     new: func(name, page) {
@@ -376,15 +1229,20 @@ var Mfd = {
         m.c.setColorBackground(0, 0, 0, 1);
         m.pages = {};
         m.groups = {};
+        m.labs = {};
         foreach (var p; MFD_PAGES) {
             var g = m.c.createGroup();
             m.groups[p] = g;
             m.pages[p] = (p == "FLT" ? Flight : p == "NAV" ? Nav : p == "ENG" ? Engines : Fuel).new(g);
-            labels(g, MFD_PAGES, [], []);
+            m.labs[p] = labels(g, MFD_PAGES, [], p == "FLT" ? ["", "", "", "", "", "", "HVR MARK"]
+                                                 : p == "NAV" ? ["RNG +", "RNG -", "N/TRK UP", "TERR"] : [], contains(ON_DEMAND, p));
             g.hide();
         }
+        m.touched = -100;
         m.page = "";
+        m.tick = name[3] - `0`;              # MFD1..4: the slower formats' updates staggered
         m.show(page);
+        cache_writes(m);
         return m;
     },
     show: func(p) {
@@ -394,12 +1252,17 @@ var Mfd = {
         me.pages[p].update();
     },
     key: func(k) {
+        me.touched = systime();
         if (k[0] == `T`) {
             var i = num_key(k) - 1;
             if (i < size(MFD_PAGES)) me.show(MFD_PAGES[i]);
-        }
+        } elsif (me.page == "FLT" or me.page == "NAV") me.pages[me.page].key(k);
     },
-    update: func me.pages[me.page].update(),
+    update: func {
+        if (contains(ON_DEMAND, me.page)) me.labs[me.page].setVisible(systime() - me.touched < LABEL_TIME);
+        me.tick += 1;
+        if (math.mod(me.tick, PERIOD[me.page]) == 0) me.pages[me.page].update();
+    },
 };
 
 # the number after a key's or an entry's first letter ("T3": 3, "H270": 270); 0 if there are other characters
@@ -580,14 +1443,31 @@ var Esfi = {
 # ---------------------------------------------------------------- the automatic flight control panel and the radio panels
 var AFCS = "/instrumentation/mv22b/afcs/";
 
+var HOLD_STATE = ["", " DECEL", " HOLD", " TRC"];
 var afcs_modes = func {
     var s = [];
-    foreach (var m; [["hdg-hold", "HDG"], ["spd-hold", "SPD"], ["alt-hold", "ALT"], ["hvr-hold", "HVR ALT"], ["auto-nac", "AUTO NAC"],
-                     ["cpld", "CPLD"]])
+    foreach (var m; [["hdg-hold", "HDG"], ["spd-hold", "SPD"], ["alt-hold", "ALT"], ["auto-nac", "AUTO NAC"], ["cpld", "CPLD"]])
         if (num(AFCS ~ m[0])) append(s, m[1]);
+    # the hover hold (HVR CPLD) and its height (HVR ALT HOLD, or with HVR CPLD)
+    if (num(JSB ~ "hh/on"))
+        append(s, "HVR CPLD" ~ HOLD_STATE[num(JSB ~ "hh/state")] ~ (num(AFCS ~ "rem-hvr") ? " REM" : ""));
+    if (num(JSB ~ "hh/alt-on"))
+        append(s, (num(JSB ~ "hh/alt-radar") ? "RAD ALT " : "ALT ") ~ math.round(num(JSB ~ "hh/h-ref-ft")));
     var out = "";
     foreach (var t; s) out ~= (out == "" ? "" : "  ") ~ t;
     return out;
+}
+
+# the hover hold let go (1) or refused (2): shown for HOLD_ALERT_S, the flight model's flag cleared
+var HOLD_ALERT_S = 5;
+var hold_msg = ["", 0];
+var hold_alert = func {
+    var d = num(JSB ~ "hh/dropped");
+    if (d) {
+        hold_msg = [d == 1 ? "HVR CPLD OFF" : "HVR CPLD UNAVAIL", systime() + HOLD_ALERT_S];
+        setprop(JSB ~ "hh/dropped", 0);
+    }
+    return systime() < hold_msg[1] ? hold_msg[0] : "";
 }
 
 var Readouts = {
@@ -662,8 +1542,11 @@ var key = func(unit, k) {
         return;
     }
     if (unit == "AFCS") {
+        if (k == "HVRCPLD") return setprop(JSB ~ "hh/engage-cmd", !num(JSB ~ "hh/on"));
+        if (k == "HVRHOLD" and !num(AFCS ~ "hvr-hold"))
+            setprop("/autopilot/settings/target-agl-ft", math.max(0, math.round(num("/position/gear-agl-m") / 0.3048)));
         var t = {HDGHOLD: "hdg-hold", SPDHOLD: "spd-hold", ALTHOLD: "alt-hold", HVRHOLD: "hvr-hold", AUTONAC: "auto-nac",
-                 "CPLD-L": "cpld", "CPLD-R": "cpld"};
+                 REMHVR: "rem-hvr", "CPLD-L": "cpld", "CPLD-R": "cpld"};
         if (contains(t, k)) setprop(AFCS ~ t[k], !num(AFCS ~ t[k]));
         return;
     }
@@ -679,6 +1562,7 @@ var brightness = func(u, k) {
 var ALL = ["mfd1", "mfd2", "mfd3", "mfd4", "cdu", "sfd", "esfi", "afcs", "radio1", "radio2"];
 var fast = [];
 var slow = [];
+var PROFILE = "/instrumentation/mv22b/displays/profile/";
 
 var init = func {
     foreach (var k; keys(LEVELS))
@@ -691,15 +1575,28 @@ var init = func {
         foreach (var u; ALL)
             if (!contains(AUTO, u) and getprop(BASE ~ u ~ "/mode") == nil) setprop(BASE ~ u ~ "/mode", night ? 1 : 2);
     }, 2);
+    io.read_properties(getprop("/sim/aircraft-dir") ~ "/Systems/mv22b-displays.xml", DATA);
+    corridor.load();
     foreach (var s; [["MFD1", "FLT"], ["MFD2", "ENG"], ["MFD3", "NAV"], ["MFD4", "FLT"]])
         units[s[0]] = Mfd.new(s[0], s[1]);
     cdu = Cdu.new();
     var sfd = Sfd.new(); var esfi = Esfi.new(); var ro = Readouts.new();
     fast = [units["MFD1"], units["MFD2"], units["MFD3"], units["MFD4"], esfi];
     slow = [cdu, sfd, ro, Radio.new(0), Radio.new(1)];
-    var tf = maketimer(0.05, func { foreach (var u; fast) u.update(); });
+    foreach (var u; [esfi] ~ slow) cache_writes(u);
+    # PROFILE/enabled: each unit's update time, ms (a 2 s average), in PROFILE/<n> (fast: 0-4, slow: 5-9)
+    var prof = props.globals.getNode(PROFILE, 1);
+    var timed = func(us, i0) {
+        if (!prof.getValue("enabled")) { foreach (var u; us) u.update(); return; }
+        forindex (var i; us) {
+            var t = systime(); us[i].update();
+            var n = prof.getNode("unit[" ~ (i0 + i) ~ "]", 1);
+            n.setDoubleValue(lowpass(n.getValue() or 0, (systime() - t) * 1000, 0.05, 2));
+        }
+    }
+    var tf = maketimer(0.05, func { timed(fast, 0); });
     var ts = maketimer(0.25, func {
-        foreach (var u; slow) u.update();
+        timed(slow, 5);
         var f = daylight();
         foreach (var u; ALL) luminance(u, f);
     });
