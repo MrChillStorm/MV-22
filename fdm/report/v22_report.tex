@@ -99,6 +99,8 @@ and the numbers quoted from them are written by the evaluation scripts.
 Source & Content used \\
 \midrule
 NASA CR-114614~\cite{cr} & Bell's Model 301 (XV-15) simulation data: wing--pylon, fuselage and empennage tables, downwash, control mixing and rigging, governor, mass and inertia \\
+NASA CR-166536~\cite{gt} & Ferguson's generic tilt-rotor simulation: Bell's XV-15 data revised against its flight tests (mass and inertias, tail, ailerons) \\
+NASA TM-89428~\cite{tt} & XV-15 bare-airframe frequency responses identified from flight tests, hover and cruise \\
 NASA TM X-62407~\cite{tx} & XV-15 familiarisation: controls, flaperons, conversion range \\
 NASA TM-86833~\cite{fb} & full-scale XV-15 rotor in hover: power against thrust, collective, blade twist, chord and sections \\
 NASA TM-84222~\cite{cd} & XV-15 level-flight rotor shaft power from flight test by nacelle angle and flap (fig.~20) \\
@@ -116,8 +118,10 @@ Peters and He~\cite{ph}, via~\cite{metu} & finite-state dynamic wake \\
 
 Table~\ref{tab:sources} lists the sources; most are scans, and every curve used was digitised from them. A few points of data
 reduction matter for the comparisons.
-\emph{(i)} Bell's simulation data~\cite{cr} are complete but for one value: the wing--pylon pitching moment at zero lift for the
-third flap setting is illegible in the scan (page B-12) and taken as $-0.20$.
+\emph{(i)} Bell's simulation data~\cite{cr} are complete but for three values illegible in the scan. The wing--pylon pitching moment at zero lift for the
+third flap setting (page B-12) is taken as $-0.20$ (Ferguson's revision~\cite{gt} has $-0.19$ in airplane mode). A pylon's moment of inertia about its
+shaft, 81.4 or 31.4\,slug\,ft$^2$, is 81.4: with it the aircraft's inertia changes with the tilt as Ferguson's does within 4\,\%, with 31.4 by 9\,\% more.
+The wing's yawing moment with sideslip at zero lift, $-0.0?15$, is Ferguson's $-0.0315$ (the model's wing strips give their own).
 \emph{(ii)} The XV-15 rotor's hover test~\cite{fb} gives its power as the report's curve fit through the wind-corrected data,
 $C_P/\sigma$ against $C_T/\sigma$ ($\sigma=0.0891$), and its collective from the actuator's position, whose reference to a blade
 station is not given; it is compared here as a gradient.
@@ -183,8 +187,14 @@ its direction in the disc's plane and the nacelle angle, which moves the hub and
 
 \subsection{Airframe}
 The wing--pylon, fuselage, horizontal stabiliser and fin data are Bell's tables for the XV-15~\cite{cr}: the wing's lift and drag
-against angle of attack, flap setting and mast angle, its downwash at the tail, the fuselage's forces and moments in equation form, the
-stabiliser's and fins' coefficients with their blockage. For the V-22 the wing's are applied to its own area, span and chord
+against angle of attack, flap setting and mast angle, the fuselage's forces and moments in equation form, the stabiliser's and fins'
+coefficients with their blockage. The tail and the ailerons are as Ferguson revised them against the XV-15's flight tests for NASA's generic
+tilt-rotor simulation~\cite{gt}, which found Bell's elevator, rudder and aileron effectiveness and the tails' dynamic pressure questionable: the
+wing's downwash at the tail by mast angle and flap and its lag behind the wing, the rotors' wake over the tail (a share of their induced velocity
+by angle of attack, speed and mast angle, for the ring-vortex wake's there), the stabiliser's dynamic pressure at 0.8 of the free stream's,
+the elevator's and the rudders' effectiveness (0.518, 0.27) with their Mach number factor, the stabiliser's lift slope against Mach number, and the
+ailerons' rolling moment (0.006 per degree), yawing moment and loss of lift; the XV-15's fins are his (20.25\,ft$^2$ each). Bell's wing tables are
+against the fuselage's angle of attack, the XV-15's 3$^\circ$ of wing incidence in them~\cite{cr}; the V-22's wing is set as the XV-15's. For the V-22 the wing's are applied to its own area, span and chord
 (382\,ft$^2$, 45.8\,ft~\cite{rc}), the empennage's to its surfaces, and the fuselage's scaled by the length ratio squared and cubed. Each wing
 half is four strips in the rotors' wakes, with the local flow's angle of attack. In the hover the wakes push the wing down; the
 download is Bell's flap-dependent coefficient in the wake's velocity times a factor \emph{fitted} to the XV-15's download in flight
@@ -204,7 +214,8 @@ holds the rotor speed's reference, 104\,\% in helicopter and conversion modes an
 integral within Bell's collective limits.
 
 The V-22 flies by wire and holds attitude in all modes~\cite{pd}; its control laws are not public. The FlightGear aircraft has a
-stability augmentation of a common rotorcraft structure: rate damping in three axes for a 0.5\,s rate time constant in the hover;
+stability augmentation of a common rotorcraft structure: rate damping in three axes for a 0.5\,s rate time constant in the hover,
+its gains falling with the dynamic pressure as each axis's surface gains power (each axis's schedule by its own surface's);
 attitude command and heading hold below 50\,kt with the nacelles above 60$^\circ$ and rate command with attitude hold above (switching at
 55\,kt accelerating and 45\,kt slowing, so that a speed held near 50 does not switch back and forth), switched without a
 transient because both share one reference~\cite{patent}; in yaw below 50\,kt rate command, direction hold, the pedals commanding a yaw rate
@@ -223,7 +234,11 @@ speed; Section~\ref{sec:perf}). A start brings each engine from rest to flight i
 are drained in the transfer sequence's order. Each nacelle, 7000\,lb with its engine, gearbox and rotor (15\,\% of the gross weight, as the
 XV-15's pylons~\cite{cr}), tilts with its centre of gravity and inertia. The reference loading is 47\,500\,lb, the 1986 design's maximum vertical
 take-off weight~\cite{rc}, at a centre of gravity under the hubs in helicopter mode: the empty weight (33\,140\,lb~\cite{fs}), three crew, the tanks full
-but for the right aft sponson and the rest as cargo. The inertias are the XV-15's scaled by mass and dimensions. Table~\ref{tab:params} lists the
+but for the right aft sponson and the rest as cargo. The V-22's inertias are the XV-15's of Bell's data~\cite{cr} scaled by mass and dimensions. The XV-15
+build's mass, centre of gravity and inertias are Ferguson's for the aircraft as it flew, with its modifications and instrumentation~\cite{gt}
+(Bell's pitch and yaw inertias are a third lower; Tischler traced the simulation's too sensitive pitch and yaw responses to them~\cite{tt}). Each nacelle
+is two point masses on its shaft, their spacing carrying its own inertia across the shaft, so that the aircraft's inertia changes with the tilt: the
+XV-15's as Ferguson's does, within 0.5\,\%. Table~\ref{tab:params} lists the
 principal data.
 
 \begin{table}[t]
@@ -244,6 +259,10 @@ in collective; the right rotor's thrust and power;
 \item \emph{XV-15 level-flight power}: trims at 13\,000\,lb at sea level and 10\,000\,ft by calibrated airspeed for each of the test's nacelle
 and flap settings, the flaperons at 0.625 of the flap~\cite{tx};
 \item \emph{download}: hover trims out of ground effect at sea level, the XV-15 at its flight tests' flap settings, the V-22 at 67$^\circ$;
+\item \emph{XV-15 frequency responses}: the XV-15 build trimmed at the flight tests' conditions, hover and cruise at 180\,KCAS and 10\,000\,ft, swept in
+one control at a time from 0.08 to 20\,rad/s over 240\,s at the trim's power, with a pilot's attitude hold (in cruise also holding the speed by the attitude);
+the response from the surface's deflection, as in the tests, to the rates, sideslip and normal acceleration, against the transfer functions identified from the
+flight tests~\cite{tt} by Tischler's cost $J$ over their fitting ranges (1\,dB of magnitude weighs as 7.6$^\circ$ of phase; under about 100 is a good match);
 \item \emph{V-22 airframe polar}: the airframe's own forces in airplane mode at 198\,KTAS (Mach 0.3) and 3000\,ft, flaps and gear up, the rotors at zero thrust;
 \item \emph{V-22 performance}: the maximum level speed in airplane mode at 84\,\% rotor speed, where the power required meets the engines'
 power or the drive's limit; the hover ceiling out of ground effect at 100\,\% rotor speed (the 1986 chart's); trims through the conversion
@@ -304,6 +323,63 @@ In helicopter mode the model's power falls too fast with speed: \NXhelLo\,\% at 
 hover. Bell's own simulation used an empirical profile power for the rotor in this regime; the blade elements here give a translational lift that
 lowers the induced power faster than the test, and the wing in the slipstream at a high angle of attack, with 20$^\circ$ of flap, sees the wake model's
 velocities, whose sweep off the wing through the transition is not checked by any test.
+
+\begin{figure*}[t]
+\centering\includegraphics[width=\textwidth]{xv15_trim.pdf}
+\caption{XV-15 trim elevator in level flight against the flight test (TM-84222 fig.~21) at 13\,000\,lb, the model at sea level and at 10\,000\,ft.}\label{fig:xv15trim}
+\end{figure*}
+\begin{table}[t]
+\centering\footnotesize
+\caption{XV-15 trim elevator, model less flight test at the test's points: the mean (and range), deg trailing edge down.}\label{tab:xv15trim}
+\Tab{xv15trim}
+\end{table}
+The same report gives the trim elevator of those flights (Fig.~\ref{fig:xv15trim}, Table~\ref{tab:xv15trim}), which checks the pitching
+moments' balance and the flow at the tail. In airplane mode the model trims within half a degree of the flight test, \NXtePlaneSl{} and
+\NXtePlaneHi$^\circ$ on average flaps up, \NXteFlapSl{} and \NXteFlapHi$^\circ$ with 20$^\circ$ of flap. Through the conversion it needs
+less elevator than the aircraft did: \NXteSixtySl{} and \NXteSixtyHi$^\circ$ at 60$^\circ$ of nacelle, \NXteThirtySl{} and \NXteThirtyHi$^\circ$
+at 30$^\circ$, \NXteHelSl{} and \NXteHelHi$^\circ$ in helicopter mode, with the flight's slope against speed but short of it. Bell's simulation
+was within two or three degrees there; NASA traced its errors to the downwash at the tail, which Ferguson then revised~\cite{cd,gt}. The tail here
+has his downwash and his rotor wake over it: between the two rotors the wake is an upwash, which the ring-vortex wake had made several
+times as strong at 60$^\circ$ (1.8$^\circ$ at 118\,kt against his 0.3$^\circ$). It brought the conversion's trim 2$^\circ$ toward the flight
+test. What remains, a nose-up moment the model lacks only with the nacelles up, points to the rotors' and the wing's moments in each
+other's flow rather than to the tail.
+
+\subsection{XV-15 frequency responses}\label{sec:freq}
+\begin{figure*}[t]
+\centering\includegraphics[width=\textwidth]{freq.pdf}
+\caption{The XV-15's bare-airframe frequency responses over the flight tests' fitting ranges: the transfer functions identified from the flight
+tests (TM-89428 tables 4.1 and 5.1), Bell's simulation's in cruise, and the model's. Hover out of ground effect at 13\,000\,lb; cruise at 180\,KCAS
+and 10\,000\,ft. Rates in deg/s, sideslip in deg and normal acceleration in $g$ per degree of the surface or per cent of the power lever; NASA's signs.
+$J$: Tischler's cost.}\label{fig:freq}
+\end{figure*}
+\begin{table}[t]
+\centering\small
+\caption{The XV-15's frequency responses against the flight tests': Tischler's cost $J$ over each fitting range (Bell's simulation's in cruise), the
+mean magnitude error and the mean phase error.}\label{tab:freq}
+\Tab{freq}
+\end{table}
+
+Tischler identified the XV-15's responses to its control surfaces from frequency sweeps flown with the augmentation on, whose part the surface's
+deflection takes out of the loop~\cite{tt}; the model is flown the same way (Section~\ref{sec:method}). With Ferguson's revised data the cruise's
+lateral responses follow the flight test (Fig.~\ref{fig:freq}, Table~\ref{tab:freq}): the roll response to the ailerons within its scatter ($J$
+\NQCruisepDa), and the sideslip's to the rudders near the flight's dutch roll frequency, its magnitude about 4\,dB low ($J$ \NQCruisebetaDr).
+With Bell's 1973 tail and inertias, which the model first had, $M_\alpha$ was $-18.9$\,s$^{-2}$ and $M_{\delta_e}$ 21\,deg/s$^2$ per degree.
+
+The pitch response in cruise is still the poorest ($J$ \NQCruiseqDe, normal acceleration \NQCruiseazDe): its short period is near 3\,rad/s. The
+derivatives tell why: $M_\alpha$ \NQMa\,s$^{-2}$ against the flight's \NQMaFlight, $M_{\delta_e}$ \NQMde{} against \NQMdeFlight\,deg/s$^2$
+per degree, $Z_w$ \NQZw{} against \NQZwFlight\,s$^{-1}$. The stabiliser gives the force Ferguson's data give, and at Bell's own condition, 260\,kt
+at sea level with an aft centre of gravity, the model's static stability is Bell's ($C_{M_\alpha}$ \NDerCMa{} against \NDerCMaBell). At the flight
+test's condition its parts are the tail's \NQCMaTail{} per radian, the wing's and the fuselage's \NQCMaRest{} and the rotors' \NQCMaRot. Tischler found
+that Bell's simulation had the flight's static gain, its error being the pitch inertia it lacked~\cite{tt}; with Ferguson's inertia, the model's elevator
+is \NQMdeRatio{} and its stiffness \NQMaRatio{} times the flight's. A larger pitch inertia would bring the elevator's power to the flight's and leave the
+stiffness twice the flight's; a weaker stabiliser would bring both. The flight tests' responses alone cannot tell which, and the model keeps the
+published data.
+
+In the hover the pitch response follows the flight test ($J$ \NQHoverqDe) and the yaw response to the pedals nearly ($J$ \NQHoverrDr). The roll
+response to the ailerons, which in the hover move the rotors' differential collective with them, has the flight's magnitude, but below 0.5\,rad/s,
+where the flight test found an unstable lateral oscillation and a zero in the right half plane, its phase differs ($J$ \NQHoverpDa); the yaw that
+comes with it is twice the flight's ($J$ \NQHoverrDa). The heave response to the power lever is 4\,dB low, with a notch near 1.3\,rad/s where the
+governor takes back the lever's collective while the engines' power follows the lever ($J$ \NQHoverazDc).
 
 \subsection{Download}\label{sec:download}
 \begin{figure*}[t]
@@ -513,6 +589,14 @@ now command a yaw rate, held by an integrator with the pedals' full travel.
 \item \emph{The elevator trim.} The original aircraft's controls file set FlightGear's elevator trim to 0.25 at the start, a YASim setting
 that the augmentation took as a quarter of the stick held forward: coupled, the flight director's pitch cue sat 5$^\circ$ above the
 aircraft. It starts at 0 now.
+\item \emph{The XV-15's wing incidence.} Bell's wing tables are against the fuselage's angle of attack, the wing's 3$^\circ$ of incidence in them
+(Bell's $\alpha_W = \alpha_F - \Delta\alpha_{R/W}$~\cite{cr}); the XV-15 build added the incidence again, so its wing, and the downwash it sheds on
+the tail, saw 3$^\circ$ more than the aircraft's: at the frequency responses' cruise it trimmed 2.5$^\circ$ nose-down of where it does now. The V-22's
+build had none added.
+\item \emph{The XV-15's tail, ailerons and inertias.} Bell's 1973 data made the XV-15 two to three times as stiff and as sensitive in pitch as its
+flight tests' frequency responses~\cite{tt}. The flight tests had shown Ferguson that the data were out of date: the inertias without the aircraft's
+modifications and instrumentation, the controls' effectiveness and the tails' dynamic pressure questionable~\cite{gt}. The model takes his revisions
+(Section~\ref{sec:model}), and the V-22's tail and ailerons, which are the XV-15's coefficients, with them.
 \end{enumerate}
 
 % =====================================================================================================================
@@ -528,12 +612,18 @@ XV-15 download against flaps (fitted) & \ok \\
 XV-15 power through the conversion (altitudes bracketed) & \ok \\
 XV-15 power in helicopter mode, 45--94\,kt & \nok \\
 XV-15 power in airplane mode, gear up (Bell's drag) & \nok \\
+XV-15 trim elevator in airplane mode & \ok \\
+XV-15 trim elevator through the conversion and in helicopter mode & \nok \\
 V-22 airframe polar (drag fitted) & \ok \\
 V-22 maximum level speed, sea level and 17\,000\,ft & \ok \\
 V-22 hover ceiling (sea level fitted) & \ok \\
 V-22 download at 67$^\circ$ & \pok \\
 V-22 pitch attitude through the conversion & \ok \\
 V-22 wing lift share through the conversion & \pok \\
+XV-15 cruise roll and sideslip frequency responses & \ok \\
+XV-15 cruise pitch frequency responses (stiffness \NQMaRatio$\times$) & \nok \\
+XV-15 hover pitch frequency response & \ok \\
+XV-15 hover yaw, roll and heave frequency responses & \pok \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -542,8 +632,10 @@ wing's download against its flaps, the airframe's polar, and the V-22's speeds a
 fitted torque limit, both against Boeing's own charts. Through the conversion the V-22's pitch attitude follows its flight test. Its open items are the
 helicopter mode's power against speed, where the XV-15's test shows a shallower bucket than the blade elements and the wake give; the drag Bell's
 coefficients lack, which the V-22 build supplies by a fit and the XV-15 build leaves; the wing's share of the lift at intermediate nacelle angles; and
-the V-22 wing's download. None of the V-22's dynamic responses could be compared: no frequency responses or time histories of the aircraft are public, and
-the XV-15's, which are~\cite{tis}, are left for further work. Its augmentation is a plausible control law, not the V-22's.
+the V-22 wing's download. None of the V-22's dynamic responses could be compared: no frequency responses or time histories of the aircraft are public. The
+XV-15's are~\cite{tt}: with Ferguson's revised data its cruise roll and sideslip and its hover pitch follow them, its hover yaw nearly, while in cruise it
+is too stiff in pitch, by its stabiliser or its pitch inertia, which those tests cannot separate. The V-22 shares the XV-15's tail and wing coefficients but not its inertias.
+Its augmentation is a plausible control law, not the V-22's.
 
 % =====================================================================================================================
 \section{Conclusions}\label{sec:concl}
@@ -555,6 +647,9 @@ model of the FlightGear V-22.
 its download follows the flight test's with the flap.
 \item Carried to the V-22 with its published data, one fitted drag area and one fitted torque limit, it gives Boeing's airframe polar, maximum speeds
 within 15\,kt and hover ceilings within 5\,\%, and the flight test's pitch attitude through the conversion.
+\item Against the XV-15's frequency responses from flight, Bell's 1973 tail and inertias made it far too stiff and sensitive in pitch;
+with Ferguson's revisions of them its cruise roll and sideslip and its hover pitch follow the flight tests, and its cruise pitch remains
+too stiff.
 \item Bell's airframe coefficients miss part of the flying aircraft's drag; with the gear up the XV-15 build needs a quarter to a third less power than
 its flight test in airplane mode.
 \item The helicopter mode's power against speed, the wing's lift through the middle of the conversion and the V-22's download are documented, not tuned away.
@@ -588,6 +683,8 @@ Tiltrotor in Hover using Translational Rate Command}, AHS 68th Annual Forum, 201
 \bibitem{bellhh} Bell Helicopter Textron, \emph{Flight control laws for automatic hover hold}, US patent application 2013/0138270, 2013.
 \bibitem{fsf} Flight Safety Foundation, \emph{Helicopter Safety}, November--December 1988 (the V-22's handling in VTOL mode).
 \bibitem{patent} Boeing, \emph{Control law mode switching between rate command and attitude command control systems}, US patent 5\,596\,499, 1997.
+\bibitem{gt} S.\,W.\ Ferguson, \emph{A Mathematical Model for Real Time Flight Simulation of a Generic Tilt-Rotor Aircraft}, NASA CR-166536 Rev.\ A, 1988.
+\bibitem{tt} M.\,B.\ Tischler, \emph{Frequency-Response Identification of XV-15 Tilt-Rotor Aircraft Dynamics}, NASA TM-89428, 1987.
 \bibitem{tis} M.\,B.\ Tischler, J.\,G.\,M.\ Leung and D.\,C.\ Dugan, \emph{Identification and Verification of Frequency-Domain Models for XV-15 Tilt-Rotor Aircraft Dynamics}, NASA TM-86009, 1984.
 \bibitem{lambregts} A.\,A.\ Lambregts, \emph{Vertical Flight Path and Speed Control Autopilot Design Using Total Energy Principles}, AIAA paper 83-2239, 1983.
 \bibitem{jsbsim} JSBSim Development Team, \emph{JSBSim: an open-source flight dynamics model}, version 1.3.3.

@@ -18,3 +18,15 @@ NAC0_F0 = [(156.4, 984), (156.4, 1055), (171.3, 1074), (182.0, 1150), (182.0, 12
 FLAP20_FLAPERON = 12.5      # the XV-15's flaperon at 20 deg of flap [TM X-62407 fig. 3.4.1: 0.625 of the flap]
 SETS = {'nac90': (90.0, 12.5, NAC90_F20), 'nac60': (60.0, 12.5, NAC60_F20), 'nac30': (30.0, 12.5, NAC30_F20),
         'nac0f20': (0.0, 12.5, NAC0_F20), 'nac0': (0.0, 0.0, NAC0_F0)}
+
+# the trim elevator, deg trailing edge down, against calibrated airspeed, from the same report's fig. 21 ("XV-15
+# longitudinal control versus airspeed"; the sets by nacelle and flap as fig. 20's, other flights; its lines are Bell's
+# simulation's): (KCAS, deg), read off a 250 dpi scan against the figure's ticks (about +-0.5 deg, +-2 kt)
+TRIM_DE = {'nac90': [(44.4, 2.43), (44.2, 2.03), (54.9, 1.65), (65.1, 3.54), (66.9, 3.54), (75.5, 6.76), (76.9, 6.24),
+                     (83.6, 7.59), (93.3, 9.1), (96.7, 10.1)],
+           'nac60': [(97.4, 2.08), (106.9, 4.92), (109.5, 6.19), (117.9, 7.32), (117.9, 8.86), (128.3, 9.62), (128.3, 10.97),
+                     (132.6, 11.11), (134.7, 11.68), (135.4, 12.97)],
+           'nac30': [(127.7, 6.0), (138.1, 7.65), (148.3, 8.68), (158.7, 9.68), (168.8, 10.6)],
+           'nac0f20': [(138.6, -0.81), (158.3, 1.08), (162.4, 1.08), (168.0, 1.35), (170.7, 3.24), (179.3, 3.54), (183.4, 3.84),
+                       (180.3, 2.11)],
+           'nac0': [(160.2, -2.43), (167.6, -1.89), (179.3, -1.84)]}

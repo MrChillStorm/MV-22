@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('pdf')
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 import v22data as V
 from data import xv15_hover as XH, xv15_flight as XF, v22_flight as VF
 
@@ -87,6 +88,25 @@ def xv15():
     axs[0].legend(frameon=False, loc='upper center', fontsize=6.5)
     fig.tight_layout(w_pad=0.5)
     save(fig, 'xv15')
+
+
+def xv15_trim():
+    """the trim elevator against the flight test's [TM-84222 fig. 21]"""
+    fig, axs = plt.subplots(1, 5, figsize=(W2, 1.95), sharey=True)
+    for i, (ax, (name, lab)) in enumerate(zip(axs, SETS)):
+        r = res('xv15_' + name)
+        test_pts(ax, XF.TRIM_DE[name], 'flight test')
+        for alt, ls, l in (('0', '-', 'model, sea level'), ('10000', '--', 'model, 10 000 ft')):
+            rows = [x for x in r[alt] if x['res'] < 0.05]
+            ax.plot([x['V'] for x in rows], [-x['de'] for x in rows], ls, color=C_MOD, lw=1.0, label=l)
+        ax.axhline(0, color=C_REF, lw=0.5)
+        ax.set_title('(%s) %s' % ('abcde'[i], lab), loc='left', fontsize=7.2, pad=3)
+        ax.set_xlabel('KCAS')
+        if i == 0:
+            ax.set_ylabel('elevator, deg trailing edge down')
+    axs[0].legend(frameon=False, loc='upper left', fontsize=6.3)
+    fig.tight_layout(w_pad=0.5)
+    save(fig, 'xv15_trim')
 
 
 def download_polar():
@@ -263,7 +283,53 @@ def tf():
     save(fig, 'tf')
 
 
+def freq():
+    """the XV-15's frequency responses: the flight tests' identified transfer functions over their fitting ranges, Bell's
+    simulation's in cruise, the model's"""
+    from data import xv15_freq as XQ
+    fig, axs = plt.subplots(4, 5, figsize=(W2, 5.6))
+    lab = {'p/da': '$p/\\delta_a$', 'r/da': '$r/\\delta_a$', 'r/dr': '$r/\\delta_r$', 'q/de': '$q/\\delta_e$', 'az/dc': '$a_z/\\delta_c$',
+           'beta/dr': '$\\beta/\\delta_r$', 'az/de': '$a_z/\\delta_e$'}
+    for row, cond in ((0, 'hover'), (2, 'cruise')):
+        r = res('freq_' + cond)
+        r.pop('derivatives', None)
+        ref = XQ.HOVER if cond == 'hover' else XQ.CRUISE
+        for j, pair in enumerate(r):
+            m = r[pair]
+            lo, hi = XQ.RANGE[(cond, pair)]
+            wd = np.logspace(math.log10(lo), math.log10(hi), 200)
+            Hf = XQ.evaluate(ref[pair], wd)
+            # (phases unwrapped alike: each curve kept within 180 deg of the flight's at the same frequency)
+            ph_f = np.degrees(np.unwrap(np.angle(Hf)))
+            ph_m = np.array(m['deg'])
+            ph_m = ph_m + 360 * np.round((np.interp(m['w'], wd, ph_f) - ph_m) / 360)
+            a, b = axs[row, j], axs[row + 1, j]
+            a.semilogx(wd, 20 * np.log10(abs(Hf)), '-', color=C_TEST, label='flight')
+            b.semilogx(wd, ph_f, '-', color=C_TEST)
+            if cond == 'cruise':
+                Hb = XQ.evaluate(XQ.CRUISE_BELL[pair], wd)
+                ph_b = np.degrees(np.unwrap(np.angle(Hb)))
+                ph_b = ph_b + 360 * np.round((ph_f - ph_b) / 360)
+                a.semilogx(wd, 20 * np.log10(abs(Hb)), '--', color=C_REF, lw=0.9, label="Bell's simulation")
+                b.semilogx(wd, ph_b, '--', color=C_REF, lw=0.9)
+            a.semilogx(m['w'], m['db'], 'o-', color=C_MOD, ms=2.2, lw=0.9, label='model')
+            b.semilogx(m['w'], ph_m, 'o-', color=C_MOD, ms=2.2, lw=0.9)
+            a.set_title('%s %s, $J$ %.0f' % (cond, lab[pair], m['J']), loc='left', fontsize=7.2, pad=3)
+            b.set_xlabel('rad/s', fontsize=7)
+            ticks = [t for t in ((0.1, 0.3, 1, 3, 10) if lo < 0.15 else (0.2, 0.5, 1, 2, 5, 10)) if lo * 0.99 <= t <= hi * 1.01]
+            for ax in (a, b):
+                ax.set_xticks(ticks); ax.set_xticklabels(['%g' % t for t in ticks])
+                ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+            if j == 0:
+                a.set_ylabel('dB'); b.set_ylabel('deg')
+    axs[2, 4].axis('off'); axs[3, 4].axis('off')
+    h, l = axs[2, 0].get_legend_handles_labels()
+    axs[2, 4].legend(h, l, frameon=False, loc='center', fontsize=7)
+    fig.tight_layout(w_pad=0.4, h_pad=0.5)
+    save(fig, 'freq')
+
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
-    for fn in (hover, xv15, download_polar, perf, conversion, handling, hover_hold, tf):
+    for fn in (hover, xv15, xv15_trim, download_polar, perf, conversion, handling, hover_hold, tf, freq):
         fn()

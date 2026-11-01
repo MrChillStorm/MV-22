@@ -14,16 +14,16 @@
     <location name="VRP" unit="IN"><x>323.62</x><y>0.0</y><z>116.14</z></location>
   </metrics>
   <mass_balance>
-    <ixx unit="SLUG*FT2">61624</ixx><iyy unit="SLUG*FT2">78127</iyy><izz unit="SLUG*FT2">113469</izz><ixz unit="SLUG*FT2">-7528</ixz>
+    <ixx unit="SLUG*FT2">61624</ixx><iyy unit="SLUG*FT2">73287</iyy><izz unit="SLUG*FT2">108629</izz><ixz unit="SLUG*FT2">-7528</ixz>
     <emptywt unit="LBS">19140.0</emptywt>
     <location name="CG" unit="IN"><x>276.31</x><y>0.00</y><z>74.23</z></location>
-    <pointmass name="Right nacelle">
-      <weight unit="LBS">7000.0</weight>
-      <location unit="IN"><x>237.0</x><y>277.2</y><z>164.2</z></location>
+    <pointmass name="Right nacelle, rotor end">
+      <weight unit="LBS">3500.0</weight>
+      <location unit="IN"><x>237.0</x><y>277.2</y><z>204.2</z></location>
     </pointmass>
-    <pointmass name="Left nacelle">
-      <weight unit="LBS">7000.0</weight>
-      <location unit="IN"><x>237.0</x><y>-277.2</y><z>164.2</z></location>
+    <pointmass name="Left nacelle, rotor end">
+      <weight unit="LBS">3500.0</weight>
+      <location unit="IN"><x>237.0</x><y>-277.2</y><z>204.2</z></location>
     </pointmass>
     <pointmass name="Pilot (right seat)">
       <weight unit="LBS">220.0</weight>
@@ -44,6 +44,14 @@
     <pointmass name="Weight adjustment (tests)">
       <weight unit="LBS">0.0</weight>
       <location unit="IN"><x>262.6</x><y>0.0</y><z>94.5</z></location>
+    </pointmass>
+    <pointmass name="Right nacelle, aft end">
+      <weight unit="LBS">3500.0</weight>
+      <location unit="IN"><x>237.0</x><y>277.2</y><z>124.2</z></location>
+    </pointmass>
+    <pointmass name="Left nacelle, aft end">
+      <weight unit="LBS">3500.0</weight>
+      <location unit="IN"><x>237.0</x><y>-277.2</y><z>124.2</z></location>
     </pointmass>
   </mass_balance>
   <ground_reactions>

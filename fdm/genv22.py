@@ -29,6 +29,7 @@ from xmlfun import *
 import peters_he as PH
 from data import sections as SEC
 from data import bell301 as B
+from data import gtrs as GTRS
 from data import heyson_ground as HG
 import rotorwake
 
@@ -510,8 +511,13 @@ class Model:
         c.declare('scas/auth-ped-in', B.X_PED)              # pedals: the full travel, which the yaw's rate command needs in a
                                                             # tailwind (half of it let a 35 kt one turn the aircraft)
         auth, auth_ped = p('scas/auth-in'), p('scas/auth-ped-in')
-        # gain schedule: 1 in the hover, 0.5 at 30 psf (about 95 kt), 0.15 at 170 psf (230 kt)
-        k = c.fn('scas/gain', Q(v(1), S(v(1), Q(p('aero/qbar-psf'), v(30)))))
+        # gain schedule: 1 in the hover, falling with the dynamic pressure against the surfaces' growing power, set on
+        # Bell's surfaces at 0.5 at 30 psf (about 95 kt), 0.15 at 170 psf (230 kt). Each axis's corner moves with its
+        # surface's power at a dynamic pressure since Ferguson's revision of them [GTRS], so that each loop crosses over
+        # where it did: the elevator's (its effectiveness, the tail's dynamic pressure) x0.73, the ailerons' x1.2, the
+        # rudders' x0.70
+        corner = {'theta': B.TAU_E / (GTRS.TAU_E * GTRS.K_HNU), 'phi': B.CL_DA / GTRS.CL_DA, 'psi': B.TAU_R / GTRS.TAU_R}
+        kx = {ax: c.fn('scas/gain-%s' % ax, Q(v(1), S(v(1), Q(p('aero/qbar-psf'), v(30 * f))))) for ax, f in corner.items()}
         # the rate dampers, on the body rates less the rates the autopilot commands while it holds the axis (its
         # reference's ramp: damped, it lagged 10 deg behind a 5 deg/s roll at 200 kt, and the integrator wound up
         # meanwhile overshot the bank by 5 deg and took 20 s to unwind)
@@ -578,7 +584,7 @@ class Model:
                 rnext = IFTHEN(GT(p('ctl/start-release'), v(0.5)), let, IFTHEN(GT(p('ctl/start-hold'), v(0.5)), p(att), rnext))
             c.fn('scas/%s-ref-next' % ax, rnext, out=ref)
             err[ax] = c.fn('scas/%s-err-rad' % ax, D(p(att), S(p(ref), stk)), desc='attitude less its command')
-            run = IFTHEN(GT(hold, v(0.5)), MAX(NEG(auth), MIN(auth, S(p(integ), M(k, p('scas/ki-' + ax), err[ax], p('simulation/channel-dt'))))),
+            run = IFTHEN(GT(hold, v(0.5)), MAX(NEG(auth), MIN(auth, S(p(integ), M(kx[ax], p('scas/ki-' + ax), err[ax], p('simulation/channel-dt'))))),
                          p(integ))
             i0 = v(0)
             if start:
@@ -630,11 +636,11 @@ class Model:
             qff = p('scas/qff-in')
         else:
             qff = v(0)
-        c.fn('scas/lon-calc', D(S(M(k, S(M(p('scas/kq'), p('scas/q-wo')), M(p('scas/ktheta'), err['theta']))), p('scas/theta-int-in')), qff),
+        c.fn('scas/lon-calc', D(S(M(kx['theta'], S(M(p('scas/kq'), p('scas/q-wo')), M(p('scas/ktheta'), err['theta']))), p('scas/theta-int-in')), qff),
              clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lon-in')
         rf = rate_ff('roll')
         pff = M(p('ap/phi-ref-rate'), p('ap/phi-on'), Q(v(1), T1('velocities/vc-kts', rf[0], rf[1]))) if rf else v(0)
-        c.fn('scas/lat-calc', S(NEG(S(M(k, S(M(p('scas/kp'), p('scas/p-wo')), M(p('scas/kphi'), err['phi']))), p('scas/phi-int-in'))), pff),
+        c.fn('scas/lat-calc', S(NEG(S(M(kx['phi'], S(M(p('scas/kp'), p('scas/p-wo')), M(p('scas/kphi'), err['phi']))), p('scas/phi-int-in'))), pff),
              clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lat-in')
         # yaw: at low speed rate command, direction hold (the pedals command a yaw rate, scas/r-cmd-dps at full travel,
         # held against the wind's weathervaning by an integrator; at rest the heading holds), the response type the
@@ -650,9 +656,9 @@ class Model:
         rerr = c.fn('scas/r-err-rad_sec', IFTHEN(GT(acah, v(0.5)), D(p('velocities/r-rad_sec'), rcmd), D(p('velocities/r-rad_sec'), coord)))
         cdt = p('simulation/channel-dt')
         c.fn('scas/r-int-next', IFTHEN(init, v(0), IFTHEN(GT(M(air, acah), v(0.5)),
-             MAX(NEG(auth_ped), MIN(auth_ped, D(p('scas/r-int-in'), M(k, p('scas/ki-r'), rerr, cdt)))),
+             MAX(NEG(auth_ped), MIN(auth_ped, D(p('scas/r-int-in'), M(kx['psi'], p('scas/ki-r'), rerr, cdt)))),
              M(p('scas/r-int-in'), MAX(v(0), D(v(1), Q(cdt, v(2))))))), out='scas/r-int-in')
-        c.fn('scas/ped-calc', S(NEG(M(k, S(M(p('scas/kr'), rerr), M(p('scas/kpsi'), epsi)))), p('scas/r-int-in')),
+        c.fn('scas/ped-calc', S(NEG(M(kx['psi'], S(M(p('scas/kr'), rerr), M(p('scas/kpsi'), epsi)))), p('scas/r-int-in')),
              clip=('-scas/auth-ped-in', 'scas/auth-ped-in'), out='scas/ped-in')
 
     def autopilot(s):
@@ -1566,7 +1572,8 @@ class Model:
         the wing's aspect ratio) for the strip's own angle of attack. In the hover the strips under the discs stand in
         the wakes at about -90 deg: the download. Each strip carries its share of the reference area. The flaperons'
         symmetric deflection selects the flap index (interpolating between Bell's flap settings); their differential
-        (the ailerons) adds Bell's rolling and yawing moments; the dihedral effect is Bell's."""
+        (the ailerons) adds the rolling and yawing moments and the lift loss of GTRS [CR-166536]; the dihedral effect
+        is Bell's."""
         g = s.g
         al, fx_cols, bm_tabs, CL, CD = s.wing_tables()
         fdeg = [-17.5, 0.0, 25.0, 47.0] if U.NAME == 'XV-15' else [-17.5, 0.0, 40.0, 67.0]
@@ -1588,7 +1595,7 @@ class Model:
                 w = s.wake(g, 'w%s%d' % (side, i)) if True else None
                 Vx, Vy, Vz = s.point_velocity(g, tg, fs, m * y, wl, w)
                 Vn = g.fn(tg + '/V-fps', MAX(SQ(S(SQR(Vx), SQR(Vz))), v(0.01)))
-                g.fn(tg + '/alpha-deg', wrap180(S(M(v(R2D), ATAN2(Vz, Vx)), v(U.INC_W))))
+                g.fn(tg + '/alpha-deg', wrap180(S(M(v(R2D), ATAN2(Vz, Vx)), v(U.WING_DALPHA))))
                 g.fn(tg + '/mach', Q(Vn, p('atmosphere/a-fps')))
                 cl = g.fn(tg + '/cl', S(T3(tg + '/alpha-deg', 'aero/wing/flap-index', 'ctl/beta-m-deg', al, fx_cols, bm_tabs, CL),
                                         M(p('aero/wing/mach-weight'), T2(tg + '/alpha-deg', tg + '/mach', B.WI_ALPHA, ma, dcl))))
@@ -1603,20 +1610,30 @@ class Model:
                 lifts.append(NEG(Fz))
         g.fn('aero/wing/lift-lbs', S(*lifts), 'the wing\'s force up (body axes); in the hover minus its download')
         g.fn('aero/wing/download-lbs', NEG(p('aero/wing/lift-lbs')))
-        # ailerons, dihedral effect: on the freestream dynamic pressure and angle of attack
+        # ailerons, dihedral effect: on the freestream dynamic pressure and angle of attack. The ailerons as revised
+        # against the XV-15's flight tests [GTRS, data/gtrs.py]: their rolling moment (its effectiveness by the flap
+        # setting and mast angle, fading from 8 to 25 deg of the wing's angle of attack), their yawing moment and the
+        # wing's lift they lose either way; GTRS's flap settings 0/0, 20/12.5, 40/25, 75/47 at the flap index 0, 0.5,
+        # 1, 2 (Bell's reflexed setting, -1, has none: the 0/0's)
+        fcols, fset = [-1, 0, 0.5, 1, 2], ['F1', 'F1', 'F2', 'F3', 'F4']
         q = p('aero/qbar-psf')
-        aw = g.fn('aero/wing/alpha-deg', S(p('aero/alpha-deg'), v(U.INC_W)))
+        aw = g.fn('aero/wing/alpha-deg', S(p('aero/alpha-deg'), v(U.WING_DALPHA)))
         fade = T1('aero/wing/alpha-deg', [-B.ALPHA_LDA_ZERO, -8, 8, B.ALPHA_LDA_ZERO], [0, 1, 1, 0])
-        kl = T2('aero/wing/flap-index', 'ctl/beta-m-deg', [-1, 0, 1, 2], [0, 90], [list(B.K_LDA[F]) for F in ('F4', 'F1', 'F2', 'F3')])
-        clda = g.fn('aero/wing/cl-da', M(v(B.CL_DA), kl, fade), 'rolling moment coefficient per deg of aileron')
+        kl = T2('aero/wing/flap-index', 'ctl/beta-m-deg', fcols, [0, 90], [list(GTRS.K_LDA[F]) for F in fset])
+        clda = g.fn('aero/wing/cl-da', M(v(GTRS.CL_DA), kl, fade), 'rolling moment coefficient per deg of aileron')
         cl_wing = g.fn('aero/wing/CL', Q(p('aero/wing/lift-lbs'), MAX(M(q, v(U.S_W)), v(1))))
-        kn0 = T2('aero/wing/flap-index', 'ctl/beta-m-deg', [-1, 0, 1, 2], [0, 30, 90], [B.CN_DA[F][1] for F in ('F4', 'F1', 'F2', 'F3')])
-        kn = T2('aero/wing/flap-index', 'ctl/beta-m-deg', [-1, 0, 1, 2], [0, 30, 90], [B.CN_DA[F][2] for F in ('F4', 'F1', 'F2', 'F3')])
+        kn0 = T2('aero/wing/flap-index', 'ctl/beta-m-deg', fcols, [0, 30, 90], [GTRS.CN_DA[F][1] for F in fset])
+        kn = T2('aero/wing/flap-index', 'ctl/beta-m-deg', fcols, [0, 30, 90], [GTRS.CN_DA[F][2] for F in fset])
         # (+ right flaperon up rolls right: Bell's da = (dl - dr) / 2)
         da = p('ctl/aileron-deg')
         qsb = M(q, v(U.S_W * U.B_W))
         L_a = M(qsb, clda, da)
         N_a = M(qsb, S(kn0, M(kn, MAX(v(-1), MIN(v(2), cl_wing)), clda)), da)
+        dL = g.fn('aero/wing/aileron-lift-loss-lbs', M(q, v(U.S_W), T1('aero/wing/flap-index', fcols, [GTRS.CL_DA_LIFT[F] for F in fset]), ABS(da)))
+        a_ = p('aero/alpha-rad')
+        Fx, Fz = NEG(M(dL, SIN(a_))), M(dL, COS(a_))
+        rx, ry, rz = s.arm_rp(U.FS_W_TIP, 0.0, strips[0][4])
+        s.add((Fx, None, Fz), (M(ry, Fz), D(M(rz, Fx), M(rx, Fz)), NEG(M(ry, Fx))))
         clb = S(T2('ctl/beta-m-deg', 'aero/mag-beta-deg', B.CLB_BETAM, B.CLB_BETA, B.CLB0),
                 M(T2('ctl/beta-m-deg', 'aero/mag-beta-deg', B.CLB_BETAM, B.CLB_BETA, B.CLB_CL), MAX(v(-1), MIN(v(2), cl_wing))))
         L_b = M(qsb, clb, p('aero/beta-rad'))
@@ -1691,17 +1708,52 @@ class Model:
                 out.append((1 - w) * float(np.interp(edge, xs, ys)) + w * plate)
         return al, out
 
+    def tail_wake(s, g):
+        """the rotors' wake at the stabiliser and the fins, Ferguson's [GTRS, data/gtrs.py], for the ring-vortex
+        tables' at the tail: along the masts a share of the rotors' mean induced velocity against the fuselage's angle of
+        attack, the true airspeed and the mast angle (an upwash between the two rotors), at the stabiliser times its
+        sideslip factor, each reaching the tail through a lag of the hubs' distance ahead of it over the speed. Returns
+        the air's velocity (to be subtracted) in body axes at the stabiliser and at the fins"""
+        share = g.fn('aero/emp/wake-share', T3('aero/alpha-deg', 'velocities/vtrue-kts', 'ctl/beta-m-deg', GTRS.RH_ALPHA, GTRS.RH_V,
+                                               GTRS.RH_BETAM, [GTRS.RH[b] for b in GTRS.RH_BETAM]))
+        kb = T2('aero/mag-beta-deg', 'ctl/beta-m-deg', GTRS.KHB_BETA, GTRS.RH_BETAM, GTRS.KHB)
+        vi = M(v(0.5), S(p('aero/rotor/r/vi-fps'), p('aero/rotor/l/vi-fps')))
+        sn, cn = p('ctl/sin-nac'), p('ctl/cos-nac')
+        hub_x = D(v(U.FS_PIV), S(M(v(-U.DX_HUB), sn), M(v(U.DZ_HUB), cn)))       # the hubs' station
+        out = []
+        for name, fs, target in (('h', U.FS_H, M(share, kb, vi)), ('v', U.FS_V, M(share, vi))):
+            st = 'aero/emp/%s/wake-fps' % name
+            s.air.declare(st, 0.0)
+            tau = Q(Q(D(v(fs), hub_x), v(12)), MAX(p('velocities/vt-fps'), v(10)))
+            s.air.fn(st + '-next', S(p(st), M(D(target, p(st)), MIN(v(1), Q(p('simulation/channel-dt'), tau)))), out=st)
+            # (along the mast, + down it in helicopter mode: aft and down in body axes)
+            out.append((NEG(M(p(st), cn)), None, M(p(st), sn)))
+        return out
+
     def empennage(s):
         """Horizontal stabiliser with its elevator and the two fins with their rudders: Bell's coefficients [CR] in
-        each surface's own flow, with both rotors' wakes over it (rotorwake.py) and the wing's downwash at the
-        stabiliser [Table WV]; the fins' sideslip times Bell's sidewash factor [Table VIV]."""
+        each surface's own flow, with both rotors' wakes over it (Ferguson's, tail_wake()) and the wing's downwash at the
+        stabiliser; the fins' sideslip times Bell's sidewash factor [Table VIV]. As revised against the XV-15's flight
+        tests for NASA's generic tilt-rotor simulation [GTRS: CR-166536, data/gtrs.py]: the downwash, the elevator's and
+        rudder's effectiveness (and their Mach number factor), the stabiliser's lift slope with the Mach number, its
+        dynamic pressure loss, and the downwash's lag behind the wing. (Bell's 1973 tail, unrevised, made the XV-15
+        twice as stiff in pitch for its elevator as Tischler's flight tests found, M_alpha / M_de 0.89 to 0.40, its
+        short period 4.8 rad/s to 2.0 [TM-89428]; freqresp.py, derivs.py)"""
         g = s.g
         rho = p('atmosphere/rho-slugs_ft3')
+        wake_h, wake_v = s.tail_wake(g)
         # wing downwash at the stabiliser, deg, against the wing's angle of attack, the flap index and Bell's mast angle
-        rows = sorted(set(B.WV_APLN_ALPHA) | set(B.WV_HELO_ALPHA))
-        eps = [[[float(np.interp(a, B.WV_HELO_ALPHA if bm == 0 else B.WV_APLN_ALPHA, (B.WV_HELO if bm == 0 else B.WV_APLN)[F]))
-                 for F in ('F4', 'F1', 'F2', 'F3')] for a in rows] for bm in (0, 90)]
-        g.fn('aero/emp/eps-deg', T3('aero/wing/alpha-deg', 'aero/wing/flap-index', 'ctl/beta-m-deg', rows, [-1, 0, 1, 2], [0, 90], eps))
+        # [GTRS tables 4-V]: its flap settings 0/0, 20/12.5, 40/25, 75/47 at the flap index 0, 0.5, 1, 2 (Bell's 0/0,
+        # 40/25, 75/47; his reflexed -17.5 deg, index -1, has none: the 0/0's); and its slope against the wing's angle
+        # of attack, for the downwash's lag behind the wing (below)
+        fcols = [-1, 0, 0.5, 1, 2]
+        fset = ['F1', 'F1', 'F2', 'F3', 'F4']
+        rows = GTRS.WV_ALPHA
+        eps = [[[GTRS.WV[bm][F][i] for F in fset] for i in range(len(rows))] for bm in GTRS.WV_BETAM]
+        g.fn('aero/emp/eps-deg', T3('aero/wing/alpha-deg', 'aero/wing/flap-index', 'ctl/beta-m-deg', rows, fcols, GTRS.WV_BETAM, eps))
+        deps = [[list(np.gradient([GTRS.WV[bm][F][i] for i in range(len(rows))], rows)) for F in fset] for bm in GTRS.WV_BETAM]
+        deps = [[[deps[k][j][i] for j in range(len(fset))] for i in range(len(rows))] for k in range(len(GTRS.WV_BETAM))]
+        deda = T3('aero/wing/alpha-deg', 'aero/wing/flap-index', 'ctl/beta-m-deg', rows, fcols, GTRS.WV_BETAM, deps)
         # stabiliser: lift against its angle of attack and elevator (Table HI outside +-12/8 deg, linear inside with
         # Table HII's slope and the elevator's effectiveness), drag Table HIV
         de_cols = B.HI_DE
@@ -1724,17 +1776,31 @@ class Model:
                     val = (1 - w) * float(np.interp(edge, B.HI_ALPHA, col)) + w * 1.1 * math.sin(r) * math.cos(r)
                 row.append(val)
             CLH.append(row)
+        # (the elevator's increment at the revised effectiveness [GTRS p. B-56], times its Mach number factor [table 5-IV];
+        # the lift's slope with the Mach number [table 5-II])
+        j0 = de_cols.index(0)
+        CLH = [[r[j0] + GTRS.TAU_E / B.TAU_E * (x - r[j0]) for x in r] for r in CLH]
+        g.fn('aero/emp/h/de-eff-deg', M(p('ctl/elevator-deg'), T1('velocities/mach', GTRS.KE_MACH, GTRS.KE)))
         alD, CDH = s.surface_tables(B.HIV_ALPHA, B.HIV_CD, 0.92, 'd')
-        Vx, Vy, Vz = s.point_velocity(g, 'aero/emp/h', U.FS_H, 0.0, U.WL_H, s.wake(g, 'stab'))
+        Vx, Vy, Vz = s.point_velocity(g, 'aero/emp/h', U.FS_H, 0.0, U.WL_H, wake_h)
         Vn = g.fn('aero/emp/h/V-fps', MAX(SQ(S(SQR(Vx), SQR(Vz))), v(0.01)))
-        g.fn('aero/emp/h/alpha-deg', wrap180(D(S(M(v(R2D), ATAN2(Vz, Vx)), v(U.INC_H)), p('aero/emp/eps-deg'))))
-        cl = g.fn('aero/emp/h/cl', T2('aero/emp/h/alpha-deg', 'ctl/elevator-deg', rowsH, de_cols, CLH))
+        # (the downwash's lag behind the wing: it reaches the stabiliser from where the wing's angle of attack was its
+        # arm over the speed before, (d eps / d alpha) (l / U) alpha' more angle of attack [GTRS p. A-87, the lift's
+        # "wing/body damping", D_WB; its Mach number factor PCPM], the speed at least 35 ft/s)
+        arm = Q(D(v(U.FS_H), p('inertia/cg-x-in')), v(12))
+        lag = M(v(GTRS.D_WB * R2D), deda, Q(arm, MAX(Vn, v(35))), p('aero/alphadot-rad_sec'),
+                T1('velocities/mach', GTRS.PCPM_MACH, [x / GTRS.PCPM[0] for x in GTRS.PCPM]))
+        g.fn('aero/emp/h/alpha-deg', wrap180(S(D(S(M(v(R2D), ATAN2(Vz, Vx)), v(U.INC_H)), p('aero/emp/eps-deg')), lag)))
+        cl = g.fn('aero/emp/h/cl', M(T2('aero/emp/h/alpha-deg', 'aero/emp/h/de-eff-deg', rowsH, de_cols, CLH),
+                                     T1('velocities/mach', GTRS.CLH_MACH, [x / GTRS.CLH_SLOPE[0] for x in GTRS.CLH_SLOPE])))
         cd = g.fn('aero/emp/h/cd', T1('aero/emp/h/alpha-deg', alD, CDH))
         # the force normal to the local flow, which the downwash has turned by eps: lift along the turned normal
         e = M(v(1 / R2D), p('aero/emp/eps-deg'))
         ce, se = COS(e), SIN(e)
         ux, uz = S(M(ce, Vx), NEG(M(se, Vz))), S(M(se, Vx), M(ce, Vz))
-        qs = g.fn('aero/emp/h/qS', M(v(0.5 * U.S_H), rho, SQR(Vn)))
+        # (its dynamic pressure's loss [GTRS p. A-87, K_HNU]; the rotors' wakes over it are their own, rotorwake.py: not GTRS's
+        # eta_H, which maps their rise with the rotors on)
+        qs = g.fn('aero/emp/h/qS', M(v(0.5 * U.S_H * GTRS.K_HNU), rho, SQR(Vn)))
         Fx = g.fn('aero/emp/h/Fx-lbs', M(qs, Q(D(M(cl, uz), M(cd, ux)), Vn)))
         Fz = g.fn('aero/emp/h/Fz-lbs', M(qs, Q(NEG(S(M(cl, ux), M(cd, uz))), Vn)))
         rx, ry, rz = s.arm_rp(U.FS_H, 0.0, U.WL_H)
@@ -1752,14 +1818,18 @@ class Model:
                     r = math.radians(a)
                     row.append(1.0 * math.sin(r) * math.cos(r) * (1 if abs(a) > 100 else (abs(a) - 90) / 10))
             CYV.append(row)
+        # (the rudder's increment at the revised effectiveness [GTRS p. B-69], times its Mach number factor [table 5-IV])
+        j0 = B.VI_DR.index(0)
+        CYV = [[r[j0] + GTRS.TAU_R / B.TAU_R * (x - r[j0]) for x in r] for r in CYV]
+        g.fn('aero/emp/dr-eff-deg', M(p('ctl/rudder-deg'), T1('velocities/mach', GTRS.KE_MACH, GTRS.KE)))
         alV, CDV = s.surface_tables(B.VIII_BETA, B.VIII_CD, 0.8, 'd')
         g.fn('aero/emp/sidewash', T3('aero/fus/alpha-deg', 'aero/fus/beta-abs-deg', 'ctl/beta-m-deg', B.SW_ALPHA, B.SW_BETA, B.SW_BETAM, B.SW))
         for side, m in SIDES:
             tg = 'aero/emp/fin%s' % side
-            Vx, Vy, Vz = s.point_velocity(g, tg, U.FS_V, m * U.BL_V, U.WL_V, s.wake(g, 'fin' + side))
+            Vx, Vy, Vz = s.point_velocity(g, tg, U.FS_V, m * U.BL_V, U.WL_V, wake_v)
             Vn = g.fn(tg + '/V-fps', MAX(SQ(S(SQR(Vx), SQR(Vy))), v(0.01)))
             g.fn(tg + '/beta-deg', wrap180(M(p('aero/emp/sidewash'), v(R2D), ATAN2(Vy, Vx))))
-            cy = g.fn(tg + '/cy', T2(tg + '/beta-deg', 'ctl/rudder-deg', rowsV, B.VI_DR, CYV))
+            cy = g.fn(tg + '/cy', T2(tg + '/beta-deg', 'aero/emp/dr-eff-deg', rowsV, B.VI_DR, CYV))
             cd = g.fn(tg + '/cd', T1(tg + '/beta-deg', alV, CDV))
             qs = g.fn(tg + '/qS', M(v(0.5 * U.S_V), rho, SQR(Vn)))
             Fx = g.fn(tg + '/Fx-lbs', M(qs, Q(D(M(cy, Vy), M(cd, Vx)), Vn)))
@@ -1774,13 +1844,14 @@ class Model:
 
     # ------------------------------------------------------------ nacelle masses
     def nacelle_masses(s, o):
-        """the nacelles' point masses move with the nacelle angle (JSBSim recomputes the CG and the inertia)"""
+        """the nacelles' point masses, each nacelle's two halves on its shaft, move with the nacelle angle (JSBSim
+        recomputes the CG and the inertia: the halves turn the nacelle's own inertia with it)"""
         sn, cn = p('ctl/sin-nac'), p('ctl/cos-nac')
-        fwd = S(M(v(-U.DX_NAC), sn), M(v(U.DZ_NAC), cn))
-        up = S(M(v(U.DX_NAC), cn), M(v(U.DZ_NAC), sn))
-        for i in (0, 1):
-            o.fn('mass/nacelle%d-x-in' % i, D(v(U.FS_PIV), fwd), out='inertia/pointmass-location-X-inches[%d]' % i)
-            o.fn('mass/nacelle%d-z-in' % i, S(v(U.WL_PIV), up), out='inertia/pointmass-location-Z-inches[%d]' % i)
+        for i, dz in nacelle_halves():
+            fwd = S(M(v(-U.DX_NAC), sn), M(v(dz), cn))
+            up = S(M(v(U.DX_NAC), cn), M(v(dz), sn))
+            o.fn('mass/pm%d-x-in' % i, D(v(U.FS_PIV), fwd), out='inertia/pointmass-location-X-inches[%d]' % i)
+            o.fn('mass/pm%d-z-in' % i, S(v(U.WL_PIV), up), out='inertia/pointmass-location-Z-inches[%d]' % i)
 
     # ------------------------------------------------------------ outputs for FlightGear
     def outputs(s):
@@ -1839,10 +1910,29 @@ class Model:
 
 
 # ---------------------------------------------------------------- mass, fuel and gear
+def nacelle_own():
+    """each nacelle as two halves of its weight on its shaft, either side of its CG: their spacing (in) carries its
+    own inertia's difference across the shaft and about it, I_NACELLE[2] - I_NACELLE[0], which turns with the nacelle;
+    the rest of its own inertia, in body axes (the same at any nacelle angle), stays in the empty weight's"""
+    m = U.W_NACELLE / G0
+    d = U.I_NACELLE[2] - U.I_NACELLE[0]
+    return 12 * math.sqrt(d / m), (U.I_NACELLE[0], U.I_NACELLE[1] - d, U.I_NACELLE[0])
+
+
+def nacelle_halves():
+    """the nacelle halves' point mass indices and their heights above the nacelle's pivot in helicopter mode (in): the
+    rotor ends first in point_masses, the aft ends last"""
+    n = len(point_masses()[0])
+    a = nacelle_own()[0]
+    return ((0, U.DZ_NAC + a), (1, U.DZ_NAC + a), (n - 2, U.DZ_NAC - a), (n - 1, U.DZ_NAC - a))
+
+
 def point_masses():
-    """(name, lb, FS, BL, WL): the nacelles first (their locations move with the nacelle angle), crew, payload, fuel"""
+    """(name, lb, FS, BL, WL): the nacelles' rotor-end halves first, crew, payload, the nacelles' aft halves last
+    (their locations move with the nacelle angle: nacelle_halves), and the fuel"""
     nx, nz = U.FS_PIV + U.DX_NAC, U.WL_PIV + U.DZ_NAC      # helicopter mode (DX_NAC aft +)
-    pms = [('Right nacelle', U.W_NACELLE, nx, U.BL_PIV, nz), ('Left nacelle', U.W_NACELLE, nx, -U.BL_PIV, nz)]
+    a, h = nacelle_own()[0], U.W_NACELLE / 2
+    pms = [('Right nacelle, rotor end', h, nx, U.BL_PIV, nz + a), ('Left nacelle, rotor end', h, nx, -U.BL_PIV, nz + a)]
     if U.NAME == 'XV-15':
         pms += [('Pilot', 200.0, U.EYE[0], U.EYE[1], U.EYE[2] - 25), ('Copilot', 200.0, U.EYE[0], -U.EYE[1], U.EYE[2] - 25),
                 ('Research equipment and ballast', 1540.0, U.FS_CG, 0.0, U.WL_CG)]
@@ -1858,6 +1948,7 @@ def point_masses():
         fuel = [(n, gal * U.FUEL_LB_GAL * r, x, y, z) for (n, gal, x, y, z), r in zip(U.TANKS, U.TANKS_REF)]
     # the test programme's weight adjustment, at the design CG: zero in the aircraft (performance.py sets it)
     pms.append(('Weight adjustment (tests)', 0.0, U.FS_CG, 0.0, U.WL_CG))
+    pms += [('Right nacelle, aft end', h, nx, U.BL_PIV, nz - a), ('Left nacelle, aft end', h, nx, -U.BL_PIV, nz - a)]
     return pms, fuel
 
 
@@ -1866,19 +1957,21 @@ def mass_config(cg=None, weight=None, inertia=None):
     reference inertias (helicopter mode). For a test configuration (cg, weight given) everything but the nacelles sits
     at the CG."""
     pms, fuel = point_masses()
-    m_ = U.W_NACELLE / G0
-    # reference inertia: the rest's own about the CG, and the nacelles' (parallel axes and their own)
-    nac = pms[:2]
+    # reference inertia: the rest's own about the CG, and the nacelles' (their halves' parallel axes, and the rest of
+    # their own)
+    nac = pms[:2] + pms[-2:]
     I_ref = list(inertia or U.I_REST[:3])
+    own = nacelle_own()[1]
     for n, w, x, y, z in nac:
+        m_ = w / G0
         dx, dy, dz = (x - U.FS_CG) / 12, y / 12, (z - U.WL_CG) / 12
-        I_ref[0] += m_ * (dy * dy + dz * dz) + U.I_NACELLE[0]
-        I_ref[1] += m_ * (dx * dx + dz * dz) + U.I_NACELLE[1]
-        I_ref[2] += m_ * (dx * dx + dy * dy) + U.I_NACELLE[2]
+        I_ref[0] += m_ * (dy * dy + dz * dz) + own[0] / 2
+        I_ref[1] += m_ * (dx * dx + dz * dz) + own[1] / 2
+        I_ref[2] += m_ * (dx * dx + dy * dy) + own[2] / 2
     total = weight or U.GW_DESIGN
     cgx, cgz = (cg or (U.FS_CG, 0.0, U.WL_CG))[0], (cg or (U.FS_CG, 0.0, U.WL_CG))[2]
     if cg:
-        pms = nac + [(n, w, cgx, 0.0, cgz) for n, w, x, y, z in pms[2:]]
+        pms = pms[:2] + [(n, w, cgx, 0.0, cgz) for n, w, x, y, z in pms[2:-2]] + pms[-2:]
         fuel = [(n, w, cgx, 0.0, cgz) for n, w, x, y, z in fuel]
     loads = [(w, x, y, z) for n, w, x, y, z in pms + fuel]
     we = total - sum(l[0] for l in loads)

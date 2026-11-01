@@ -15,6 +15,10 @@ carried to the V-22 with what Boeing, Bell and NASA have published about it:
 - Bell's real-time simulation of the XV-15 (NASA CR-114614): every wind
   tunnel table of its wing, fuselage and tail, its control mixing and
   governor,
+- Ferguson's revision of those data against the XV-15's flight tests for
+  NASA's generic tilt-rotor simulation (NASA CR-166536): its tail, ailerons,
+  mass and inertias, and Tischler's frequency responses of the XV-15
+  identified from its flight tests (NASA TM-89428),
 - NASA's hover test of the full-scale XV-15 rotor (TM-86833) and the XV-15's
   level-flight power in flight (TM-84222),
 - the V-22's rotor, wing, airframe polar, download, hover ceilings and flight
@@ -242,25 +246,34 @@ Every number comes from the scripted test programme in the report.
 | XV-15 rotor in hover, power at C_T/σ 0.08–0.18 | NASA's full-scale test (TM-86833) | −4.6 to +0.9 % (stall fitted) |
 | XV-15 rotor, maximum thrust | the test reached C_T/σ 0.181 | 0.188 |
 | XV-15 wing download in the hover, by flap | XV-15 flight test | within 1.0 % of thrust (fitted) |
-| XV-15 power through the conversion, 60° and 30° | XV-15 flight test (TM-84222), altitudes unpublished | −19 to −7 % at sea level, +1 to +9 % at 10,000 ft: the test lies between |
-| XV-15 power in airplane mode, flaps up, gear up | XV-15 flight test | −35 to −24 % at 10,000 ft (−13 to +3 % with the gear down) |
-| V-22 airframe polar, flaps and gear up | Boeing's estimate | C_L 0.21 at zero angle of attack (0.18), drag within 30 counts at C_L 0.2–0.55 (drag fitted) |
-| V-22 maximum level speed, 42,000 lb | Boeing: 274 KTAS at sea level, 321 at 17,000 ft | 289, 316 |
-| V-22 hover ceiling out of ground effect | Boeing: 47,700 lb at sea level, 43,300 at 8400 ft, 31,000 at 16,000 ft | 47,690 (fitted), 42,290, 32,580 |
-| V-22 pitch attitude through the conversion | V-22 flight test (Dunford) | within 3.0° rms |
+| XV-15 power through the conversion, 60° and 30° | XV-15 flight test (TM-84222), altitudes unpublished | −20 to −9 % at sea level, −1 to +8 % at 10,000 ft: the test lies between, nearer 10,000 ft |
+| XV-15 power in airplane mode, flaps up, gear up | XV-15 flight test | −42 to −30 % at 10,000 ft (−18 to −4 % with the gear down) |
+| XV-15 trim elevator, airplane mode / nacelles 60° and 30° / helicopter mode | XV-15 flight test (TM-84222 fig. 21) | within 0.5° / 4–6° short / 1–4° short |
+| XV-15 frequency responses in cruise, roll / sideslip / pitch / normal acceleration | flight tests (TM-89428); Bell's simulation 60 / 131 / 3768 / 187 | Tischler's cost J 102 / 390 / 544 / 500 (under ~100 matches well) |
+| XV-15 frequency responses in the hover, pitch / yaw / roll / heave | flight tests (TM-89428) | J 203 / 859 / 2284 / 716 |
+| V-22 airframe polar, flaps and gear up | Boeing's estimate | C_L 0.22 at zero angle of attack (0.18), drag within 30 counts at C_L 0.2–0.55 (drag fitted) |
+| V-22 maximum level speed, 42,000 lb | Boeing: 274 KTAS at sea level, 321 at 17,000 ft | 290, 316 |
+| V-22 hover ceiling out of ground effect | Boeing: 47,700 lb at sea level, 43,300 at 8400 ft, 31,000 at 16,000 ft | 47,690 (fitted), 42,280, 32,580 |
+| V-22 pitch attitude through the conversion | V-22 flight test (Dunford) | within 2.9° rms |
 | V-22 wing download at 67° | 0.658-scale rotor and wing test | 11.7 % against 9.2 % |
 
 ## Known gaps
 
-- **XV-15 in helicopter mode.** The power falls too fast with speed: 21 %
-  over the test at 45 kt, 29 % under at 94 kt. The blade elements and the
+- **XV-15 in helicopter mode.** The power falls too fast with speed: 19 %
+  over the test at 45 kt, 27 % under at 94 kt. The blade elements and the
   wake give more translational lift than the test shows; Bell's own
   simulation used an empirical profile power there.
+- **XV-15 trim through the conversion.** In airplane mode the model trims
+  at the flight test's elevator, but with the nacelles up it needs 4–6° less
+  (trailing edge down) than the aircraft did: a nose-up moment it lacks
+  there, from the rotors and the wing in each other's flow rather than from
+  the tail, whose downwash and rotor wake are Ferguson's.
 - **Drag of the XV-15's tables.** With the gear up, the XV-15 build needs a
-  quarter to a third less power than its flight test in airplane mode: Bell's
-  wind tunnel coefficients miss part of the flying aircraft's drag. The V-22
-  build supplies it by a drag area fitted to Boeing's polar; the XV-15 build
-  keeps Bell's data as they are.
+  third less power than its flight test in airplane mode: Bell's wind tunnel
+  coefficients miss part of the flying aircraft's drag. The V-22 build
+  supplies it by a drag area fitted to Boeing's polar; the XV-15 build keeps
+  Bell's data as they are. Ferguson's revision adds a pylon interference drag
+  fitted to the flight tests, not taken yet.
 - **Hover at low thrust.** The rotor needs 3–21 % more power than the test
   below C_T/σ 0.075, and its thrust rises 34 % faster with collective than the
   test's, whose collective was read at the actuator, with the blades' elastic
@@ -283,12 +296,18 @@ Every number comes from the scripted test programme in the report.
   the engines can climb in that time, or coming into view round a turn,
   can't be cleared by the set height, and the fly-up takes over below half
   of it. Climbing at full power at about 170 kt the aircraft lags its model
-  a little, and a ridge steeper than its climb leaves it 11 % under the
+  a little, and a ridge steeper than its climb leaves it 15 % under the
   clearance.
 - **Dynamics.** No time histories or frequency responses of the V-22 are
-  public, so none of its dynamic responses were checked; the XV-15's
-  frequency responses are left for further work. The augmentation is a
-  plausible control law, not the V-22's.
+  public. The XV-15's are, and with Ferguson's revised tail, ailerons and
+  inertias the XV-15 build follows them in cruise roll and sideslip and in
+  hover pitch. In cruise it is three times as stiff in pitch as the flight
+  test and its elevator 1.4 times as powerful: either its stabiliser or its
+  pitch inertia, which those tests can't separate. In the hover its roll at
+  low frequency, the yaw that comes with it and its heave response to the
+  lever differ from the flight's. The V-22 shares the XV-15's tail and wing
+  coefficients, not its inertias. The augmentation is a plausible control
+  law, not the V-22's.
 - **Not modelled:** the engines' fuel controls and temperatures (the gauges'
   temperatures come from the original's converter), blade torsion and bending,
   failures other than an engine cut (the interconnect shaft then drives both
@@ -322,14 +341,17 @@ python3 genv22.py root-polar/aircraft/mv22b --no-inline
   every function named, where it otherwise writes those only one other reads
   into it). `drive.py` writes the engines, drive and fuel; `v22data.py` and
   `xv15data.py` hold the two aircraft's data with their sources, and `data/`
-  the transcribed tables: Bell's XV-15 simulation data (`bell301.py`), the
-  sections, the digitised tests, the ring-wake tables (`rotorwake.py --write`
-  recomputes them) and the trim schedule of the augmentation
-  (`trimmap.py --write` recomputes it).
+  the transcribed tables: Bell's XV-15 simulation data (`bell301.py`) and
+  Ferguson's revisions of them (`gtrs.py`), the sections, the digitised
+  tests, the ring-wake tables (`rotorwake.py --write` recomputes them) and
+  the trim schedule of the augmentation (`trimmap.py --write` recomputes it).
 - `harness.py` drives the model offline. `hover_rotor.py`, `sweep.py`,
   `download.py`, `airframe_polar.py`, `performance.py` and `handling.py`
-  compare it with the tests; `hoverhold.py` and `aptest.py` fly the hover
-  hold and the autopilot (the holds, approaches, LNAV, terrain following).
+  compare it with the tests; `freqresp.py` sweeps the XV-15 build for its
+  frequency responses against Tischler's (`data/xv15_freq.py`), and
+  `derivs.py` compares its stability derivatives with Bell's. `hoverhold.py`
+  and `aptest.py` fly the hover hold and the autopilot (the holds,
+  approaches, LNAV, terrain following).
   `aptest.py` also measures the tables the autopilot works from:
   `rolldelay`, `rollff`, `pitchff`, `climbpower` and `tflag` write
   `data/roll_delay_v22.json`, `roll_ff_v22.json`, `pitch_ff_v22.json`,

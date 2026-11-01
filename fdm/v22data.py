@@ -112,6 +112,12 @@ RUDDER_RANGE = 20.0         # +- deg (XV-15 [TX])
 # incidence, A821201 section 23 % thick (as the XV-15's 64A223), full-span flaperons
 S_W, B_W, C_W = 382.0, 45.83, 100.0 / 12
 SWEEP_W, DIHEDRAL_W, INC_W = -6.0, 3.5, 0.0
+# the angle added to the airframe's angle of attack to look up the XV-15's wing tables, which are against the
+# XV-15's fuselage angle of attack [CR p. A-33]: its wing at 3 deg of incidence lifts nothing at about -3.2 deg; the
+# V-22's, at 0 deg with a more cambered section, at about -2.8, from Boeing's airframe polar (C_L 0.18 at zero angle
+# of attack, with the tail's -3 deg [RC fig. 28]; the model's 0.22, 0.4 deg of its lift slope more). So none: the
+# zero-lift lines within 0.4 deg
+WING_DALPHA = 0.0
 BL_W_ROOT, BL_W_TIP = 1.25 * IN_PER_M, 6.47 * IN_PER_M       # fuselage side and the nacelle's inboard face [3D]
 # quarter chord at the tip: the hub in airplane mode (1.73 m ahead of the axis) is 2 ft ahead of the leading edge
 FS_W_TIP = model_to_station(-1.88 - 1.732 + 0.6096 + 0.25 * 2.54, 0, 0)[0]
@@ -139,7 +145,8 @@ W_EMPTY = 33140.0
 # XV-15's 8.3 in and 18 in scaled by 1.52, the rotor diameter ratio) (estimate)
 W_NACELLE = 7000.0
 DX_NAC, DZ_NAC = -0.32 * IN_PER_M, 0.70 * IN_PER_M
-I_NACELLE = (660.0, 3500.0, 3080.0)     # slug ft^2, each about its own CG (the XV-15's [CR] x mass ratio x 1.52^2)
+I_NACELLE = (660.0, 3500.0, 3080.0)     # slug ft^2, each about its own CG: about its shaft, the conversion axis and the third
+                                        # axis (the XV-15's [CR] x mass ratio x 1.52^2)
 # inertia of the rest of the aircraft about the CG: the XV-15's less its pylons [CR table I] scaled by the mass ratio
 # and the span (roll) and length (pitch) ratios squared, 45.83 / 32.17 and 57.33 / 42.08 (estimate)
 I_REST = (76800.0, 84300.0, 120000.0, 0.0)

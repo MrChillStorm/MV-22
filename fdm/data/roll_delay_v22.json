@@ -9,13 +9,13 @@
   250.0
  ],
  "tau_loop_s": [
-  -0.296,
-  -0.141,
-  -0.063,
-  0.023,
-  0.25,
-  0.848,
-  0.816
+  -0.281,
+  -0.148,
+  -0.068,
+  0.009,
+  0.234,
+  1.001,
+  0.925
  ],
  "note": "aptest.py rolldelay: the augmentation's roll delay, s (genv22.roll_delay)"
 }

@@ -15,6 +15,7 @@ Frames: Bell's stations [CR] (FS aft, BL right, WL up, in). Nacelle angle 90 in 
 """
 import math
 from data import bell301 as B
+from data import gtrs as GTRS
 
 NAME = 'XV-15'
 DEG = math.pi / 180
@@ -64,30 +65,39 @@ RUDDER_RANGE = 20.0
 # ---------------------------------------------------------------- airframe [CR table II, TX 3.3]
 S_W, B_W, C_W = B.S_WP, 32.17, B.C_WP
 SWEEP_W, DIHEDRAL_W, INC_W = -6.5, 2.0, 3.0
+# the angle added to the airframe's angle of attack to look up Bell's wing tables (and the downwash at the tail):
+# none, as they are against the fuselage's angle of attack, the wing's 3 deg of incidence in them [CR p. A-33: alpha_W
+# = alpha_F - the rotors' flow field effect; GTRS p. 25]
+WING_DALPHA = 0.0
 BL_W_ROOT, BL_W_TIP = 30.0, 160.0       # fuselage side, the pylon's inboard side (estimates from the three-view)
 FS_W_TIP = 291.17                       # wing-pylon centre of pressure [CR]
 WL_W_ROOT = B.WL_WP
 S_H, B_H, INC_H = B.S_H, B.B_H, 0.0
 FS_H, WL_H = B.FS_H, B.WL_H
-S_V, B_V = B.S_V, B.B_V
+S_V, B_V = GTRS.S_V, B.B_V              # each fin: as revised against the flight tests [GTRS p. B-69] (Bell's 25.25 ft^2)
 FS_V, BL_V, WL_V = B.FS_V, B.BL_V, B.WL_V
 FUS_SCALE = 1.0
 FS_F, WL_F = B.FS_F, B.WL_F
 DRAG_EXTRA = 0.0            # FITTED in the test programme (sweep.py)
 
-# ---------------------------------------------------------------- mass [CR table I, B-5]
-GW_DESIGN = B.GW
-W_NACELLE = B.W_PYLONS / 2
-DX_NAC, DZ_NAC = B.FS_PYLON - B.FS_SP, B.WL_PYLON - B.WL_SP     # pylon CG from the pivot in helicopter mode
-I_NACELLE = B.I_PYLON
-FS_CG, WL_CG = (B.CG_AFT + B.CG_FWD) / 2, B.WL_CG
-# inertia without the pylons at the mid CG: table I's less the pylons' (their parallel axes and own)
+# ---------------------------------------------------------------- mass [CR table I, B-5; GTRS p. B-98]
+# as the aircraft flew, its modifications and research instrumentation counted: the pylons, the CG and the inertias
+# as revised against its flight tests for NASA's generic simulation [GTRS] (Bell's 1973 pitch and yaw inertias, a third
+# low, overstated its pitch and yaw control sensitivity by 25-67 % and 30 % [TM-89428])
+GW_DESIGN = GTRS.GW
+W_NACELLE = GTRS.W_PYLONS / 2
+DX_NAC, DZ_NAC = GTRS.FS_PYLON - B.FS_SP, GTRS.WL_PYLON - B.WL_SP     # pylon CG from the pivot in helicopter mode
+I_NACELLE = B.I_PYLON       # about its shaft, the conversion axis and the third axis
+FS_CG, WL_CG = GTRS.FS_CG, GTRS.WL_CG
+# inertia without the pylons, helicopter mode: GTRS's less the pylons' (their parallel axes, and their own: the shaft
+# vertical, so about the body's x axis the third axis's, about its z the shaft's)
 _m = W_NACELLE / G0
 _dy = B.BL_SP / 12
-_dx, _dz = (B.FS_PYLON - FS_CG) / 12, (B.WL_PYLON - WL_CG) / 12
-I_REST = (B.I_AFT[0] - 2 * (_m * (_dy ** 2 + _dz ** 2) + I_NACELLE[0]),
-          (B.I_AFT[1] + B.I_FWD[1]) / 2 - 2 * (_m * (_dx ** 2 + _dz ** 2) + I_NACELLE[1]),
-          (B.I_AFT[2] + B.I_FWD[2]) / 2 - 2 * (_m * (_dx ** 2 + _dy ** 2) + I_NACELLE[2]), 0.0)
+_dx, _dz = (GTRS.FS_PYLON - FS_CG) / 12, (GTRS.WL_PYLON - WL_CG) / 12
+I_REST = (GTRS.I_HELO[0] - 2 * (_m * (_dy ** 2 + _dz ** 2) + I_NACELLE[2]),
+          GTRS.I_HELO[1] - 2 * (_m * (_dx ** 2 + _dz ** 2) + I_NACELLE[1]),
+          GTRS.I_HELO[2] - 2 * (_m * (_dx ** 2 + _dy ** 2) + I_NACELLE[0]), 0.0)
+# (GTRS's product of inertia, Ixz 1234 slug ft^2, 2 % of Ixx, is left out: its sign convention isn't stated)
 W_EMPTY = 9570.0
 
 # ---------------------------------------------------------------- engines and drive [CR B-6, B-47, B-49]

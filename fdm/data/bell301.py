@@ -19,7 +19,11 @@ FS_V, BL_V, WL_V, S_V, B_V, C_V = 570.02, 77.0, 115.69, 25.25, 7.68, 3.725   # e
 FS_SP, BL_SP, WL_SP = 300.0, 193.0, 100.0      # shaft pivot (conversion axis)
 L_MAST = 4.667                                 # ft, pivot to hub
 FS_PYLON, BL_PYLON, WL_PYLON, W_PYLONS = 291.7, 193.0, 118.0, 3986.0   # both pylons
-I_PYLON = (81.4, 431.0, 380.0)                 # slug ft^2, each pylon about its own CG (Ix illegible: 81.4 or 31.4)
+I_PYLON = (81.4, 431.0, 380.0)                 # slug ft^2, each pylon about its own CG: about its shaft, the conversion
+                                               # axis and the third (the first illegible, 81.4 or 31.4: 81.4 gives
+                                               # the aircraft's inertia change with the tilt as GTRS's [CR-166536
+                                               # p. A-170: Ixx -1845, Izz +833 slug ft^2 to airplane mode] within
+                                               # 4 %, 31.4 8-9 % over)
 FS_MG, BL_MG, WL_MG = 324.0, 54.75, 7.40
 FS_NG, BL_NG, WL_NG = 139.0, 0.0, 4.95
 FS_PILOT, BL_PILOT, WL_PILOT = 215.25, 17.0, 50.5
@@ -151,7 +155,7 @@ CLB_CL = [[0, 0, 0], [.049, .079, -.016], [.039, .071, -.018], [-.065, -.065, 0]
 # other wing-pylon derivatives [B-13, B-14]
 CLP0 = -0.774               # per rad, at zero lift
 CLR_CL = 0.27
-CNB0 = -0.0015              # per rad (the scan reads -.0?15)
+CNB0 = -0.0315              # per rad (the scan reads -.0?15: GTRS's -0.0315 [CR-166536 p. B-32])
 CNR_CL2, CNR_CD0, CNP_CL = -0.016, -0.32, -0.06
 DALPHA_DFLAP = 0.45
 

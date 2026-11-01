@@ -162,6 +162,25 @@ def xv15_table():
     write('xv15', tabular('lrrr', 'Nacelle, flaps & KCAS & sea level, \\% & 10\\,000\\,ft, \\%', out))
 
 
+def xv15_trim_table():
+    """the trim elevator against the flight test's [TM-84222 fig. 21]: model (sea level, 10 000 ft) less flight, deg
+    trailing edge down, at the flight's points within the model's trims"""
+    out = []
+    key = {'nac90': 'Hel', 'nac60': 'Sixty', 'nac30': 'Thirty', 'nac0f20': 'Flap', 'nac0': 'Plane'}
+    for name, lab in SETNAMES:
+        r = R('xv15_' + name)
+        cells = []
+        for alt, tag in (('0', 'Sl'), ('10000', 'Hi')):
+            rows = [x for x in r[alt] if x['res'] < 0.05]
+            V = np.array([x['V'] for x in rows]); de = -np.array([x['de'] for x in rows])
+            d = [float(np.interp(v, V, de)) - e for v, e in XF.TRIM_DE[name] if V.min() - 2 <= v <= V.max() + 2]
+            cells.append('%s (%s to %s)' % (f(np.mean(d)), f(min(d)), f(max(d))))
+            num('NXte%s%s' % (key[name], tag), np.mean(d), '%+.1f')
+        pts = XF.TRIM_DE[name]
+        out.append('%s & %.0f--%.0f & %s & %s' % (lab, min(v for v, e in pts), max(v for v, e in pts), cells[0], cells[1]))
+    write('xv15trim', tabular('lrrr', 'Nacelle, flaps & KCAS & sea level, deg & 10\\,000\\,ft, deg', out))
+
+
 def download_table():
     res = R('download')
     out = []
@@ -332,10 +351,39 @@ def tf_table():
     num('NTfClimbSixty', 60 * cl[160.0], '%.0f'); num('NTfClimbSeventy', 60 * cl[170.0], '%.0f'); num('NTfClimbLow', 60 * cl[150.0], '%.0f')
 
 
+def freq_table():
+    """the XV-15's frequency responses against the flight tests': Tischler's cost J over each fitting range, the mean
+    magnitude and phase errors, Bell's simulation's cost in cruise"""
+    from data import xv15_freq as XQ
+    lab = {'p/da': '$p/\\delta_a$', 'r/da': '$r/\\delta_a$', 'r/dr': '$r/\\delta_r$', 'q/de': '$q/\\delta_e$', 'az/dc': '$a_z/\\delta_c$',
+           'beta/dr': '$\\beta/\\delta_r$', 'az/de': '$a_z/\\delta_e$'}
+    rows = []
+    for cond in ('hover', 'cruise'):
+        r = R('freq_' + cond)
+        dv = r.pop('derivatives', None)
+        if dv:
+            num('NQMa', dv['M_alpha'], '%.1f'); num('NQMaFlight', dv['flight_M_alpha'], '%.2f')
+            num('NQMde', dv['M_de'], '%.1f'); num('NQMdeFlight', dv['flight_M_de'], '%.2f')
+            num('NQZw', dv['Z_w'], '%.2f'); num('NQZwFlight', dv['flight_Z_w'], '%.2f')
+            for k in ('CMa', 'CMa_rotors', 'CMa_tail', 'CMa_rest'):
+                num('NQ' + k.replace('_', '').replace('rotors', 'Rot').replace('tail', 'Tail').replace('rest', 'Rest'), dv[k], '%+.2f' if k != 'CMa' else '%.2f')
+            num('NQMdeRatio', dv['M_de'] / dv['flight_M_de'], '%.1f'); num('NQMaRatio', dv['M_alpha'] / dv['flight_M_alpha'], '%.1f')
+        for pair, m in r.items():
+            lo, hi = XQ.RANGE[(cond, pair)]
+            rows.append('%s & %s & %g--%g & %.0f & %s & %s & %.0f' % (cond, lab[pair], lo, hi, m['J'], '%.0f' % m['J_bell'] if m.get('J_bell') else '--',
+                                                                  f(m['dmag_db']), m['dphase_deg']))
+            key = ''.join(c for c in (cond + pair).title() if c.isalpha())
+            num('NQ' + key, m['J'], '%.0f')
+    write('freq', tabular('llrrrrr', 'cond. & response & rad/s & $J$ & Bell & $\\Delta$dB & $|\\Delta\\phi|$', rows))
+    dr = R('derivs')
+    num('NDerCMa', dr['model']['CMa'], '%.2f'); num('NDerCMaBell', dr['bell']['CMa'], '%.2f')
+    num('NDerCNb', dr['model']['CNb'], '%.3f'); num('NDerCNbBell', dr['bell']['CNb'], '%.3f')
+
+
 if __name__ == '__main__':
     os.makedirs(TAB, exist_ok=True)
-    for fn in (model_table, params_table, hover_table, xv15_table, download_table, polar_table, perf_table, conversion_table, handling_numbers,
-               hover_hold_numbers, autopilot_numbers, tf_table):
+    for fn in (model_table, params_table, hover_table, xv15_table, xv15_trim_table, download_table, polar_table, perf_table, conversion_table, handling_numbers,
+               hover_hold_numbers, autopilot_numbers, tf_table, freq_table):
         fn()
     open(os.path.join(TAB, 'numbers.tex'), 'w').write(''.join('\\newcommand{\\%s}{%s}\n' % kv for kv in sorted(NUM.items())))
     print('%d numbers' % len(NUM))

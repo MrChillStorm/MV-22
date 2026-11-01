@@ -9,7 +9,8 @@ from these by mktables.py and figures.py). Regenerate the harness's models first
 Stages: hover (hover_rotor.py), xv15_<set> for the sets of data/xv15_flight.py and xv15_nac0_gear (sweep.py), download (download.py),
 polar (airframe_polar.py), speed, ceiling<alt>, conversion<nacelle> (performance.py), handling_hover,
 handling_conversion, start (handling.py), hover_hold_stop, hover_hold_turn, hover_hold_controls (hoverhold.py), autopilot_holds,
-autopilot_approach, autopilot_lnav, tf_response, tf_<terrain>_<kt> and tf_jitter_<terrain>_<kt> (aptest.py)."""
+autopilot_approach, autopilot_lnav, tf_response, tf_<terrain>_<kt> and tf_jitter_<terrain>_<kt> (aptest.py), freq_hover, freq_cruise
+(freqresp.py), derivs (derivs.py)."""
 import os, sys, json, time
 from multiprocessing import Pool
 import numpy as np
@@ -128,6 +129,27 @@ def autopilot(what):
     dump('autopilot_' + what, out)
 
 
+def freq(cond):
+    """the XV-15's frequency responses against Tischler's flight tests' (freqresp.py): each pair's model over its
+    fitting range, magnitude dB and phase deg, the coherence and the costs"""
+    import freqresp as FR
+    out = {}
+    for pair, r in FR.compare(cond).items():
+        m = r['model']
+        out[pair] = dict(w=r['w'], db=20 * np.log10(np.abs(m)), deg=np.degrees(np.angle(m)), coherence=r['coherence'], J=r['J'],
+                         J_bell=r.get('J_bell'), dmag_db=r['dmag_db'], dphase_deg=r['dphase_deg'], trim_res=r['trim_res'])
+    if cond == 'cruise':
+        out['derivatives'] = FR.pitch_derivatives()
+    dump('freq_' + cond, out)
+
+
+def derivs():
+    """the XV-15's stability derivatives against Bell's [CR table III-1] (derivs.py)"""
+    import derivs as D
+    d, info = D.derivatives()
+    dump('derivs', dict(model=d, bell=D.BELL, **info))
+
+
 def tf_response():
     """TF's climb's response (aptest.py tf_lag): its step at each speed, the fitted lags, the tracking gain"""
     import aptest as A
@@ -162,6 +184,7 @@ STAGES = dict(hover=hover, xv15_nac0_gear=xv15_gear, download=download, polar=po
               **{'ceiling%d' % a: (lambda a=a: ceiling(a)) for a in CEILING_ALTS},
               **{'conversion%d' % n: (lambda n=n: conversion(n)) for n in NACELLES},
               **{'autopilot_' + w: (lambda w=w: autopilot(w)) for w in ('holds', 'approach', 'lnav')}, tf_response=tf_response,
+              **{'freq_' + c: (lambda c=c: freq(c)) for c in ('hover', 'cruise')}, derivs=derivs,
               **{'tf_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]))) for c in TF_CASES},
               **{'tf_jitter_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]), 0.077)) for c in TF_JITTER})
 
