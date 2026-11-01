@@ -263,6 +263,96 @@
       </binding>
     </key>
 
+    <key n="8">
+      <name>Ctrl-H</name>
+      <desc>Autopilot heading hold (HDG HOLD)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "HDGHOLD")</script>
+      </binding>
+    </key>
+
+    <key n="1">
+      <name>Ctrl-A</name>
+      <desc>Autopilot altitude hold (ALT HOLD)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "ALTHOLD")</script>
+      </binding>
+    </key>
+
+    <key n="19">
+      <name>Ctrl-S</name>
+      <desc>Autopilot speed hold (SPD HOLD)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "SPDHOLD")</script>
+      </binding>
+    </key>
+
+    <key n="23">
+      <name>Ctrl-W</name>
+      <desc>Autopilot route (WYPT)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "WYPT")</script>
+      </binding>
+    </key>
+
+    <key n="14">
+      <name>Ctrl-N</name>
+      <desc>Autopilot NAV 1's ILS or VOR (VOR/ILS)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "VORILS")</script>
+      </binding>
+    </key>
+
+    <key n="7">
+      <name>Ctrl-G</name>
+      <desc>Autopilot approach to a hover (APPR); again: and land; again: off</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "APPR")</script>
+      </binding>
+    </key>
+
+    <key n="20">
+      <name>Ctrl-T</name>
+      <desc>Autopilot terrain following (TF), at the HVR ALT knob's clearance</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "TF")</script>
+      </binding>
+    </key>
+
+    <key n="21">
+      <name>Ctrl-U</name>
+      <desc>Autopilot go-around (GA)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "GA")</script>
+      </binding>
+    </key>
+
+    <key n="117">
+      <name>u</name>
+      <desc>Couple the autopilot (CPLD)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "CPLD-L")</script>
+      </binding>
+    </key>
+
+    <key n="85">
+      <name>U</name>
+      <desc>Automatic nacelles (AUTO NAC)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("AFCS", "AUTONAC")</script>
+      </binding>
+    </key>
+
   </keyboard>
 
 </PropertyList>

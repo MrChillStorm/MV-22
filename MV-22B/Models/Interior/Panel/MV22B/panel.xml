@@ -3759,13 +3759,13 @@
 
   <animation>
     <type>pick</type>
-    <object-name>AFCS.SPARE</object-name>
+    <object-name>AFCS.TF</object-name>
     <action>
       <button>0</button>
       <repeatable>false</repeatable>
       <binding>
         <command>nasal</command>
-        <script>displays.key("AFCS", "SPARE")</script>
+        <script>displays.key("AFCS", "TF")</script>
       </binding>
     </action>
   </animation>

@@ -111602,7 +111602,7 @@ refs 4
 3 0.19263 0.99756
 kids 0
 OBJECT poly
-name "AFCS.SPARE"
+name "AFCS.TF"
 loc 0 0 0
 texture "legends.png"
 texrep 1 1

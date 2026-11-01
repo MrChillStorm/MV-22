@@ -223,7 +223,47 @@ def hover_hold():
     save(fig, 'hover_hold')
 
 
+def tf():
+    nm = 6076.1
+    sp_c = {120: '#2166ac', 150: '#1b7837', 170: '#ef8a62', 200: C_MOD}
+    fig, axs = plt.subplots(2, 2, figsize=(W2, 3.9))
+    for ax, name, speeds, lab in ((axs[0, 0], 'hills', (120, 150, 200), 'a'), (axs[0, 1], 'ridge', (120, 150, 170, 200), 'b')):
+        r0 = res('tf_%s_%d' % (name, speeds[0]))
+        x0, t0 = np.array(r0['y']) / nm, np.array(r0['terr'])
+        ax.fill_between(x0, 0, t0, color='#dddddd', lw=0, label='terrain')
+        ax.plot(x0, t0 + 200, '-', color=C_REF, lw=0.6, label='terrain + 200 ft')
+        for V in speeds:
+            r = res('tf_%s_%d' % (name, V))
+            ax.plot(np.array(r['y']) / nm, np.array(r['terr']) + np.array(r['hw']), '-', color=sp_c[V], lw=0.9, label='%d kt' % V)
+        ax.set_xlim(0, 6 if name == 'hills' else 4.5); ax.set_ylim(0, 1300 if name == 'ridge' else 1050)
+        ax.set_xlabel('distance, nm'); ax.set_ylabel('wheels above sea level, ft')
+        ax.legend(frameon=False, fontsize=6.0, loc='upper left', ncol=2); tag(ax, lab)
+    ax = axs[1, 0]
+    rp = {r['kcas']: r for r in res('tf_response')}
+    for V, c in ((60.0, '#762a83'), (120.0, '#2166ac'), (150.0, '#1b7837'), (200.0, C_MOD)):
+        r = rp[V]
+        t = np.array(r['t'])
+        ax.plot(t, r['y'], '-', color=c, lw=0.9, label='%.0f kt' % V)
+        w = r['w']
+        ax.plot(t, 1 - w * np.exp(-t / r['tau1']) - (1 - w) * np.exp(-t / r['tau2']), '--', color=c, lw=0.7)
+    ax.set_xlim(0, 15); ax.set_ylim(0, 1.3)
+    ax.set_xlabel('time from the step, s'); ax.set_ylabel('vertical speed / its command')
+    ax.text(14.5, 0.12, 'measured (solid), model (dashed)', fontsize=6, ha='right')
+    ax.legend(frameon=False, fontsize=6.3, loc='lower right', bbox_to_anchor=(1.0, 0.18)); tag(ax, 'c')
+    ax = axs[1, 1]
+    for V in (120, 150, 170, 200):
+        r = res('tf_ridge_%d' % V)
+        ax.plot(np.array(r['y']) / nm, r['hw'], '-', color=sp_c[V], lw=0.9, label='%d kt' % V)
+    ax.axhline(200, color=C_REF, lw=0.6)
+    ax.axvline(2.5, color=C_REF, lw=0.5, ls=':'); ax.text(2.505, 330, 'ridge edge', fontsize=6)
+    ax.set_xlim(2.2, 2.8); ax.set_ylim(150, 450)
+    ax.set_xlabel('distance, nm'); ax.set_ylabel('clearance of the wheels, ft')
+    ax.legend(frameon=False, fontsize=6.3, loc='upper right'); tag(ax, 'd')
+    fig.tight_layout(w_pad=1.2, h_pad=0.8)
+    save(fig, 'tf')
+
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
-    for fn in (hover, xv15, download_polar, perf, conversion, handling, hover_hold):
+    for fn in (hover, xv15, download_polar, perf, conversion, handling, hover_hold, tf):
         fn()

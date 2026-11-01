@@ -107,7 +107,8 @@
   <flight>
     <rudder-trim           type="double"> 0.00 </rudder-trim>
     <aileron-trim          type="double"> 0.00 </aileron-trim>
-    <elevator-trim         type="double"> 0.25 </elevator-trim>
+    <!-- none: the augmentation's trim feed-forward trims the stick's centre (0.25 held the nose 5 deg low) -->
+    <elevator-trim         type="double"> 0.00 </elevator-trim>
   </flight>
 
 </PropertyList>

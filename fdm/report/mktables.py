@@ -274,10 +274,68 @@ def hover_hold_numbers():
     num('NHhLeverDh', abs(h[-1] - lv['h0']), '%.0f'); num('NHhLeverHold', max(0.1, np.ptp(h[t > t[-1] - 10])))
 
 
+def autopilot_numbers():
+    h = R('autopilot_holds')
+    a = h['alt']
+    num('NApAltEnd', abs(a['h'][-1] - 2000), '%.0f'); num('NApAltOver', max(0.0, max(a['h']) - 2000), '%.0f')
+    num('NApAltPitch', max(a['theta']))
+    g = h['hdg']
+    num('NApHdgBank', max(abs(x) for x in g['phi'])); num('NApHdgDh', max(abs(x - g['h'][0]) for x in g['h']), '%.0f')
+    num('NApConvDh', max(max(abs(x - 1000) for x in h[n]['h']) for n in ('decel', 'accel')), '%.0f')
+    num('NApConvPitchLo', min(min(h[n]['theta']) for n in ('decel', 'accel'))); num('NApConvPitchHi', max(max(h[n]['theta']) for n in ('decel', 'accel')))
+    e = h['engage']
+    num('NApEngClimb', e['hdot0'], '%.0f'); num('NApEngSlow', 120 - e['vc0'], '%.0f'); num('NApEngPitch', e['theta0'])
+    num('NApEngPitchLo', e['theta_lo']); num('NApEngRev', e['swing']); num('NApEngG', max(-e['g_lo'], e['g_hi']), '%.2f')
+    ap = R('autopilot_approach')
+    land3, hov6, land6 = ap['final']
+    num('NApXte', max(r['xte_max'] for r in ap['final']), '%.0f')
+    num('NApPathLo', min(r['path'][0] for r in ap['final']), '%.0f'); num('NApPathHi', max(r['path'][1] for r in ap['final']), '%.0f')
+    num('NApHandKt', max(r['hand_vc'] for r in ap['final'][:2]), '%.0f')
+    num('NApHoldD', max(r['hold_d'] for r in ap['final']), '%.0f')
+    num('NApDownD', max(r['down_d'] for r in (land3, land6)), '%.1f'); num('NApSink', max(r['sink'] for r in (land3, land6)), '%.1f')
+    num('NApWindHand', land6['hand_vc'], '%.0f')
+    num('NApGaLost', max(g['h0'] - g['h_min'] for g in ap['ga']), '%.0f')
+    rt = ap['route']
+    num('NApRouteDecel', rt['decel_nm'], '%.2f'); num('NApRoutePlan', rt['planner_nm'], '%.2f'); num('NApRouteDown', rt['down_d'], '%.1f')
+    ln = R('autopilot_lnav')
+    past = lambda r: max(p['past'] for p in r['legs'])
+    num('NApLnavFast', past(ln[0]), '%.0f'); num('NApLnavSlow', past(ln[1]), '%.0f'); num('NApLnavSharp', past(ln[2]), '%.0f')
+
+
+def tf_table():
+    from mkresults import TF_CASES, TF_JITTER
+    names = {'flat': 'level', 'hills': 'hills', 'ridge': 'ridge'}
+    rows, cases = [], {}
+    for n, V in TF_CASES:
+        r = R('tf_%s_%d' % (n, V)); cases[(n, V)] = r
+        jt = R('tf_jitter_%s_%d' % (n, V)) if (n, V) in TF_JITTER else None
+        rows.append('%s & %d & %.0f & %.0f & %.0f & %s & %s to %s & %s to %s' % (
+            names[n], V, r['hw_min'], r['hw_mean'], r['hw_max'], '%.0f' % jt['hw_min'] if jt else '--', f(r['g_min'], '%+.2f'), f(r['g_max'], '%+.2f'),
+            f(r['theta_range'][0]), f(r['theta_range'][1])))
+    write('tf', tabular('lrrrrrrr', 'Terrain & KCAS & \\multicolumn{3}{c}{clearance, ft: least, mean, most} & jitter & vertical $g$ & pitch, deg', rows))
+    main = [c for c in TF_CASES if c[1] in (120, 150, 200)]
+    num('NTfFlatRms', max(cases[c]['theta_rms'] for c in main if c[0] == 'flat'), '%.2f')
+    num('NTfFlatJitRms', max(R('tf_jitter_flat_%d' % V)['theta_rms'] for n, V in TF_JITTER if n == 'flat'), '%.2f')
+    num('NTfHillsLo', min(cases[c]['hw_min'] for c in main if c[0] == 'hills'), '%.0f')
+    num('NTfHillsSlowLo', cases[('hills', 120)]['hw_min'], '%.0f'); num('NTfHillsSlowHi', cases[('hills', 120)]['hw_max'], '%.0f')
+    num('NTfHillsFastMean', cases[('hills', 200)]['hw_mean'], '%.0f'); num('NTfHillsFastHi', cases[('hills', 200)]['hw_max'], '%.0f')
+    num('NTfRidgeLo', min(cases[c]['hw_min'] for c in main if c[0] == 'ridge'), '%.0f')
+    num('NTfRidgeSeventy', cases[('ridge', 170)]['hw_min'], '%.0f')
+    num('NTfJitter', max(abs(R('tf_jitter_%s_%d' % c)['hw_min'] - cases[c]['hw_min']) for c in TF_JITTER), '%.0f')
+    num('NTfG', max(max(abs(cases[c]['g_min']), abs(cases[c]['g_max'])) for c in main), '%.2f')
+    num('NTfFlyup', sum(cases[c]['flyup_s'] for c in TF_CASES), '%.0f')
+    rp = R('tf_response')
+    num('NTfKLo', min(r['k_h'] for r in rp), '%.2f'); num('NTfKHi', max(r['k_h'] for r in rp), '%.2f')
+    num('NTfFitRms', max(r['res'] for r in rp), '%.2f')
+    cp = json.load(open(os.path.join(FDM, 'data', 'climb_power_v22.json')))
+    cl = dict(zip(cp['kcas'], cp['climb_full_fps']))
+    num('NTfClimbSixty', 60 * cl[160.0], '%.0f'); num('NTfClimbSeventy', 60 * cl[170.0], '%.0f'); num('NTfClimbLow', 60 * cl[150.0], '%.0f')
+
+
 if __name__ == '__main__':
     os.makedirs(TAB, exist_ok=True)
     for fn in (model_table, params_table, hover_table, xv15_table, download_table, polar_table, perf_table, conversion_table, handling_numbers,
-               hover_hold_numbers):
+               hover_hold_numbers, autopilot_numbers, tf_table):
         fn()
     open(os.path.join(TAB, 'numbers.tex'), 'w').write(''.join('\\newcommand{\\%s}{%s}\n' % kv for kv in sorted(NUM.items())))
     print('%d numbers' % len(NUM))

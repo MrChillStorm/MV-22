@@ -103,7 +103,8 @@ def build(execrate):
     loss = f.fn('drive/loss-ftlb', S(M(v(0.02 * 2 * U.P_MRP * 550 / W0), Wn), M(v(0.02), S(ABS(Qr), ABS(Ql))),
                                      M(p('/controls/rotor/brake'), v(BRAKE_FTLB), Q(W, S(ABS(W), v(0.3))))))
     qeng = f.fn('drive/engine-torque-ftlb', Q(M(v(550), S(p('eng[0]/power-hp'), p('eng[1]/power-hp'))), MAX(W, v(0.3 * W0))))
-    held = GT(S(init, p('drive/hold-rpm')), v(0.5))
+    # (and an in-air start's, while it holds the airframe and trims: genv22.controls)
+    held = GT(S(init, p('drive/hold-rpm'), p('ctl/start-hold')), v(0.5))
     wd = f.fn('drive/omega-dot-calc', IFTHEN(held, v(0), Q(D(D(D(qeng, Qr), Ql), loss), v(J))), out='drive/omega-dot')
     f.fn('drive/omega-next', IFTHEN(init, M(run0, v(W0 / 100), p('gov/nr-ref-pct')), MAX(v(0), S(W, M(wd, p('simulation/dt'))))),
          out='rotor/omega-rad_sec')

@@ -9,5 +9,6 @@ __pycache__/
 # packaging and OS clutter
 .DS_Store
 fdm/report/v22_report.pdf
+manual/mv22b_manual.pdf
 fdm/report/**/*.log
 fdm/report/**/*.err

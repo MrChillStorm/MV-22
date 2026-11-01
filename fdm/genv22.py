@@ -42,6 +42,9 @@ SIDES = (('r', 1), ('l', -1))
 # (pilot, nacelles, mixing, servos, governor, SCAS) at 120 Hz, the airframe at 60 Hz, the engines and outputs too
 INFLOW_EXECRATE = 4
 CONTROL_EXECRATE = 4
+START_HOLD_S = (0.5, 4.5, 5.5)            # an in-air start's trim (controls()): the rotors; the pitch, rotating; the stick
+START_TRIM_TAU_S = 0.25                   # its stick's trim's time constant (scas())
+AUTOPILOT_EXECRATE = 8                  # the autopilot's outer loops: 60 Hz
 AIRFRAME_EXECRATE = 8
 SLOW_EXECRATE = 8
 # Peters-He states (j, r): three axisymmetric (the hover's radial distribution) and the first harmonic
@@ -64,7 +67,11 @@ KEEP = {'aero/rotor/r/thrust-lbs', 'aero/rotor/l/thrust-lbs', 'aero/rotor/r/torq
         'aero/rotor/r/power-hp', 'aero/rotor/l/power-hp', 'aero/wing/download-lbs', 'aero/wing/lift-lbs',
         # read by Nasal/v22.nas and the gauges
         'drive/nr-pct', 'eng/power-available-hp', 'eng/xmsn-limit-hp', 'ctl/nacelle-cmd-limited-deg', 'ctl/cps-min-deg',
-        'ctl/cps-max-deg', 'gov/theta-deg', 'hh/state', 'hh/e-ft', 'hh/h-ft', 'hh/vN-cmd', 'hh/vE-cmd'}
+        'ctl/cps-max-deg', 'gov/theta-deg', 'hh/state', 'hh/e-ft', 'hh/h-ft', 'hh/vN-cmd', 'hh/vE-cmd',
+        'ap/tcl-cmd', 'ap/nacelle-sched-deg', 'ap/auto-nac-on', 'ap/lat', 'ap/vert', 'ap/spd', 'ap/coupled', 'ap/nav', 'ap/line', 'ap/app',
+        'ap/app-dist-ft', 'ap/app-xte-ft', 'ap/app-path-ft', 'ap/v-sel-kt', 'ap/roll-lag-s', 'ap/app-route',
+        'ap/tf-on', 'ap/tf-flyup', 'ap/tf-climb-cap-fps', 'ap/tf-ref-ft', 'ap/tf-model-ft', 'ap/tf-v1-fps',
+        'ap/tf-v2-fps', 'ap/tf-w', 'ap/tf-tau1-s', 'ap/tf-tau2-s', 'ap/tf-kh'}
 INLINE = True
 
 
@@ -100,6 +107,76 @@ def twist(r):
 
 def wrap180(e):
     return IFTHEN(GT(e, v(180)), D(e, v(360)), IFTHEN(LT(e, v(-180)), S(e, v(360)), e))
+
+
+def autonac_schedule():
+    """AUTO NAC's nacelle angle against the calibrated airspeed: at each, the most converted angle whose level-flight
+    trim's pitch is at most 4 deg (to 150 kt), rising to 7 at 180 kt, never higher at a higher speed (trimmap.py
+    --autonac, at the design weight and CG)"""
+    d = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'autonac_v22.json')))
+    ns, ks, th = d['nacelle'], d['kcas'], d['theta']
+    out = []
+    for j, k in enumerate(ks):
+        tmax = float(np.interp(k, [0, 150, 180], [4.0, 4.0, 7.0]))
+        have = [n for i, n in enumerate(ns) if th[i][j] is not None]
+        ok = [n for n in have if th[ns.index(n)][j] <= tmax]
+        out.append(min(ok) if ok else max(have))
+    for j in range(1, len(out)):
+        out[j] = min(out[j], out[j - 1])
+    return ks, out
+
+
+def roll_delay():
+    """the autopilot's roll into a bank and out of it as a delay, against the calibrated airspeed: the heading a 90 deg
+    turn loses against a bank reached at once, int(tan phi_a - tan phi) dt / tan phi_a, less the half of the bank
+    reference's ramp at its rate limit (aptest.py rolldelay: the augmentation's own lag, less what its overshoot gives
+    back). Rolling out along a ramp mirrors rolling in for a linear loop, with the same delay. None without the
+    measurement"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'roll_delay_v22.json')
+    if not os.path.exists(path):
+        return [0.0, 300.0], [0.0, 0.0]
+    d = json.load(open(path))
+    return d['kcas'], d['tau_loop_s']
+
+
+def rate_ff(axis):
+    """the airframe's roll (pitch) rate per inch of lateral (aft) stick against the calibrated airspeed, along AUTO NAC's
+    schedule (aptest.py rollff, pitchff: in pitch the steady pull-up's), for the stick fed forward to a rate the
+    autopilot commands; none without it"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', '%s_ff_v22.json' % axis)
+    if not os.path.exists(path):
+        return None
+    d = json.load(open(path))
+    return d['kcas'], d['p_per_in' if axis == 'roll' else 'q_per_in'], d.get('peak_ratio')
+
+
+def climb_power():
+    """the power a climb takes against the calibrated airspeed, along AUTO NAC's schedule: P = P_level + b h' + c h'^2
+    (h' ft/s) at the reference weight (aptest.py climbpower: trims level, at 1000 ft/min and at full power); without
+    it, the climb's own power at 0.8 of it"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'climb_power_v22.json')
+    if not os.path.exists(path):
+        return [0.0, 300.0], [U.GW_DESIGN / 440.0] * 2, [0.0, 0.0], [50.0, 50.0], U.GW_DESIGN
+    d = json.load(open(path))
+    return d['kcas'], d['b_hp_fps'], d['c_hp_fps2'], d['climb_full_fps'], d['weight_lb']
+
+
+def tf_lag():
+    """the climb's response to TF's command against the calibrated airspeed, along AUTO NAC's schedule (aptest.py
+    tflag): two first order lags in parallel fitted to its step, the quick one's share and the two time constants, s;
+    and the height's tracking gain, 1/s. Without it a 1 s lag and 0.2 (a loop 5 s slow)"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tf_lag_v22.json')
+    if not os.path.exists(path):
+        return [0.0, 300.0], [1.0, 1.0], [1.0, 1.0], [2.0, 2.0], [0.2, 0.2]
+    d = json.load(open(path))
+    return d['kcas'], d['w'], d['tau1_s'], d['tau2_s'], d['k_h']
+
+
+def start_trim():
+    """the level-flight trims FlightGear's in-air start takes (trimmap.py --start): along AUTO NAC's schedule over the
+    calibrated airspeed, the gross weight and the density altitude, the gear up and down; None without them"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'start_trim_v22.json')
+    return json.load(open(path)) if os.path.exists(path) else None
 
 
 def periodic(rows, *tabs):
@@ -172,9 +249,106 @@ class Model:
         for n in ('lon', 'lat', 'ped'):
             c.declare('scas/%s-in' % n, 0.0)
         s.hover_hold()
+        s.autopilot()
         c.channel('pilot', execrate=CONTROL_EXECRATE)
         c.fn('ctl/init-fast', IFTHEN(LT(p('simulation/sim-time-sec'), v(1.0)), v(1), MIN(v(1), MAX(v(0), p('ctl/init')))))
         init = GT(p('ctl/init-fast'), v(0.5))
+        # FlightGear starting in the air (its preset not on the ground; the test programme's trims are, by default):
+        # trimmed level flight at the airspeed from the first step, wherever it starts. The nacelles at AUTO NAC's angle
+        # for the airspeed (below); the lever at the level-flight power for the airspeed, the gross weight, the density
+        # altitude and the gear (trimmap.py --start, along that schedule), the power available's share of it above
+        # flight idle (drive.py's demand); the collective governor's integral, the augmentation's pitch reference and its
+        # stick's integral at the trim's collective, pitch attitude and stick (governor(), scas()). The lever fixed at
+        # 0.65, 0.11 over the level's at FlightGear's loading at 120 kt, climbed at 26 ft/s and was 8 kt slow 10 s on
+        c.declare('/sim/presets/onground', 1)
+        aloft = c.fn('ctl/start-aloft', M(init, LT(p('/sim/presets/onground'), v(0.5))), desc='1: starting in the air, trimmed')
+        # (and trimmed there as the trims are, the airframe held, its integration off, for 5.5 s. Until 0.5 s held still,
+        # while the rotors come to the trim's collective and speed: they start in helicopter mode, the drive at 104 %,
+        # the collective without the governor's part and the inflow nil, and before they had at 200 kt they windmilled,
+        # 35 700 lb of reverse thrust, -2.8 g, the nose kicked up at 12 deg/s and the aircraft climbed at 9 ft/s. Until
+        # 4.5 s its flight path held (JSBSim integrates it inertially) and free to pitch, as a model on a wind tunnel's
+        # pivot: the nose turns to the trim's pitch, the angle of attack with it, from FlightGear's own start level (6.5
+        # deg at 200 kt and 50 000 lb; held again at 3.5 s it was 0.26 deg short, and sank 33 ft in 30 s). Then held
+        # again while the stick is trimmed (scas()). Each integrator as it was once let go)
+        t_ = p('simulation/sim-time-sec')
+        aloft_any = LT(p('/sim/presets/onground'), v(0.5))
+        a_, b_, c_ = START_HOLD_S
+        hold = c.fn('ctl/start-hold', M(LT(t_, v(c_)), aloft_any), desc='1: starting in the air, the flight path held')
+        c.fn('ctl/start-pitching', M(hold, GT(t_, v(a_)), LT(t_, v(b_))), desc='1: starting in the air, the nose turning to the trim\'s')
+        c.fn('ctl/start-stick', M(hold, GT(t_, v(b_))), desc='1: starting in the air, the stick trimmed, the airframe held')
+        c.declare('ctl/integrator-rate-translational-held', 0)
+        c.fn('ctl/start-release', M(GT(p('ctl/integrator-rate-translational-held'), v(0.5)), D(v(1), hold)),
+             desc='1: the step an in-air start lets the airframe go')
+        held_rot = M(hold, D(v(1), p('ctl/start-pitching')))
+        for k, h in (('rate/rotational', held_rot), ('rate/translational', hold), ('position/rotational', held_rot), ('position/translational', hold)):
+            prop, kept = 'simulation/integrator/' + k, 'ctl/integrator-%s' % k.replace('/', '-')
+            was = kept + '-held'
+            c.declare(kept, 0)
+            if k != 'rate/translational':
+                c.declare(was, 0)
+            c.fn(kept + '-next', IFTHEN(GT(p(was), v(0.5)), p(kept), p(prop)), out=kept)
+            c.fn(kept + '-set', IFTHEN(GT(h, v(0.5)), v(0), IFTHEN(GT(p(was), v(0.5)), p(kept), p(prop))), out=prop)
+            c.fn(was + '-next', h, out=was)
+        # (the pitch and roll accelerations on the held airframe, through a lag of 0.05 s against the rotors' vibration,
+        # which the stick is trimmed by: scas())
+        for r_ in ('q', 'p'):
+            n_ = 'ctl/start-%sdot' % r_
+            c.declare(n_, 0.0)
+            c.fn(n_ + '-next', S(p(n_), M(D(p('accelerations/%sdot-rad_sec2' % r_), p(n_)), MIN(v(1), Q(p('simulation/channel-dt'), v(0.05))))), out=n_)
+        st = start_trim() if U.NAME == 'V-22' else None
+        s.start_at = None
+        if st:
+            def at(key):
+                tab = lambda g: T3('velocities/vc-kts', 'atmosphere/density-altitude', 'inertia/weight-lbs', st['kcas'], st['density_alt_ft'], st['weight_lb'],
+                                   [[list(r) for r in zip(*st['%s_gear_%s' % (key, g)][k])] for k in range(len(st['weight_lb']))])
+                return S(tab('up'), M(p('gear/gear-cmd-norm'), D(tab('down'), tab('up'))))
+            at.kcas, at.m_lon, at.l_lat = st['kcas'], st['m_lon_ftlb_in'], st['l_lat_ftlb_in']
+            s.start_at = at
+            # (held, from 0.5 s, the table's a first guess: the collective, the pitch and the lever trimmed on the airframe
+            # as the trims trim them, each stepping a frame toward the value its derivative says levels it, lagged by
+            # START_TRIM_TAU_S: the collective on the acceleration along the rotors' thrust (its derivative at sea level,
+            # trimmap.py --start, times the density's ratio, the thrust's), the pitch target on the acceleration across
+            # it (the nose follows: scas()), the lever at the power the rotors then take, the rotor speed held at its
+            # reference meanwhile (drive.py). The table's hover power at 10 000 ft was 8 % over the trim's, between its
+            # 6 000 and 12 000 ft by a line where the power curves up to the hover ceiling, and its hover pitch 0.4 deg
+            # off FlightGear's loading's: the aircraft climbed at 10 ft/s and drifted 6 kt. The accelerations the forces':
+            # the body's, less the turn's part while the nose turns (q w, q u), through a lag of 0.05 s against the
+            # rotors' vibration)
+            import drive
+            tau = START_TRIM_TAU_S
+            cdt = p('simulation/channel-dt')
+            lag = lambda name, x: c.fn(name + '-next', S(p(name), M(D(x, p(name)), MIN(v(1), Q(cdt, v(0.05))))), out=name)
+            # (and with gravity taken at the level flight's attitude, the pitch less the flight path's angle: FlightGear
+            # starts the nose 0.42 deg up at no angle of attack, climbing, and trimmed on that path at 200 kt the
+            # aircraft went on climbing at 2.5 ft/s on the climb's 180 hp. The pitch reference then less the angle too:
+            # scas())
+            qb = p('velocities/q-rad_sec')
+            th_, gm_ = p('attitude/theta-rad'), p('flight-path/gamma-rad')
+            ax_ = S(p('accelerations/udot-ft_sec2'), M(qb, p('velocities/w-fps')), M(v(G0), D(SIN(th_), SIN(D(th_, gm_)))))
+            az_ = S(D(p('accelerations/wdot-ft_sec2'), M(qb, p('velocities/u-fps'))), M(v(G0), D(COS(D(th_, gm_)), COS(th_))))
+            for n_ in ('ctl/start-a-along', 'ctl/start-a-across', 'ctl/start-power-hp', 'ctl/start-coll-deg', 'ctl/start-theta-deg'):
+                c.declare(n_, 0.0)
+            lag('ctl/start-a-along', D(M(ax_, p('ctl/cos-nac')), M(az_, p('ctl/sin-nac'))))
+            lag('ctl/start-a-across', S(M(ax_, p('ctl/sin-nac')), M(az_, p('ctl/cos-nac'))))
+            guess = GT(M(hold, LT(t_, v(a_))), v(0.5))
+            # (the power through a lag of 1 s from the table's: at 120 kt and 70 deg it swings 120 hp every 1.5 s at a
+            # held collective, the rotors' own, and through 0.05 s the lever was let go 100 hp short, sinking at 1.4
+            # ft/s; 1 s leaves a quarter of it)
+            c.fn('ctl/start-power-next', IFTHEN(guess, at('power_hp'), S(p('ctl/start-power-hp'), M(D(p('drive/power-required-hp'), p('ctl/start-power-hp')),
+                 MIN(v(1), Q(cdt, v(1.0)))))), out='ctl/start-power-hp')
+            s_coll = M(T1('velocities/vc-kts', st['kcas'], st['a_coll_fps2_deg']), p('atmosphere/sigma'))
+            s_pitch = T1('velocities/vc-kts', st['kcas'], st['a_pitch_fps2_deg'])
+            cs, ts = p('ctl/start-coll-deg'), p('ctl/start-theta-deg')
+            c.fn('ctl/start-coll-next', IFTHEN(guess, at('coll_deg'), IFTHEN(GT(hold, v(0.5)),
+                 D(cs, M(Q(cdt, v(tau)), Q(p('ctl/start-a-along'), s_coll))), cs)), out='ctl/start-coll-deg',
+                 desc='an in-air start\'s collective, deg: the table\'s, trimmed')
+            c.fn('ctl/start-theta-next', IFTHEN(guess, at('theta_deg'), IFTHEN(GT(p('ctl/start-pitching'), v(0.5)),
+                 S(ts, M(Q(cdt, v(tau)), D(D(p('attitude/theta-deg'), Q(p('ctl/start-a-across'), s_pitch)), ts))), ts)), out='ctl/start-theta-deg',
+                 desc='an in-air start\'s pitch, deg: the table\'s, trimmed')
+            thr = '/controls/engines/engine[0]/throttle'
+            avail = M(v(2), MAX(v(1), MIN(p('eng/power-available-hp'), p('eng/xmsn-limit-hp'))))
+            lever = lambda pw: MAX(v(0), MIN(v(1), Q(D(Q(pw, avail), v(drive.IDLE)), v(1 - drive.IDLE))))
+            c.fn('ctl/tcl-start', IFTHEN(GT(hold, v(0.5)), IFTHEN(guess, lever(at('power_hp')), lever(p('ctl/start-power-hp'))), p(thr)), out=thr)
         tcl = c.fn('ctl/tcl-norm', p('/controls/engines/engine[0]/throttle'), clip=('0', '1'),
                    desc='thrust control lever (collective / power), 0 down .. 1 up (FlightGear: the throttle axis)')
         # JSBSim's rudder is positive left (FlightGear hands it the negated pedal): negated back
@@ -191,7 +365,14 @@ class Model:
         c.fn('ctl/lat-in', S(M(lat, v(B.X_LAT), ff), M(sc, p('scas/lat-in'))), clip=('-%g' % B.X_LAT, '%g' % B.X_LAT))
         c.fn('ctl/ped-in', S(M(ped, v(B.X_PED)), M(sc, p('scas/ped-in'))), clip=('-%g' % B.X_PED, '%g' % B.X_PED))
         c.channel('nacelles', execrate=CONTROL_EXECRATE)
-        # the nacelle angle follows its command at the conversion rate; it starts at the command
+        # the nacelle angle follows its command at the conversion rate; it starts at the command. FlightGear starting it
+        # in the air (its preset not on the ground; the test programme's trims are, by default), the command (so the
+        # angle) where AUTO NAC's schedule has it for the airspeed, from the first step: v22.nas's own set-up comes with
+        # fdm-initialized, which may be after the first second, and a start at 120 kt flew that long with the nacelles
+        # vertical, edgewise into the air, and pitched up to 29 deg
+        sk, sn = autonac_schedule()
+        c.fn('ctl/nacelle-cmd-start', IFTHEN(GT(aloft, v(0.5)), T1('velocities/vc-kts', sk, sn), p('/controls/flight/nacelle-cmd-deg')),
+             out='/controls/flight/nacelle-cmd-deg')
         nac = p('ctl/nacelle-deg')
         cmd = MAX(v(U.NACELLE_MIN), MIN(v(U.NACELLE_MAX), p('/controls/flight/nacelle-cmd-deg')))
         if U.CPS:
@@ -217,7 +398,13 @@ class Model:
         # root to tip, 6.375 at 0.75 R) [CR B-4, B-38]
         th75 = c.fn('ctl/coll-ff-deg', S(D(bmt(B.TH0_LL), v(40.9 - 6.375)), M(bmt(B.DTH0_DXCOL), v(B.X_COL), tcl)),
                     desc='collective at 0.75 R from the lever, deg')
-        c.fn('ctl/theta75-deg', S(th75, p('gov/theta-deg')), desc='both rotors\' collective, with the governor\'s')
+        # (an in-air start's own while it holds the airframe and trims, controls(): the governor's integral tracks it less
+        # the lever's for the release. Summed a step apart, the lever, which follows the power, moved the collective,
+        # which moved the power: at 120 kt they swung 100 hp every 1.5 s, and it was let go where they were)
+        coll = S(th75, p('gov/theta-deg'))
+        if s.start_at:
+            coll = IFTHEN(GT(p('ctl/start-hold'), v(0.5)), p('ctl/start-coll-deg'), coll)
+        c.fn('ctl/theta75-deg', coll, desc='both rotors\' collective, with the governor\'s')
         c.fn('ctl/dcoll-deg', M(bmt(B.DTH0_DXLT), p('ctl/lat-in')), desc='differential collective, + right rotor down')
         c.fn('ctl/b1s-deg', M(bmt(B.DB1_DXLN), p('ctl/lon-in')), desc='longitudinal cyclic, + forward')
         kts = 'velocities/vc-kts'
@@ -277,7 +464,12 @@ class Model:
         # it engages as the rotor comes up to speed (from 19 to 9 % below its reference: 85 to 95 % in helicopter mode),
         # its integral held at zero below: on a start the blades stay at the lever's flat pitch
         ga = c.fn('gov/engaged', MAX(v(0), MIN(v(1), Q(S(D(nr, ref), v(19)), v(10)))))
-        c.fn('gov/int-next', IFTHEN(init, p('gov/int-deg'), IFTHEN(LT(ga, v(0.01)), v(0),
+        # (starting in the air, the start's collective less the lever's while it holds the airframe: controls())
+        held, fixed = p('gov/int-deg'), init
+        if s.start_at:
+            fixed = MAX(init, GT(p('ctl/start-hold'), v(0.5)))
+            held = IFTHEN(GT(p('ctl/start-hold'), v(0.5)), D(p('ctl/start-coll-deg'), p('ctl/coll-ff-deg')), held)
+        c.fn('gov/int-next', IFTHEN(fixed, held, IFTHEN(LT(ga, v(0.01)), v(0),
                                                                 MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/ki'), ga, err, p('simulation/channel-dt'))))))),
              out='gov/int-deg')
         c.fn('gov/theta-deg', M(ga, MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/kp'), err))))))
@@ -294,8 +486,8 @@ class Model:
         conversion, and an integrator (3 s) takes up the rest of its offset. The response types follow a
         common rotorcraft scheme, attitude command at low speed and rate command above it (as Boeing's US patent
         5,596,499), switched without a transient because both use the same reference: the commanded attitude is the
-        reference less the stick (with FlightGear's trim) times scas/{theta,phi}-cmd-deg. Below 50 kt with the nacelles
-        above 60 deg, the stick commands an attitude (20 deg of pitch, 25 of bank at full stick; one keyboard step, 1 and
+        reference less the stick (with FlightGear's trim) times scas/{theta,phi}-cmd-deg. Below 50 kt (changing over at
+        45 slowing, 55 accelerating) with the nacelles above 60 deg, the stick commands an attitude (20 deg of pitch, 25 of bank at full stick; one keyboard step, 1 and
         1.25 deg; its direct path to the controls cut to 30 %, back to full by 60 kt) and the heading is held while the
         pedals rest at their centre; above, the stick commands a rate, the
         reference following the attitude, and the attitude it comes to rest at, back at its centre (within scas/detent),
@@ -320,13 +512,20 @@ class Model:
         auth, auth_ped = p('scas/auth-in'), p('scas/auth-ped-in')
         # gain schedule: 1 in the hover, 0.5 at 30 psf (about 95 kt), 0.15 at 170 psf (230 kt)
         k = c.fn('scas/gain', Q(v(1), S(v(1), Q(p('aero/qbar-psf'), v(30)))))
-        c.washout('scas/q-wo', 'velocities/q-rad_sec', 5.0)
-        c.washout('scas/p-wo', 'velocities/p-rad_sec', 5.0)
-        c.washout('scas/r-wo', 'velocities/r-rad_sec', 3.0)
+        # the rate dampers, on the body rates less the rates the autopilot commands while it holds the axis (its
+        # reference's ramp: damped, it lagged 10 deg behind a 5 deg/s roll at 200 kt, and the integrator wound up
+        # meanwhile overshot the bank by 5 deg and took 20 s to unwind)
+        c.fn('scas/q-net', D(p('velocities/q-rad_sec'), M(p('ap/theta-ref-rate'), p('ap/theta-on'))))
+        c.fn('scas/p-net', D(p('velocities/p-rad_sec'), M(p('ap/phi-ref-rate'), p('ap/phi-on'))))
+        c.washout('scas/q-wo', 'scas/q-net', 5.0)
+        c.washout('scas/p-wo', 'scas/p-net', 5.0)
         init = GT(p('ctl/init-fast'), v(0.5))
         air = c.fn('scas/airborne', M(LT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5)), LT(p('ctl/init-fast'), v(0.5))))
-        acah = c.fn('scas/attitude-command', M(LT(p('velocities/vc-kts'), v(50)), GT(p('ctl/nacelle-deg'), v(60))),
-                    desc='1: attitude command and heading hold (low speed), 0: rate command')
+        # (with 5 kt of hysteresis about 50: at a speed held near it the response type would change back and forth)
+        c.declare('scas/attitude-command', 1)
+        vk = p('velocities/vc-kts')
+        acah = c.fn('scas/attitude-command-next', M(GT(p('ctl/nacelle-deg'), v(60)), IFTHEN(GT(p('scas/attitude-command'), v(0.5)), LT(vk, v(55)), LT(vk, v(45)))),
+                    out='scas/attitude-command', desc='1: attitude command and heading hold (low speed), 0: rate command')
         # the stick's direct path to the controls, cut to 30 % where it commands an attitude, so that the attitude
         # loop sets the response; back to full by 60 kt and with the nacelles below 50 deg
         low = M(MAX(v(0), MIN(v(1), Q(D(v(60), p('velocities/vc-kts')), v(20)))), MAX(v(0), MIN(v(1), Q(D(p('ctl/nacelle-deg'), v(50)), v(20)))))
@@ -337,6 +536,8 @@ class Model:
         # aft of vertical, as in a hover stop) along its slope from 75 to 90. Its airspeed is the forward one (equivalent,
         # along the body's x axis): in rearward or sideward flight it is the hover's, where the airspeed's magnitude
         # gave the forward flight's forward stick and pitched the nose down as the aircraft went backwards
+        # (that airspeed the autopilot's too, in either build)
+        c.fn('scas/ff-kts', M(Q(p('velocities/u-aero-fps'), v(1.6878)), SQ(p('atmosphere/sigma'))), desc='forward airspeed, equivalent')
         tf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trim_ff_v22.json')
         if U.NAME == 'V-22' and os.path.exists(tf):
             tm = json.load(open(tf))
@@ -344,7 +545,6 @@ class Model:
             if ns[-1] < U.NACELLE_MAX:
                 f = (U.NACELLE_MAX - ns[-1]) / (ns[-1] - ns[-2])
                 lon_t.append([b + (b - a) * f for a, b in zip(lon_t[-2], lon_t[-1])]); ns.append(U.NACELLE_MAX)
-            c.fn('scas/ff-kts', M(Q(p('velocities/u-aero-fps'), v(1.6878)), SQ(p('atmosphere/sigma'))), desc='forward airspeed, equivalent')
             c.fn('scas/lon-trim-calc', M(v(B.X_LON), T2('ctl/nacelle-deg', 'scas/ff-kts', ns, tm['kcas'], lon_t)),
                  out='scas/lon-trim-in')
         rest = lambda prop: LT(ABS(p(prop)), p('scas/detent'))
@@ -356,37 +556,479 @@ class Model:
             c.declare(ref, 0.0)
             c.declare(integ, 0.0)
             hold = c.fn('scas/%s-hold' % ax, M(air, MAX(acah, rest(stick))), desc='1: the reference held')
-            stk = M(v(sg / R2D), p('scas/%s-cmd-deg' % ax), p(cmd), D(v(1), hold_on))
-            c.fn('scas/%s-ref-next' % ax, IFTHEN(hold_on, p('hh/%s-ref-rad' % ax), IFTHEN(GT(hold, v(0.5)), p(ref), D(p(att), stk))), out=ref)
+            # (the stick and its trim command no attitude while the hover hold or the autopilot holds the axis: their
+            # references are the attitudes themselves)
+            stk = M(v(sg / R2D), p('scas/%s-cmd-deg' % ax), p(cmd), D(v(1), hold_on), D(v(1), p('ap/%s-on' % ax)))
+            # (starting in the air, controls(): the pitch's reference the attitude throughout, so that the attitude's term
+            # is nil, and the stick's integral trimmed as the trims trim it, on the airframe's pitch acceleration over the
+            # stick's moment (trimmap.py --start), closing in tau = 0.25 s (in 0.1 s, with the rotors' own lag after the
+            # stick, it rang). At first the trim's (the table's, the design CG's: the nacelles' with them along the
+            # schedule, 5.5 in aft of it the stick held 20 deg/s^2 nose up at 200 kt). While the nose is free, to the
+            # acceleration that brings the pitch to the trim's for the weight critically damped at 1/(2 tau) rad/s,
+            # the loop around the trim's half as quick: within 0.1 deg of a 6.5 deg turn by 4.5 s. (The augmentation's
+            # attitude loop turned it with the integral the table's, the 20 deg/s^2 against it: 1.4 deg short, and let go
+            # there at 50 000 lb it climbed at 19 ft/s.) Then held to the pitch acceleration nil. The trim's pitch is the
+            # table's, the design CG's: within 0.1 deg of an exact trim's at 6 000 lb of cargo and the tanks full)
+            start = bool(s.start_at)
+            rnext = IFTHEN(hold_on, p('hh/%s-ref-rad' % ax), IFTHEN(GT(p('ap/%s-on' % ax), v(0.5)), p('ap/%s-ref-rad' % ax),
+                           IFTHEN(GT(hold, v(0.5)), p(ref), D(p(att), stk))))
+            if start:
+                # (let go, the pitch's reference less the flight path's angle: controls())
+                let = D(p(att), p('flight-path/gamma-rad')) if ax == 'theta' else p(att)
+                rnext = IFTHEN(GT(p('ctl/start-release'), v(0.5)), let, IFTHEN(GT(p('ctl/start-hold'), v(0.5)), p(att), rnext))
+            c.fn('scas/%s-ref-next' % ax, rnext, out=ref)
             err[ax] = c.fn('scas/%s-err-rad' % ax, D(p(att), S(p(ref), stk)), desc='attitude less its command')
-            c.fn('scas/%s-int-next' % ax, IFTHEN(init, v(0), IFTHEN(GT(hold, v(0.5)), MAX(NEG(auth), MIN(auth,
-                 S(p(integ), M(k, p('scas/ki-' + ax), err[ax], p('simulation/channel-dt'))))), p(integ))), out=integ)
+            run = IFTHEN(GT(hold, v(0.5)), MAX(NEG(auth), MIN(auth, S(p(integ), M(k, p('scas/ki-' + ax), err[ax], p('simulation/channel-dt'))))),
+                         p(integ))
+            i0 = v(0)
+            if start:
+                # (the roll's the same, to the wings level: in FlightGear at 200 kt, the integral at nil, the roll drifted
+                # to 1.5 deg while the nose was free, and the augmentation's own integral took 10 s to take it back. Its
+                # integral subtracts from the stick: scas/lat-calc)
+                tau = START_TRIM_TAU_S
+                w = 1 / (2 * tau)
+                if ax == 'theta':
+                    mt, inertia, acc, rate, tgt, sg = s.start_at.m_lon, 'iyy', 'ctl/start-qdot', 'velocities/q-rad_sec', M(v(1 / R2D), p('ctl/start-theta-deg')), 1
+                    guess = D(M(v(B.X_LON), s.start_at('lon')), p('scas/lon-trim-in'))
+                else:
+                    mt, inertia, acc, rate, tgt, sg = s.start_at.l_lat, 'ixx', 'ctl/start-pdot', 'velocities/p-rad_sec', v(0), -1
+                    guess = v(0)
+                mom = T1('velocities/vc-kts', s.start_at.kcas, mt)
+                want = M(p('ctl/start-pitching'), D(M(v(w * w), D(tgt, p(att))), M(v(2 * w), p(rate))))
+                trim = D(p(integ), M(v(sg), Q(p('simulation/channel-dt'), v(tau)), Q(M(D(p(acc), want), p('inertia/%s-slugs_ft2' % inertia)), mom)))
+                first = LT(p('simulation/sim-time-sec'), v(START_HOLD_S[0]))
+                run = IFTHEN(GT(p('ctl/start-hold'), v(0.5)), IFTHEN(first, guess, trim), run)
+                c.fn('scas/%s-int-next' % ax, IFTHEN(GT(p('ctl/start-hold'), v(0.5)), run, IFTHEN(init, i0, run)), out=integ)
+            else:
+                c.fn('scas/%s-int-next' % ax, IFTHEN(init, i0, run), out=integ)
         # heading hold: at low speed, pedals at rest, in the air
         c.declare('scas/psi-ref-rad', 0.0)
-        hh = c.fn('scas/psi-hold', M(air, acah, rest('fcs/rudder-cmd-norm')))
+        hh = c.fn('scas/psi-hold', M(air, acah, rest('fcs/rudder-cmd-norm'), D(v(1), p('ap/phi-on'))))
         c.fn('scas/psi-ref-next', IFTHEN(GT(hh, v(0.5)), p('scas/psi-ref-rad'), p('attitude/psi-rad')), out='scas/psi-ref-rad')
         dpsi = D(p('attitude/psi-rad'), p('scas/psi-ref-rad'))
         epsi = c.fn('scas/psi-err-rad', M(hh, ATAN2(SIN(dpsi), COS(dpsi))))
         # signs: + forward stick pitches the nose down, + right stick rolls right, + right pedal yaws right
-        c.fn('scas/lon-calc', S(M(k, S(M(p('scas/kq'), p('scas/q-wo')), M(p('scas/ktheta'), err['theta']))), p('scas/theta-int-in')),
+        # (and the stick the airframe needs for the roll or pitch rate the autopilot commands, fed forward: rate_ff. In
+        # pitch the rate its reference moves at and the rate that closes the error in tau (model following: the
+        # augmentation's own attitude gain, 1.8 in/rad at 200 kt against the airframe's 0.061 rad/s per inch, closed an
+        # error in 9 s and had to build 10 deg of one for a 0.2 g pull-up). The airframe's pitch rate leads its
+        # sustained one, its first peak R times it (1.3 at 60 kt, 3.9 at 200, 6.9 at 150 in the conversion): K (T s + 1)
+        # with T about R over the short period's frequency (2 rad/s, 2.1 at 200 kt). The inverse is the sustained gain
+        # behind a lag of T, and tau the loop's own lag over its stiffness at high frequency, R/tau under 1 by half that
+        # frequency: tau = R s. (The bare sustained gain was R times too stiff at the short period: 1.5 s rang at 1 Hz,
+        # and at 150 kt it diverged)
+        qf = rate_ff('pitch')
+        if qf and qf[2]:
+            R = [max(1.0, r) for r in qf[2]]
+            tau = T1('velocities/vc-kts', qf[0], R)
+            lagT = T1('velocities/vc-kts', qf[0], [r / 2.0 for r in R])
+            qdes = S(p('ap/theta-ref-rate'), Q(NEG(err['theta']), tau))
+            c.declare('scas/ap-pitch-ff', 1)
+            c.declare('scas/qff-in', 0.0)
+            x = M(qdes, p('ap/theta-on'), p('scas/ap-pitch-ff'), Q(v(1), T1('velocities/vc-kts', qf[0], qf[1])))
+            c.fn('scas/qff-next', S(p('scas/qff-in'), M(D(x, p('scas/qff-in')), MIN(v(1), Q(p('simulation/channel-dt'), lagT)))), out='scas/qff-in')
+            qff = p('scas/qff-in')
+        else:
+            qff = v(0)
+        c.fn('scas/lon-calc', D(S(M(k, S(M(p('scas/kq'), p('scas/q-wo')), M(p('scas/ktheta'), err['theta']))), p('scas/theta-int-in')), qff),
              clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lon-in')
-        c.fn('scas/lat-calc', NEG(S(M(k, S(M(p('scas/kp'), p('scas/p-wo')), M(p('scas/kphi'), err['phi']))), p('scas/phi-int-in'))),
+        rf = rate_ff('roll')
+        pff = M(p('ap/phi-ref-rate'), p('ap/phi-on'), Q(v(1), T1('velocities/vc-kts', rf[0], rf[1]))) if rf else v(0)
+        c.fn('scas/lat-calc', S(NEG(S(M(k, S(M(p('scas/kp'), p('scas/p-wo')), M(p('scas/kphi'), err['phi']))), p('scas/phi-int-in'))), pff),
              clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lat-in')
         # yaw: at low speed rate command, direction hold (the pedals command a yaw rate, scas/r-cmd-dps at full travel,
         # held against the wind's weathervaning by an integrator; at rest the heading holds), the response type the
-        # hover's control laws use [ADS-33E-PRF; the AH-64D's]; above, rate damping through a washout. A rate damper
-        # alone let a steady yaw moment (a tailwind on the fins) turn the aircraft and made the pedals weak
+        # hover's control laws use [ADS-33E-PRF; the AH-64D's]; above, the yaw rate damped about a coordinated turn's.
+        # A rate damper alone let a steady yaw moment (a tailwind on the fins) turn the aircraft and made the pedals weak
         c.declare('scas/r-cmd-dps', 30.0)
         c.declare('scas/ki-r', 8.0)       # in per rad of yaw (the rate error integrated)
         c.declare('scas/r-int-in', 0.0)
-        rcmd = c.fn('scas/r-cmd-rad_sec', M(p('ctl/ped-norm'), p('scas/r-cmd-dps'), v(1 / R2D), acah))
-        rerr = c.fn('scas/r-err-rad_sec', IFTHEN(GT(acah, v(0.5)), D(p('velocities/r-rad_sec'), rcmd), p('scas/r-wo')))
+        # Turns are coordinated: the yaw rate held is the one of a coordinated turn at the bank (with the rate command,
+        # while the autopilot banks; in rate command always), where a washed-out damper let them slip 20 deg at 50 kt
+        coord = c.fn('scas/r-coord-rad_sec', Q(M(v(G0), SIN(p('attitude/phi-rad')), COS(p('attitude/theta-rad'))), MAX(p('velocities/vt-fps'), v(50))))
+        rcmd = c.fn('scas/r-cmd-rad_sec', M(S(M(p('ctl/ped-norm'), p('scas/r-cmd-dps'), v(1 / R2D)), M(p('ap/phi-on'), coord)), acah))
+        rerr = c.fn('scas/r-err-rad_sec', IFTHEN(GT(acah, v(0.5)), D(p('velocities/r-rad_sec'), rcmd), D(p('velocities/r-rad_sec'), coord)))
         cdt = p('simulation/channel-dt')
         c.fn('scas/r-int-next', IFTHEN(init, v(0), IFTHEN(GT(M(air, acah), v(0.5)),
              MAX(NEG(auth_ped), MIN(auth_ped, D(p('scas/r-int-in'), M(k, p('scas/ki-r'), rerr, cdt)))),
              M(p('scas/r-int-in'), MAX(v(0), D(v(1), Q(cdt, v(2))))))), out='scas/r-int-in')
         c.fn('scas/ped-calc', S(NEG(M(k, S(M(p('scas/kr'), rerr), M(p('scas/kpsi'), epsi)))), p('scas/r-int-in')),
              clip=('-scas/auth-ped-in', 'scas/auth-ped-in'), out='scas/ped-in')
+
+    def autopilot(s):
+        """The autopilot: a flight director whose commands the augmentation flies when it is coupled (CPLD), as the
+        V-22's flight director panel and coupling work [Boeing's AUTO NAC patent]. HDG HOLD banks to the heading bug,
+        WYPT flies FlightGear's route manager's route (its GPS's legs, turning before each waypoint);
+        ALT HOLD climbs or descends to the ALT knob's altitude and holds it; SPD HOLD takes the SPD knob's airspeed,
+        towards which a reference moves at no more than 2 kt/s faster, 1.5 kt/s slower. With a speed mode the lever
+        and the pitch share the energy as Boeing's total energy control does [Lambregts]: the lever its rate (climb and
+        acceleration), the pitch its share between the two; without one the pitch flies the altitude and the lever is
+        the pilot's. AUTO NAC sets the nacelles for the speed reference along a schedule from the model's own
+        level-flight trims (the most converted nacelle angle that keeps the pitch under 4 deg, 7 at 180 kt:
+        trimmap.py --autonac), within the conversion corridor. Coupled, it drives the lever and nacelle command as
+        the hover hold does (the pilot's lever flies through; moving the nacelles takes AUTO NAC off); the stick out
+        of its detent or the hover hold takes it off. Gains are properties (ap/*)."""
+        c = s.ctl
+        KT, AF, ST = 1.6878, '/instrumentation/mv22b/afcs/', '/autopilot/settings/'
+        for n in ('cpld', 'hdg-hold', 'alt-hold', 'spd-hold', 'auto-nac', 'wypt', 'vor-ils', 'appr', 'hvr-hold', 'tf', 'ga'):
+            c.declare(AF + n, 0)
+        c.declare(ST + 'target-agl-ft', 0.0)
+        for n, x in (('line-valid', 0), ('line-lat-deg', 0.0), ('line-lon-deg', 0.0), ('line-course-deg', 0.0), ('line-gs', 0),
+                     ('line-angle-deg', 3.0), ('line-elev-ft', 0.0), ('app-land', 0), ('app-state', 0), ('gp', 0), ('line-cap', 0)):
+            c.declare('ap/' + n, x)
+        GPS = '/instrumentation/gps/wp/'
+        c.declare('/autopilot/route-manager/active', 0)
+        c.declare(GPS + 'leg-true-course-deg', 0.0)
+        c.declare(GPS + 'wp[1]/course-error-nm', 0.0)
+        c.declare(GPS + 'wp[1]/bearing-true-deg', 0.0)
+        for n, x in (('tf-hdot-fps', 0.0), ('tf-valid', 0), ('tf-cmd-fps', 0.0), ('tf-was', 0), ('tf-ride-g', 0.2), ('tf-climb-max-fps', 50.0), ('tf-climb-cap-fps', 0.0),
+                     ('tf-flyup-g', 0.5), ('tf-band-kt', 20.0), ('tf-ref-ft', 0.0), ('tf-model-ft', 0.0), ('tf-v1-fps', 0.0), ('tf-v2-fps', 0.0), ('tf-track', 1), ('vs-cmd-fps', 0.0), ('vert-accel-g', 0.1)):
+            c.declare('ap/' + n, x)
+        for n, x in (('direct', 0), ('arc-on', 0), ('route-togo-ft', 0.0), ('arc-lat-deg', 0.0), ('arc-lon-deg', 0.0), ('arc-r-ft', 1000.0), ('arc-dir', 1), ('arc-end-deg', 0.0)):
+            c.declare('ap/' + n, x)
+        for n in ('heading-bug-deg', 'target-altitude-ft', 'target-speed-kt'):
+            c.declare(ST + n, 0.0)
+        c.declare('/environment/magnetic-variation-deg', 0.0)
+        for n in ('on', 'theta-on', 'phi-on', 'lever-on', 'vert-was', 'lat-was', 'spd-was', 'v-ref-kt', 'v-ref-dot-kts', 'theta-int-rad', 'theta-ref-rad',
+                  'phi-ref-rad', 'hdot-hold-fps', 'tcl-int', 'tcl-w', 'fly', 'still-s', 'nac-w', 'vt-prev', 'vdot-fps2', 'dropped', 'nac-dropped'):
+            c.declare('ap/' + n, 0.0)
+        for n, x in (('hdg-tau-s', 5.0), ('nav-look-s', 20.0), ('kh', 0.1), ('hdot-max-fps', 1500 / 60.0), ('kv', 0.25), ('accel-kts', 2.0), ('decel-kts', 1.5),
+                     ('kep', 0.012), ('kei', 0.004), ('klp', 0.8), ('kli', 0.25), ('theta-rate-dps', 3.0), ('phi-rate-dps', 5.0),
+                     ('kgp', 0.25), ('app-kt', 120.0), ('hover-ft', 50.0), ('land-fps', 2.0), ('kep-back', 0.04), ('kei-back', 0.01)):
+            c.declare('ap/' + n, x)
+        c.channel('autopilot', execrate=AUTOPILOT_EXECRATE)
+        dt = p('simulation/channel-dt')
+        NOT = lambda a: D(v(1), a)
+        lim = lambda x, lo, hi: MAX(v(lo), MIN(v(hi), x))
+        on = lambda prop: GT(p(prop), v(0.5))
+        air, hold = p('scas/airborne'), on('hh/on')
+        # the modes (the flight director) and the coupling
+        free = M(air, NOT(hold))
+        # WYPT: the route manager's route (FlightGear's GPS in its leg mode), in place of the heading while it is active
+        nav = c.fn('ap/nav', M(free, on(AF + 'wypt'), on('/autopilot/route-manager/active')))
+        # the line (VOR/ILS, APPR): the distance to go to its point along its course, the cross-track error (+ left of it)
+        R_E = 20925646.0
+        la, lo = p('position/lat-geod-rad'), p('position/long-gc-rad')
+        # (the line a great circle, as a localizer's beam: its course here turned from the point's by the meridians'
+        # convergence, the longitude between times the sine of the latitude; 0.16 deg, 200 ft, at 12 NM at 37 deg)
+        lla, llo = M(p('ap/line-lat-deg'), v(1 / R2D)), M(p('ap/line-lon-deg'), v(1 / R2D))
+        dN = M(D(lla, la), v(R_E))
+        dE = M(D(llo, lo), v(R_E), COS(M(S(la, lla), v(0.5))))
+        lc = S(M(p('ap/line-course-deg'), v(1 / R2D)), M(D(lo, llo), SIN(la)))
+        dgo_l = c.fn('ap/line-dist-ft', S(M(dE, SIN(lc)), M(dN, COS(lc))))
+        xl = c.fn('ap/app-xte-ft', D(M(dE, COS(lc)), M(dN, SIN(lc))))
+        # VOR/ILS and APPR: a course line through a point, from Nasal (autopilot.nas: the ILS's runway threshold, a VOR,
+        # the route's landing zone), in place of the route and the heading; APPR also slows down along it to a hover.
+        # It arms first (the route or the heading flown meanwhile) and captures within 20 s of flight of the line (its
+        # intercept then 45 deg), or at once with neither of those on
+        want = M(free, MAX(on(AF + 'vor-ils'), on(AF + 'appr')), on('ap/line-valid'))
+        others = MAX(on(AF + 'hdg-hold'), M(on(AF + 'wypt'), on('/autopilot/route-manager/active')))
+        near_ = LT(ABS(xl), M(MAX(p('velocities/vg-fps'), v(100)), p('ap/nav-look-s')))
+        c.fn('ap/line-cap-next', M(want, MAX(on('ap/line-cap'), near_, NOT(others))), out='ap/line-cap', desc='1: the line captured, 0: armed or off')
+        line = c.fn('ap/line', M(want, on('ap/line-cap')))
+        # APPR with WYPT's route (autopilot.nas arms it with the route, to its last point): its speed and path along
+        # the route's distance still to go until the line has it (ap/route-togo-ft, autopilot.nas)
+        rte = c.fn('ap/app-route', M(nav, on(AF + 'appr'), on('ap/line-valid'), NOT(on('ap/line-cap'))))
+        app = c.fn('ap/app', MAX(M(line, on(AF + 'appr')), rte))
+        dgo = c.fn('ap/app-dist-ft', IFTHEN(GT(rte, v(0.5)), p('ap/route-togo-ft'), dgo_l), desc='the approach\'s distance to go, ft')
+        lat = c.fn('ap/lat', MAX(M(free, on(AF + 'hdg-hold')), nav, line))
+        # HVR ALT HOLD has the lever (the hover hold's height): the speed and the vertical modes yield to it
+        lever_free = M(free, NOT(on(AF + 'hvr-hold')))
+        spd = c.fn('ap/spd', M(lever_free, MAX(on(AF + 'spd-hold'), app)))
+        # TF: terrain following (autopilot.nas, tf: the vertical speed that clears the terrain ahead at the set clearance)
+        tf = c.fn('ap/tf-on', M(lever_free, on(AF + 'tf')))
+        vert = c.fn('ap/vert', M(lever_free, MAX(on(AF + 'alt-hold'), spd, on('ap/gp'), tf)))
+        stick = MAX(GT(ABS(p('fcs/elevator-cmd-norm')), v(0.1)), GT(ABS(p('fcs/aileron-cmd-norm')), v(0.1)))
+        cpl = c.fn('ap/coupled', M(on(AF + 'cpld'), air, p('ctl/scas-on'), NOT(stick)))
+        c.fn('ap/dropped-next', IFTHEN(GT(M(on('ap/on'), NOT(cpl), on(AF + 'cpld')), v(0.5)), v(1), p('ap/dropped')), out='ap/dropped',
+             desc='1: let go by the stick or on the ground (Nasal clears it)')
+        c.fn('ap/on-next', cpl, out=['ap/on', AF + 'cpld'])
+        vrise = GT(M(vert, NOT(on('ap/vert-was'))), v(0.5))
+        lrise = GT(M(lat, NOT(on('ap/lat-was'))), v(0.5))
+        srise = GT(M(spd, NOT(on('ap/spd-was'))), v(0.5))
+        # the line's path: its height (the hover's over the point, rising at its angle), its capture within 30 ft
+        ang = M(p('ap/line-angle-deg'), v(1 / R2D))
+        hp = c.fn('ap/app-path-ft', S(p('ap/line-elev-ft'), p('ap/hover-ft'), M(MAX(v(0), dgo), Q(SIN(ang), COS(ang)))))
+        # (joined from below within 30 ft, or from above: past the descent's start it descends to the path)
+        c.fn('ap/gp-next', M(MAX(line, rte), on('ap/line-gs'), MAX(on('ap/gp'), GT(p('position/h-sl-ft'), D(hp, v(30))))),
+             out='ap/gp')
+        # the airspeed's reference and its rate, kt and kt/s
+        # (the forward airspeed, equivalent: signed, as the airspeed is not when the aircraft backs in a hover)
+        knob = p(ST + 'target-speed-kt')
+        vc, vref, gs = p('scas/ff-kts'), p('ap/v-ref-kt'), Q(p('velocities/vg-fps'), v(KT))
+        hw = lim(D(vc, gs), -30, 50)
+        prof = MAX(v(0), S(Q(SQ(M(v(2), p('ap/decel-kts'), v(KT), MAX(v(0), dgo))), v(KT)), hw))
+        vsel = c.fn('ap/v-sel-kt', IFTHEN(GT(app, v(0.5)), MIN(IFTHEN(GT(knob, v(40)), knob, p('ap/app-kt')), prof), knob),
+                    desc='the speed selected; on the approach no more than stops the aircraft over the point at the '
+                         'deceleration (a ground speed: the headwind, airspeed less ground speed, added)')
+        # (its rate from the aircraft's own when the mode engages, changing at no more than ap/vert-accel-g in the
+        # energy's units, V dV'/g = 0.1 g: the pitch trading the speed's change for climb asks no more vertical
+        # acceleration than ALT HOLD's ramp, 0.32 kt/s^2 at 112 kt. Stepped to 2 kt/s at once, an engagement slowing
+        # at 0.7 kt/s 8 kt slow put the pitch from +7.6 to -3.8 deg, and stepped back to 0 on reaching the speed, up
+        # again to +3.6; a second, smaller swing after it. Toward the selected speed the rate that stops on it at that
+        # change, sqrt(2 j |e|), within the speed's step this frame)
+        vt = p('velocities/vt-fps')
+        V = MAX(vt, v(100))
+        jerk = Q(M(p('ap/vert-accel-g'), v(G0 * G0)), M(V, v(KT)))
+        ev = D(vsel, vref)
+        rmax = MIN(SQ(M(v(2), jerk, ABS(ev))), Q(ABS(ev), MAX(dt, v(1e-3))))
+        rtgt = IFTHEN(GT(ev, v(0)), MIN(p('ap/accel-kts'), rmax), NEG(MIN(p('ap/decel-kts'), rmax)))
+        rprev, rj = p('ap/v-ref-dot-kts'), M(jerk, dt)
+        vref_dot = c.fn('ap/v-ref-dot-next', IFTHEN(GT(M(spd, NOT(srise)), v(0.5)), S(rprev, MAX(NEG(rj), MIN(rj, D(rtgt, rprev)))),
+                                                    M(p('ap/vdot-fps2'), Q(vc, MAX(vt, v(1))))), out='ap/v-ref-dot-kts')
+        c.fn('ap/v-ref-next', IFTHEN(GT(M(spd, NOT(srise)), v(0.5)), S(vref, M(vref_dot, dt)), vc), out='ap/v-ref-kt')
+        vref_dot = p('ap/v-ref-dot-kts')
+        # the flight path's acceleration: the true airspeed's rate, smoothed (the rotors' vibration)
+        c.fn('ap/vdot-next', S(p('ap/vdot-fps2'), M(D(Q(D(vt, p('ap/vt-prev')), MAX(dt, v(1e-3))), p('ap/vdot-fps2')), MIN(v(1), Q(dt, v(0.4))))),
+             out='ap/vdot-fps2')
+        c.fn('ap/vt-prev-next', vt, out='ap/vt-prev')
+        # the vertical command: to the selected altitude, or the vertical speed held when the mode engaged; on the
+        # path its descent at the ground speed, and its error
+        hdot = p('velocities/h-dot-fps')
+        c.fn('ap/hdot-hold-next', IFTHEN(vrise, hdot, p('ap/hdot-hold-fps')), out='ap/hdot-hold-fps')
+        hmax = p('ap/hdot-max-fps')
+        # (never below the hover's height on the radar altimeter: the point's elevation may be the scenery's guess)
+        gpc = MAX(NEG(hmax), MIN(hmax, MAX(S(NEG(M(p('velocities/vg-fps'), Q(SIN(ang), COS(ang)))), M(p('ap/kgp'), D(hp, p('position/h-sl-ft')))),
+                                           M(p('ap/kgp'), D(p('ap/hover-ft'), p('hh/h-wheels-ft'))))))
+        # the energy's sharing blended by the nacelle angle: in airplane mode and early in the conversion (50 deg and
+        # below) the lever its rate and the pitch its share between climb and speed [Lambregts]; on the back side, the
+        # nacelles past 80 deg, the lever the climb and the pitch (with the nacelles) the speed, as a powered-lift
+        # aircraft is flown there (slowing and descending at once, the energy's rule took the power to idle and sank it)
+        wb = c.fn('ap/backside', MAX(v(0), MIN(v(1), Q(D(p('ctl/nacelle-deg'), v(50)), v(30)))))
+        # TF's: changing at no more than the ride's vertical acceleration (as autopilot.nas plans it, at half that); below
+        # half the set clearance, or without terrain data, a climb at the most it allows (below half the clearance at once,
+        # at 0.5 g)
+        tfr = GT(M(tf, NOT(on('ap/tf-was'))), v(0.5))
+        low = LT(p('hh/h-wheels-ft'), M(v(0.5), MAX(v(100), p(ST + 'target-agl-ft'))))
+        flyup = c.fn('ap/tf-flyup', M(tf, MAX(low, NOT(on('ap/tf-valid')))), desc='1: TF flying up (too low, or no terrain data)')
+        # the climb it can make at full power: the power a climb takes, P = P_level + b h' + c h'^2 (measured, climb_power;
+        # with the weight), the level flight's from the present power and energy's climb (h' + V V'/g), the climb whose
+        # power is the full; where the pitch flies the path, no more than its 15 deg leave over the angle of attack;
+        # smoothed over 2 s, within 3000 ft/min (autopilot.nas plans with it). (One efficiency for all the spare power
+        # read 17 % high from a partial climb: the climb's power rises faster than the climb.) No more than the trims'
+        # full power climb with the weight: as the power just came back, the climb still lagging it, the level flight's
+        # read low and the climb 10 % high
+        ck, cb, cc, cf, cw = climb_power()
+        # (the tables', measured along AUTO NAC's schedule, looked up at the speed the schedule gives the present
+        # nacelle angle, the nearest to the airspeed where it gives it to a range: the airspeed clamped there. In
+        # the conversion the nacelles, not 5 kt, change the climb (34 ft/s at 160 kt, 35 deg, 46 at 170, 20 deg); by
+        # the airspeed alone, the speed falling in a climb at 170 kt (the nacelles held for the reference's) took
+        # the climb the power makes 12 % down as it went, a ridge 16 ft short)
+        sks, sns = autonac_schedule()
+        sg = np.arange(0.0, 300.5, 0.5)
+        sched = np.interp(sg, sks, sns)
+        ng = np.arange(0.0, 91.0, 1.0)
+        slo = [float(sg[np.argmax(sched <= n + 1e-9)]) if (sched <= n + 1e-9).any() else float(sg[-1]) for n in ng]
+        shi = [float(sg[np.nonzero(sched >= n - 1e-9)[0][-1]]) if (sched >= n - 1e-9).any() else 0.0 for n in ng]
+        c.fn('ap/tf-config-kt', MAX(T1('ctl/nacelle-deg', list(ng), slo), MIN(T1('ctl/nacelle-deg', list(ng), shi), p('velocities/vc-kts'))),
+             desc='the speed AUTO NAC\'s schedule gives the present nacelle angle, the nearest to the airspeed: the climb\'s tables\' (climb_power, tf_lag)')
+        pmax = M(v(2), MIN(p('eng/power-available-hp'), p('eng/xmsn-limit-hp')))
+        pnow = S(p('eng[0]/power-hp'), p('eng[1]/power-hp'))
+        wr = Q(p('inertia/weight-lbs'), v(cw))
+        bb, ccf = c.fn('ap/tf-b', M(wr, T1('ap/tf-config-kt', ck, cb))), c.fn('ap/tf-c', M(wr, T1('ap/tf-config-kt', ck, cc)))
+        he = S(hdot, Q(M(vt, p('ap/vdot-fps2')), v(G0)))
+        plev = D(pnow, S(M(bb, he), M(ccf, SQR(he))))
+        dpf = MAX(v(0), D(pmax, plev))
+        ps = Q(M(v(2), dpf), S(bb, SQ(S(SQR(bb), M(v(4), MAX(ccf, v(1e-6)), dpf)))))     # the root, stable as c goes to 0
+        aoa = p('aero/alpha-rad')
+        pcap = M(vt, SIN(MAX(v(0), D(v(15 / R2D), aoa))))
+        ps = MIN(ps, Q(T1('ap/tf-config-kt', ck, cf), wr))
+        # (the climb at a constant calibrated airspeed: the true one rises as the air thins, d ln V/dh = -1/2 d ln rho/dh
+        # = 1/2 (g/(R T) - L/T), and takes V V'/g of the energy's rate; the climb is that over the acceleration factor,
+        # 1 + V^2/g 1/2 (g/(R T) - L/T): 5 % at 200 kt, the trims' climbs were at a constant true airspeed)
+        tr_ = p('atmosphere/T-R')
+        fac = S(v(1), M(Q(SQR(vt), v(G0)), v(0.5), D(Q(v(G0 / 1716.49), tr_), Q(v(0.0035662), tr_))))
+        ps = Q(ps, fac)
+        cap = MAX(v(0), MIN(p('ap/tf-climb-max-fps'), IFTHEN(LT(wb, v(0.5)), MIN(ps, pcap), ps)))
+        ccap = p('ap/tf-climb-cap-fps')
+        c.fn('ap/tf-climb-cap-next', S(ccap, M(D(cap, ccap), MIN(v(1), Q(dt, v(2))))), out='ap/tf-climb-cap-fps')
+        # TF's path: a reference (its vertical speed the plan's, ramped at the ride's acceleration, and its height),
+        # which autopilot.nas plans for in place of the aircraft. (Planned from the aircraft, terrain nearer than its
+        # climb's delay could be met only with all or nothing: a relay through a delay, which porpoised over level
+        # ground, +-8 ft/s at 200 kt.) The aircraft follows the reference's model of it: its climb's response, two
+        # first order lags in parallel fitted to its step (tf_lag: the pitch's quick share and the lever's slow
+        # tail, a tenth of it at 200 kt over 10-15 s); autopilot.nas plans the model's height. The height's error
+        # closed with a gain for 60 deg of phase margin on the measured response (tf_lag): a linear loop. Where the
+        # lever is at its stop and the aircraft falls behind the model, the model and the reference come down to it:
+        # the plan sees the height there is (no wind-up)
+        lk, lw, lt1, lt2, lkh = tf_lag()
+        w1 = c.fn('ap/tf-w', T1('ap/tf-config-kt', lk, lw), desc='the quick lag\'s share of the climb\'s response (tf_lag)')
+        tau1 = c.fn('ap/tf-tau1-s', MAX(v(0.05), T1('ap/tf-config-kt', lk, lt1)), desc='the quick lag, s (tf_lag)')
+        tau2 = c.fn('ap/tf-tau2-s', MAX(v(0.05), T1('ap/tf-config-kt', lk, lt2)), desc='the slow lag, s (tf_lag)')
+        ttgt = IFTHEN(GT(flyup, v(0.5)), ccap, p('ap/tf-hdot-fps'))
+        trate = M(IFTHEN(GT(M(tf, low), v(0.5)), MAX(p('ap/tf-flyup-g'), p('ap/tf-ride-g')), p('ap/tf-ride-g')), v(G0), dt)
+        tprev = p('ap/tf-cmd-fps')
+        run = GT(M(tf, NOT(tfr)), v(0.5))
+        vr = c.fn('ap/tf-cmd-next', IFTHEN(run, S(tprev, MAX(NEG(trate), MIN(trate, D(ttgt, tprev)))), hdot), out='ap/tf-cmd-fps')
+        h = p('position/h-sl-ft')
+        hm, v1, v2 = p('ap/tf-model-ft'), p('ap/tf-v1-fps'), p('ap/tf-v2-fps')
+        hmp = S(hm, M(S(M(w1, v1), M(D(v(1), w1), v2)), dt))
+        aw = c.fn('ap/tf-aw-ft', M(GT(p('/controls/engines/engine[0]/throttle'), v(0.999)), MAX(v(0), D(hmp, h))))
+        c.fn('ap/tf-ref-next', IFTHEN(run, D(S(p('ap/tf-ref-ft'), M(vr, dt)), aw), h), out='ap/tf-ref-ft')
+        c.fn('ap/tf-model-next', IFTHEN(run, D(hmp, aw), h), out='ap/tf-model-ft')
+        for n, x, tau in (('v1', v1, tau1), ('v2', v2, tau2)):
+            xn = S(x, M(D(vr, x), MIN(v(1), Q(dt, tau))))
+            c.fn('ap/tf-%s-next' % n, IFTHEN(run, IFTHEN(GT(aw, v(0)), MIN(xn, hdot), xn), hdot), out='ap/tf-%s-fps' % n)
+        c.fn('ap/tf-was-next', tf, out='ap/tf-was')
+        kh = c.fn('ap/tf-kh', T1('ap/tf-config-kt', lk, lkh), desc='the height\'s tracking gain, 1/s (tf_lag); autopilot.nas closes a height it cannot clear in time over its inverse')
+        tfc = S(p('ap/tf-cmd-fps'), M(p('ap/tf-track'), kh, D(p('ap/tf-model-ft'), h)))
+        # ALT HOLD's and the vertical speed hold's command changing at no more than ap/vert-accel-g (TF's soft ride),
+        # from the vertical speed there is when they take over (engaging, or after the glide path or TF): stepped, an
+        # engagement climbing at 26 ft/s 200 ft over the selected altitude asked a 25 ft/s descent at once, the lever
+        # went from 0.65 to its stop and the pitch from +8 to -12 deg, -0.37 g. (Capturing, the law's own deceleration
+        # is kh h' = 0.1 x 25 = 2.5 ft/s^2, inside it). Not in a go-around, whose climb is wanted at once: eased, it lost
+        # 17-23 ft more from 200-370 ft
+        vs_tgt = IFTHEN(on(AF + 'alt-hold'), MAX(NEG(hmax), MIN(hmax, M(p('ap/kh'), D(p(ST + 'target-altitude-ft'), p('position/h-sl-ft'))))),
+                        p('ap/hdot-hold-fps'))
+        vs_prev, vs_rate = p('ap/vs-cmd-fps'), M(p('ap/vert-accel-g'), v(G0), dt)
+        own = GT(M(vert, NOT(vrise), NOT(on('ap/gp')), NOT(GT(tf, v(0.5)))), v(0.5))
+        vs = c.fn('ap/vs-cmd-next', IFTHEN(own, IFTHEN(on(AF + 'ga'), vs_tgt, S(vs_prev, MAX(NEG(vs_rate), MIN(vs_rate, D(vs_tgt, vs_prev))))),
+                                           hdot), out='ap/vs-cmd-fps')
+        hdc = c.fn('ap/hdot-cmd-fps', IFTHEN(on('ap/gp'), gpc, IFTHEN(GT(tf, v(0.5)), tfc, vs)))
+        vdc = S(M(p('ap/kv'), D(vref, vc), v(KT)), M(vref_dot, v(KT)))
+        # (in TF the speed is free within its band: no acceleration asked of it, its own still damping the exchange
+        # between climb and speed [Lambregts]; asked again over the band's last 5 kt. On the back side too, the pitch
+        # flying the speed there: freed only where the pitch flew the path, at 70 deg a third of it, a climb at full
+        # power gave 0.5 ft/s of it to the speed coming back, 12 ft short over a ridge at 120 kt)
+        # (The speed's weight in the pitch's share stays 1 there: with 0, the pitch flying the path alone, a shortfall
+        # at full power went all into the speed, but the share's damping went with the speed's rate in it: the climb's
+        # step overshot 17-43 % at 150-250 kt, 2-19 % with it. A shortfall the anti-windup above takes instead)
+        band = p('ap/tf-band-kt')
+        edge = MAX(v(0), MIN(v(1), Q(D(ABS(D(vc, vref)), D(band, v(5))), v(5))))
+        wspd = D(v(1), M(tf, D(v(1), edge)))
+        dv = c.fn('ap/dv-fps', M(spd, Q(M(V, D(M(wspd, vdc), p('ap/vdot-fps2'))), v(G0))), desc='the speed\'s share of the energy rate error')
+        dh = D(hdc, hdot)
+        e_err = c.fn('ap/e-err-fps', S(dh, M(D(v(1), wb), dv)), desc='the lever\'s error: the energy rate\'s, the climb\'s on the back side, ft/s')
+        l_err = c.fn('ap/l-err-fps', D(M(D(v(1), wb), dh), dv),
+                     desc='the pitch\'s: the share between climb and speed, the speed\'s on the back side, ft/s')
+        # the pitch: integral and proportional on the share, limited and rate limited
+        # (the commanded flight path's angle fed forward, where the pitch flies the path: the integrator need not wind up
+        # to it, which lagged a changing climb command by 1/kli, 4 s; its state the rest, about the angle of attack)
+        gff = M(D(v(1), wb), Q(hdc, V))
+        th0 = D(p('attitude/theta-rad'), M(D(v(1), wb), Q(hdot, V)))
+        c.fn('ap/theta-int-next', IFTHEN(vrise, th0, IFTHEN(GT(vert, v(0.5)),
+             lim(S(p('ap/theta-int-rad'), M(p('ap/kli'), Q(l_err, V), dt)), -15 / R2D, 15 / R2D), th0)), out='ap/theta-int-rad')
+        tc = lim(S(p('ap/theta-int-rad'), gff, M(p('ap/klp'), Q(l_err, V))), -10 / R2D, 15 / R2D)
+        tr, tmax = p('ap/theta-ref-rad'), M(p('ap/theta-rate-dps'), v(1 / R2D), dt)
+        # (its rate, rad/s, for the augmentation's damper: the commanded rate isn't damped)
+        c.fn('ap/theta-ref-rate', IFTHEN(GT(M(vert, NOT(vrise)), v(0.5)), Q(MAX(NEG(tmax), MIN(tmax, D(tc, tr))), MAX(dt, v(1e-3))), v(0)))
+        c.fn('ap/theta-ref-next', IFTHEN(GT(vert, v(0.5)), IFTHEN(vrise, p('attitude/theta-rad'), S(tr, MAX(NEG(tmax), MIN(tmax, D(tc, tr))))),
+             p('attitude/theta-rad')), out='ap/theta-ref-rad', desc='the flight director\'s pitch')
+        # the heading: bank to the bug (magnetic) for a turn that closes on it with a time constant (the bank for a
+        # heading error growing with the speed), within a limit growing with the speed
+        bug = M(S(p(ST + 'heading-bug-deg'), p('/environment/magnetic-variation-deg')), v(1 / R2D))
+        dpsi = D(bug, p('attitude/psi-rad'))
+        err = c.fn('ap/hdg-err-deg', M(v(R2D), ATAN2(SIN(dpsi), COS(dpsi))))
+        bmax = T1('velocities/vc-kts', [40, 80, 150], [15, 20, 25])
+        # WYPT: the leg's course with an intercept, the cross-track error over 20 s of flight (it closes on the leg
+        # without overshooting it), flown as a ground track; the route's first leg, from wherever it was activated,
+        # straight to its waypoint (ap/direct). Between legs an arc (autopilot.nas sets it where an arc of the aircraft's
+        # turn radius at 80 % of the bank limit joins them, and moves the route on): its bank fed forward, its radial
+        # error closed as the leg's is; rolled out of to wings level, then the next leg's law
+        trk = ATAN2(p('velocities/v-east-fps'), p('velocities/v-north-fps'))
+        look = M(MAX(vt, v(100)), p('ap/nav-look-s'))
+        tc = IFTHEN(on('ap/direct'), M(p(GPS + 'wp[1]/bearing-true-deg'), v(1 / R2D)),
+                    S(M(p(GPS + 'leg-true-course-deg'), v(1 / R2D)), ATAN2(M(p(GPS + 'wp[1]/course-error-nm'), v(6076.1)), look)))
+        dtrk = D(tc, trk)
+        terr = c.fn('ap/trk-err-deg', M(v(R2D), ATAN2(SIN(dtrk), COS(dtrk))))
+        vg = MAX(p('velocities/vg-fps'), v(60))
+        aN = M(D(M(p('ap/arc-lat-deg'), v(1 / R2D)), la), v(R_E))
+        aE = M(D(M(p('ap/arc-lon-deg'), v(1 / R2D)), lo), v(R_E), COS(la))
+        adir, ar = p('ap/arc-dir'), MAX(p('ap/arc-r-ft'), v(100))
+        atd = D(ATAN2(aE, aN), M(adir, v(math.pi / 2)))               # the arc's track here: the centre abeam
+        da = D(S(atd, M(adir, ATAN2(D(SQ(S(SQR(aN), SQR(aE), v(1))), ar), look))), trk)
+        aerr = c.fn('ap/arc-err-deg', M(v(R2D), ATAN2(SIN(da), COS(da))))
+        aff = c.fn('ap/arc-bank-deg', M(adir, v(R2D), ATAN2(SQR(vg), M(v(G0), ar))), desc='the arc\'s bank, fed forward')
+        # The arc ends where the track still has the turn to go that the roll out makes: from the bank reference at
+        # its rate limit to wings level, half the ramp's time, and the augmentation's own delay (measured: roll_delay;
+        # autopilot.nas leads the arc's start by the same); the roll out flown (2), the leg's law has it
+        rk, rt = roll_delay()
+        lag = c.fn('ap/roll-lag-s', T1('velocities/vc-kts', rk, rt), desc='the augmentation\'s roll delay (roll_delay), s')
+        kpsi = Q(MAX(vt, v(60)), M(v(G0), p('ap/hdg-tau-s')))
+        dend = D(M(p('ap/arc-end-deg'), v(1 / R2D)), trk)
+        pref = ABS(p('ap/phi-ref-rad'))
+        w_out = M(Q(M(v(G0), Q(SIN(pref), COS(pref))), vg), S(Q(M(pref, v(R2D)), M(v(2), p('ap/phi-rate-dps'))), lag))
+        ast = p('ap/arc-on')
+        ending = M(GT(ast, v(0.5)), LT(ast, v(1.5)), LT(M(adir, ATAN2(SIN(dend), COS(dend))), w_out))
+        level = M(GT(ast, v(1.5)), LT(pref, v(0.5 / R2D)))
+        arc_st = c.fn('ap/arc-on-next', M(nav, IFTHEN(GT(ending, v(0.5)), v(2), IFTHEN(GT(level, v(0.5)), v(0), ast))), out='ap/arc-on',
+                      desc='1: turning on the arc between legs (autopilot.nas starts it), 2: rolling out of it')
+        arc = GT(M(GT(arc_st, v(0.5)), LT(arc_st, v(1.5))), v(0.5))
+        rolling = GT(arc_st, v(1.5))
+        tl = S(lc, ATAN2(xl, look))
+        dl_ = D(tl, trk)
+        lerr_ = c.fn('ap/line-err-deg', M(v(R2D), ATAN2(SIN(dl_), COS(dl_))))
+        bank = IFTHEN(GT(line, v(0.5)), M(kpsi, lerr_), IFTHEN(GT(nav, v(0.5)), IFTHEN(arc, S(aff, M(kpsi, aerr)), IFTHEN(rolling, v(0), M(kpsi, terr))),
+                      M(kpsi, err)))
+        pc = M(v(1 / R2D), MAX(NEG(bmax), MIN(bmax, bank)))
+        pr, pmax = p('ap/phi-ref-rad'), M(p('ap/phi-rate-dps'), v(1 / R2D), dt)
+        c.fn('ap/phi-ref-rate', IFTHEN(GT(M(lat, NOT(lrise)), v(0.5)), Q(MAX(NEG(pmax), MIN(pmax, D(pc, pr))), MAX(dt, v(1e-3))), v(0)))
+        c.fn('ap/phi-ref-next', IFTHEN(GT(lat, v(0.5)), IFTHEN(lrise, p('attitude/phi-rad'), S(pr, MAX(NEG(pmax), MIN(pmax, D(pc, pr))))),
+             p('attitude/phi-rad')), out='ap/phi-ref-rad', desc='the flight director\'s bank')
+        c.fn('ap/theta-on-next', M(vert, cpl), out='ap/theta-on')
+        c.fn('ap/phi-on-next', M(lat, cpl), out='ap/phi-on')
+        for n, x in (('vert-was', vert), ('lat-was', lat), ('spd-was', spd)):
+            c.fn('ap/%s-next' % n, x, out='ap/' + n)
+        # the lever: the energy rate, integral and proportional, driven while coupled with a speed mode; the pilot's
+        # own movement flies through and 1.5 s after it stops the autopilot has it again (as the hover hold's)
+        thr = '/controls/engines/engine[0]/throttle'
+        drive = c.fn('ap/lever-on-next', M(spd, cpl), out='ap/lever-on')
+        dl = ABS(D(p(thr), p('ap/tcl-w')))
+        moved, moving = GT(dl, v(0.004)), GT(dl, v(1e-5))
+        c.fn('ap/still-next', IFTHEN(moving, v(0), S(p('ap/still-s'), dt)), out='ap/still-s')
+        back = GT(M(on('ap/fly'), NOT(moving), GT(p('ap/still-s'), v(1.5))), v(0.5))
+        c.fn('ap/fly-next', M(drive, IFTHEN(moved, v(1), IFTHEN(back, v(0), p('ap/fly')))), out='ap/fly')
+        flying = GT(M(drive, NOT(p('ap/fly'))), v(0.5))
+        c.fn('ap/tcl-int-next', IFTHEN(GT(M(spd, NOT(srise), NOT(back), NOT(p('ap/fly'))), v(0.5)),
+             lim(S(p('ap/tcl-int'), M(S(M(D(v(1), wb), p('ap/kei')), M(wb, p('ap/kei-back'))), e_err, dt)), 0, 1), p(thr)), out='ap/tcl-int')
+        kep = S(M(D(v(1), wb), p('ap/kep')), M(wb, p('ap/kep-back')))
+        tcmd = c.fn('ap/tcl-cmd', lim(S(p('ap/tcl-int'), M(kep, e_err)), 0, 1), desc='the flight director\'s lever')
+        c.fn('ap/lever', IFTHEN(GT(p('ap/app-state'), v(4.5)), MAX(v(0), D(p(thr), M(v(0.3), dt))), IFTHEN(flying, tcmd, p(thr))), out=[thr, 'ap/tcl-w'],
+             desc='the lever, driven while coupled with a speed mode; down after an approach\'s landing')
+        # AUTO NAC: the nacelles for the speed reference, within the corridor; the pilot moving them takes it off
+        ncmd = '/controls/flight/nacelle-cmd-deg'
+        an = c.fn('ap/auto-nac-on', M(spd, MAX(on(AF + 'auto-nac'), app)))
+        sk, sn = autonac_schedule()
+        sched = c.fn('ap/nacelle-sched-deg', T1('ap/v-ref-kt', sk, sn))
+        own = GT(ABS(D(p(ncmd), p('ap/nac-w'))), v(0.5))
+        c.fn('ap/nac-dropped-next', IFTHEN(GT(M(an, own), v(0.5)), v(1), p('ap/nac-dropped')), out='ap/nac-dropped')
+        c.fn('ap/auto-nac-next', IFTHEN(GT(M(an, own), v(0.5)), v(0), p(AF + 'auto-nac')), out=AF + 'auto-nac')
+        c.fn('ap/nacelle', IFTHEN(GT(M(an, NOT(own)), v(0.5)), MAX(p('ctl/cps-min-deg'), MIN(p('ctl/cps-max-deg'), sched)), p(ncmd)),
+             out=[ncmd, 'ap/nac-w'], desc='the nacelle command, driven by AUTO NAC')
+        # the approach: 1 flying the line; 2 handing over to the hover hold below 35 kt over the ground within 2000 ft
+        # of the point (its point, 50 ft on the radar height); 3 hovering there (HVR CPLD); 4 landing (the height's
+        # target down at 2 ft/s), after APPR pressed again or on the way (ap/app-land); 5 on the ground (the modes off,
+        # the lever down, then APPR off). The hold refusing or let go by the pilot ends it (APPR off). APPR off: 0
+        st, ak = p('ap/app-state'), on(AF + 'appr')
+        wow = GT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5))
+        is_ = lambda n: GT(M(GT(st, v(n - 0.5)), LT(st, v(n + 0.5))), v(0.5))
+        to2 = GT(M(app, LT(gs, v(35)), LT(dgo, v(2000)), GT(p('ctl/nacelle-deg'), v(72))), v(0.5))
+        hov = MAX(is_(3), is_(4))
+        nst = c.fn('ap/app-state-new', IFTHEN(NOT(ak), v(0), IFTHEN(GT(M(is_(0), app), v(0.5)), v(1), IFTHEN(GT(M(is_(1), to2), v(0.5)), v(2),
+                   IFTHEN(GT(M(is_(2), hold), v(0.5)), v(3), IFTHEN(GT(M(is_(2), GT(p('hh/dropped'), v(1.5))), v(0.5)), v(0),
+                   IFTHEN(GT(M(hov, wow), v(0.5)), v(5), IFTHEN(GT(M(hov, NOT(hold)), v(0.5)), v(0),
+                   IFTHEN(GT(M(is_(3), on('ap/app-land'), GT(p('hh/state'), v(1.5))), v(0.5)), v(4),
+                   IFTHEN(GT(M(is_(5), LT(p('/controls/engines/engine[0]/throttle'), v(0.02))), v(0.5)), v(0), st))))))))))
+        hand = GT(M(GT(nst, v(1.5)), LT(nst, v(2.5)), is_(1)), v(0.5))
+        c.fn('ap/hand-target', IFTHEN(hand, v(1), p('hh/ext')), out='hh/ext')
+        c.fn('ap/hand-lat', IFTHEN(hand, M(p('ap/line-lat-deg'), v(1 / R2D)), p('hh/ext-lat-rad')), out='hh/ext-lat-rad')
+        c.fn('ap/hand-lon', IFTHEN(hand, M(p('ap/line-lon-deg'), v(1 / R2D)), p('hh/ext-lon-rad')), out='hh/ext-lon-rad')
+        c.fn('ap/hand-engage', IFTHEN(hand, v(1), p('hh/engage-cmd')), out='hh/engage-cmd')
+        agl = ST + 'target-agl-ft'
+        down = GT(M(GT(nst, v(4.5)), LT(st, v(4.5))), v(0.5))
+        ended = GT(M(LT(nst, v(0.5)), GT(st, v(0.5))), v(0.5))
+        c.fn('ap/hand-agl', IFTHEN(hand, p('ap/hover-ft'), IFTHEN(GT(M(ended, is_(4)), v(0.5)), MAX(v(0), p('hh/h-wheels-ft')),
+             IFTHEN(is_(4), MAX(v(-10), D(p(agl), M(p('ap/land-fps'), dt))), p(agl)))), out=agl,
+             desc='the hover height handed over; landing, down at 2 ft/s to below the ground (it sinks onto the gear); '
+                  'APPR off while landing, the height there')
+        c.fn('ap/landed', IFTHEN(down, v(0), p('hh/dropped')), out='hh/dropped')
+        for prop in [AF + n for n in ('hvr-hold', 'cpld', 'hdg-hold', 'alt-hold', 'spd-hold', 'auto-nac', 'wypt', 'vor-ils')] + ['hh/engage-cmd']:
+            c.fn('ap/landed-%s' % prop.split('/')[-1], IFTHEN(down, v(0), p(prop)), out=prop)
+        c.fn('ap/app-hand-hvr', IFTHEN(hand, v(1), IFTHEN(GT(M(ended, GT(st, v(1.5)), NOT(hold)), v(0.5)), v(0), p(AF + 'hvr-hold'))), out=AF + 'hvr-hold',
+             desc='HVR ALT HOLD with the handover; off when the approach ends, unless the hover hold still holds')
+        for prop in (AF + 'appr', 'ap/app-land'):
+            c.fn('ap/ended-%s' % prop.split('/')[-1], IFTHEN(ended, v(0), p(prop)), out=prop)
+        c.fn('ap/app-state-next', nst, out='ap/app-state')
 
     def hover_hold(s):
         """Hover hold (HVR CPLD on the flight control panel, or y), after the AH-64D's modern control laws, Bell's
@@ -410,7 +1052,8 @@ class Model:
         c.declare('/instrumentation/mv22b/afcs/rem-hvr', 0)
         c.declare('/autopilot/settings/target-agl-ft', 0.0)
         for n in ('on', 'lat-t-rad', 'lon-t-rad', 'iN', 'iE', 'vf-cmd', 'vr-cmd', 'theta-ref-rad', 'phi-ref-rad', 'h-ref-ft',
-                  'alt-on', 'alt-radar', 'alt-fly', 'still-s', 'tcl-int', 'tcl-w', 'dropped', 'nudge-fwd-ft', 'nudge-right-ft'):
+                  'alt-on', 'alt-radar', 'alt-fly', 'still-s', 'tcl-int', 'tcl-w', 'dropped', 'nudge-fwd-ft', 'nudge-right-ft',
+                  'ext', 'ext-lat-rad', 'ext-lon-rad'):
             c.declare('hh/' + n, 0.0)
         for n, x in (('decel-g', 0.08), ('kp', 0.4), ('kv-fwd', 0.8), ('kv-side', 0.5), ('ki', 0.06), ('i-max-g', 0.1), ('trc-kt', 10.0),
                      ('trc-rem-kt', 2.0), ('trc-tau', 1.2), ('pitch-deg', 0.0), ('kh', 0.3), ('kpz', 0.08), ('kiz', 0.015)):
@@ -433,7 +1076,8 @@ class Model:
              IFTHEN(GT(rise, v(0.5)), v(0), p('hh/dropped')))), out='hh/dropped', desc='1: let go, 2: refused (Nasal clears it)')
         c.fn('hh/on-next', on, out=['hh/on', 'hh/engage-cmd'])
         onb = GT(on, v(0.5))
-        # the stop point, set on engaging and while the stick flies (the crew's nudges move it, ft forward and right)
+        # the stop point, set on engaging and while the stick flies (the crew's nudges move it, ft forward and right); or
+        # a point given on engaging (hh/ext: the autopilot's approach hands over its hover point)
         la, lo = p('position/lat-geod-rad'), p('position/long-gc-rad')
         cl = c.fn('hh/coslat', COS(la))
         vN, vE, vg = p('velocities/v-north-fps'), p('velocities/v-east-fps'), p('velocities/vg-fps')
@@ -442,10 +1086,12 @@ class Model:
         k = Q(vg, M(v(2), a))
         again = GT(MAX(rise, M(on, out)), v(0.5))
         nf, nr = p('hh/nudge-fwd-ft'), p('hh/nudge-right-ft')
-        c.fn('hh/lat-t-next', IFTHEN(again, S(la, Q(M(vN, k), v(R_E))), S(p('hh/lat-t-rad'), Q(D(M(nf, cp), M(nr, sp)), v(R_E)))),
+        ext = GT(c.fn('hh/ext-rise', M(rise, p('hh/ext'))), v(0.5))
+        c.fn('hh/lat-t-next', IFTHEN(ext, p('hh/ext-lat-rad'), IFTHEN(again, S(la, Q(M(vN, k), v(R_E))), S(p('hh/lat-t-rad'), Q(D(M(nf, cp), M(nr, sp)), v(R_E))))),
              out='hh/lat-t-rad')
-        c.fn('hh/lon-t-next', IFTHEN(again, S(lo, Q(M(vE, k), M(v(R_E), cl))),
-                                     S(p('hh/lon-t-rad'), Q(S(M(nf, sp), M(nr, cp)), M(v(R_E), cl)))), out='hh/lon-t-rad')
+        c.fn('hh/lon-t-next', IFTHEN(ext, p('hh/ext-lon-rad'), IFTHEN(again, S(lo, Q(M(vE, k), M(v(R_E), cl))),
+                                     S(p('hh/lon-t-rad'), Q(S(M(nf, sp), M(nr, cp)), M(v(R_E), cl))))), out='hh/lon-t-rad')
+        c.fn('hh/ext-next', IFTHEN(GT(rise, v(0.5)), v(0), p('hh/ext')), out='hh/ext')
         c.fn('hh/nudge-clear', v(0), out=['hh/nudge-fwd-ft', 'hh/nudge-right-ft'])
         # the profile to it: velocity commanded towards the point
         eN = c.fn('hh/eN-ft', M(D(p('hh/lat-t-rad'), la), v(R_E)))
@@ -514,7 +1160,8 @@ class Model:
         moved, moving = GT(dl, v(0.004)), GT(dl, v(1e-5))     # past the hold's own setting; at all
         fly0 = GT(p('hh/alt-fly'), v(0.5))
         c.fn('hh/still-next', IFTHEN(moving, v(0), S(p('hh/still-s'), dt)), out='hh/still-s')
-        cap = c.fn('hh/capture', MAX(alt_rise, M(fly0, NOT(moving), GT(p('hh/still-s'), v(1.5)))))
+        cap = c.fn('hh/capture', MAX(M(alt_rise, NOT(p('hh/ext-rise'))), M(fly0, NOT(moving), GT(p('hh/still-s'), v(1.5)))),
+                   desc='the height captured: on engaging (not a height handed over with a point) or the lever left alone')
         c.fn('hh/alt-fly-next', M(alt, IFTHEN(moved, v(1), IFTHEN(GT(cap, v(0.5)), v(0), p('hh/alt-fly')))), out='hh/alt-fly')
         # the height captured where the present climb or sink stops, at 0.05 g
         vz = p('velocities/h-dot-fps')
@@ -1343,10 +1990,12 @@ def build(out, fg=False):
 
 def display_data():
     """what the cockpit's flight display (Nasal/displays.nas) draws from the model's data: the conversion
-    protection's boundaries, and the power to hover with its ground effect"""
+    protection's boundaries, and the power to hover with its ground effect; and AUTO NAC's schedule, for v22.nas's
+    in-air start"""
     from data import v22_flight as VF
     (lv, ln), (uv, un) = U.CPS
     w0, h0 = VF.HOVER_CEILING[0]
+    sk, sn = autonac_schedule()
     row = lambda tag, xs: ''.join('<%s>%g</%s>' % (tag, x, tag) for x in xs)
     return ('<!-- generated by fdm/genv22.py: the flight display\'s data (Nasal/displays.nas) -->\n<PropertyList>\n'
             '  <!-- conversion protection: equivalent airspeed (kt) and the least, the most nacelle angle (deg) -->\n'
@@ -1361,10 +2010,13 @@ def display_data():
             '       here, the nacelles up) -->\n'
             '  <hover>\n    <weight-lb>%g</weight-lb>\n    <power-hp>%g</power-hp>\n    <altitude-ft>%g</altitude-ft>\n'
             '    <radius-ft>%.3f</radius-ft>\n    <hub-height-ft>%.2f</hub-height-ft>\n    <ge-k>%g</ge-k>\n'
-            '    <ge-exp>%g</ge-exp>\n  </hover>\n</PropertyList>\n'
+            '    <ge-exp>%g</ge-exp>\n  </hover>\n'
+            '  <!-- AUTO NAC\'s schedule: the nacelle angle (deg) for the calibrated airspeed (kt). An in-air start\'s\n'
+            '       nacelles from the flight model\'s first step; v22.nas draws the 3-D model\'s at it before that -->\n'
+            '  <autonac>%s%s</autonac>\n</PropertyList>\n'
             % (row('kt', lv), row('nac', ln), row('kt', uv), row('nac', un), U.VMO_APLN, U.MMO_APLN, U.VMO_APLN_100,
                row('kt', U.VRS_SINK[0]), row('sink-fpm', U.VRS_SINK[1]), w0, U.P_XMSN_100, h0, U.R,
-               (U.WL_PIV + U.DZ_HUB - U.MAIN_GEAR[2]) / 12, GE_K, GE_EXP))
+               (U.WL_PIV + U.DZ_HUB - U.MAIN_GEAR[2]) / 12, GE_K, GE_EXP, row('kt', sk), row('nac', sn)))
 
 
 if __name__ == '__main__':

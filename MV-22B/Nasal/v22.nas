@@ -32,6 +32,36 @@ if (nacelle_cmd.getValue() == nil) {
   nacelle_cmd.setDoubleValue(90);
 }
 
+# AUTO NAC's schedule, the nacelle angle for the calibrated airspeed (Systems/mv22b-displays.xml, from fdm/genv22.py,
+# which displays.nas reads too). Starting in the air the flight model sets the nacelles at it from its first step and
+# trims itself; the 3-D model draws the nacelles at it before that
+var DATA = "/instrumentation/mv22b/displays/data/";
+io.read_properties(getprop("/sim/aircraft-dir") ~ "/Systems/mv22b-displays.xml", DATA);
+var interp = func(x, xs, ys) {
+  var n = size(xs);
+  if (n == 0) return nil;
+  if (x <= xs[0]) return ys[0];
+  for (var i = 1; i < n; i += 1)
+    if (x < xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+  return ys[n - 1];
+}
+var column = func(path, tag) {
+  var out = [];
+  var node = props.globals.getNode(DATA ~ path);
+  if (node != nil) foreach (var c; node.getChildren(tag)) append(out, c.getValue());
+  return out;
+}
+var autonac_kt = column("autonac", "kt");
+var autonac_nac = column("autonac", "nac");
+var autonac = func(kt) {
+  var nac = interp(kt, autonac_kt, autonac_nac);
+  return nac == nil ? 90 : nac;
+}
+var aloft = !getprop("/sim/presets/onground");
+var start_kt = getprop("/sim/presets/airspeed-kt") or 0;
+var start_nac = aloft ? autonac(start_kt) : 90;
+
+
 var set_tilt = func (delta = 0, target = nil) {
   if (props.globals.getNode("sim/crashed", 1).getBoolValue()) {
     return;
@@ -326,10 +356,11 @@ var delta_time = props.globals.getNode("/sim/time/delta-realtime-sec", 1);
 var main_loop = func {
   var dt = delta_time.getValue();
   # the 3-D model's nacelles (its "tilt": 0 up, 90 forward) follow the flight model's, but while the wing stows
-  # (nil before the flight model's first output; "or" would take airplane mode's 0 deg for nil too)
+  # (nil before the flight model's first output: the start's, vertical on the ground; "or" would take airplane mode's
+  # 0 deg for nil too)
   if (wing_state.getValue() == 0) {
     var nac = nacelle_pos.getValue();
-    animation_tilt.setDoubleValue(90 - (nac == nil ? 90 : nac));
+    animation_tilt.setDoubleValue(90 - (nac == nil ? start_nac : nac));
   }
   if (flaperon_override.getValue()) {
     flaperon_set.setDoubleValue(67 * (out_wing_flap.getValue() or 0));
@@ -346,14 +377,14 @@ var config_dialog = nil;
 
 var is_initialized = 0;
 setlistener("/sim/signals/fdm-initialized", func {
-  # airborne: running, the nacelles where the airspeed wants them (the conversion protection holds them in the
-  # corridor anyway) and the lever near the power to hold height; on the ground: cold and dark
+  # airborne: running, the nacelles where the flight model put them for the airspeed (AUTO NAC's angle; the lever is
+  # its level-flight trim's); on the ground: cold and dark
   var kt = getprop("/velocities/airspeed-kt") or 0;
   if (getprop("/position/altitude-agl-ft") > 50) {
-    var nac = kt > 150 ? 0 : kt > 90 ? 60 : kt > 40 ? 75 : 90;
+    var nac = getprop("/fdm/jsbsim/ctl/nacelle-deg");
+    if (nac == nil) nac = autonac(kt);
     nacelle_cmd.setDoubleValue(nac);
     input_tilt.setValue(90 - nac);
-    collective.setDoubleValue(nac > 60 ? 0.65 : 0.5);
     state.setValue(5);
   } else {
     collective.setDoubleValue(0);

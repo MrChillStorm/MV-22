@@ -1,0 +1,21 @@
+{
+ "kcas": [
+  60.0,
+  80.0,
+  100.0,
+  120.0,
+  150.0,
+  200.0,
+  250.0
+ ],
+ "tau_loop_s": [
+  -0.296,
+  -0.141,
+  -0.063,
+  0.023,
+  0.25,
+  0.848,
+  0.816
+ ],
+ "note": "aptest.py rolldelay: the augmentation's roll delay, s (genv22.roll_delay)"
+}

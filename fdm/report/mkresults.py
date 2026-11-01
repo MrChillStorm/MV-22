@@ -8,7 +8,8 @@ from these by mktables.py and figures.py). Regenerate the harness's models first
 
 Stages: hover (hover_rotor.py), xv15_<set> for the sets of data/xv15_flight.py and xv15_nac0_gear (sweep.py), download (download.py),
 polar (airframe_polar.py), speed, ceiling<alt>, conversion<nacelle> (performance.py), handling_hover,
-handling_conversion, start (handling.py), hover_hold_stop, hover_hold_turn, hover_hold_controls (hoverhold.py)."""
+handling_conversion, start (handling.py), hover_hold_stop, hover_hold_turn, hover_hold_controls (hoverhold.py), autopilot_holds,
+autopilot_approach, autopilot_lnav, tf_response, tf_<terrain>_<kt> and tf_jitter_<terrain>_<kt> (aptest.py)."""
 import os, sys, json, time
 from multiprocessing import Pool
 import numpy as np
@@ -108,12 +109,61 @@ def hover_hold(what):
     dump('hover_hold_' + what, out)
 
 
+def autopilot(what):
+    """the autopilot (aptest.py): the holds and AUTO NAC (an altitude change, a turn, the conversion down and up, a slow
+    turn, an engagement off the trim); the approaches (to a hover and landings, the route's, go-arounds); LNAV's turns"""
+    import aptest as A
+    if what == 'holds':
+        out = {n: {k: v[::5] for k, v in getattr(A, n)().items()} for n in ('alt', 'hdg', 'decel', 'accel', 'slow')}
+        out['engage'] = A.engage_numbers(A.engage())
+    elif what == 'approach':
+        r = A.route_approach()
+        t, d, vc, gp, route = (np.array(r[k]) for k in ('t', 'd', 'vc', 'gp', 'route'))
+        i0, j = int(np.argmax(vc < vc[0] - 2)), int(np.argmax(gp > 0.5))
+        rt = dict(A.approach_numbers(r), decel_nm=d[i0] / 6076.1, planner_nm=vc[0] ** 2 / (2 * 1.5 * 3600), join_nm=d[j] / 6076.1, join_route=route[j])
+        out = dict(final=[dict(angle=a, land=l, wind=w, **A.approach_numbers(A.approach(a, l, w))) for a, l, w in ((3.0, True, 0.0), (6.0, False, 0.0), (6.0, True, 15.0))],
+                   route=rt, ga=[A.ga(w) for w in (6000.0, 2500.0, 'hover')])
+    else:
+        out = [dict(V=V, direct=d, legs=A.lnav_numbers(A.lnav(V, n, wps=w, direct=d, T=420.0 if w is None else 300.0), d)) for V, n, w, d in A.LNAV_CASES]
+    dump('autopilot_' + what, out)
+
+
+def tf_response():
+    """TF's climb's response (aptest.py tf_lag): its step at each speed, the fitted lags, the tracking gain"""
+    import aptest as A
+    dump('tf_response', A.tf_lag())
+
+
+def tf(name, V, frame=0.0):
+    """terrain following (aptest.py tf_run) over a profile at V KCAS from AUTO NAC's angle, 200 ft set, the medium ride;
+    frame: FlightGear's timer up to that late (s)"""
+    import aptest as A
+    from genv22 import autonac_schedule
+    sk, sn = autonac_schedule()
+    r = A.tf_run(V, float(np.interp(V, sk, sn)), name, frame=frame)
+    t, hw, hd, th = (np.array(r[k]) for k in ('t', 'hw', 'hdot', 'theta'))
+    w = t > 5
+    acc = np.gradient(hd, t) / 32.174
+    out = dict(name=name, V=V, frame=frame, clr=200.0, hw_min=hw[w].min(), hw_max=hw[w].max(), hw_mean=hw[w].mean(), g_min=acc[w].min(), g_max=acc[w].max(),
+               theta_range=(th[w].min(), th[w].max()), theta_rms=float(np.std(th[t > 20])), vc_range=(min(r['vc']), max(r['vc'])),
+               flyup_s=float((np.array(r['flyup']) > 0.5).sum() * 0.1), cap_fpm=(min(r['cap']) * 60, max(r['cap']) * 60))
+    if not frame:
+        out.update({k: r[k][::5] for k in ('t', 'y', 'terr', 'hw', 'cmd', 'hdot', 'vc', 'theta', 'tcl')})
+    dump('tf_%s%s_%d' % ('jitter_' if frame else '', name, V), out)
+
+
+TF_CASES = [(n, V) for n in ('flat', 'hills', 'ridge') for V in (120, 150, 200)] + [('ridge', 170)]
+TF_JITTER = [(n, V) for n in ('flat', 'ridge') for V in (120, 200)]
+
 STAGES = dict(hover=hover, xv15_nac0_gear=xv15_gear, download=download, polar=polar, speed=speed, start=start,
               handling_hover=lambda: handling('hover'), handling_conversion=lambda: handling('conversion'),
               **{'hover_hold_' + w: (lambda w=w: hover_hold(w)) for w in ('stop', 'turn', 'controls')},
               **{'xv15_' + s: (lambda s=s: xv15(s)) for s in ('nac90', 'nac60', 'nac30', 'nac0f20', 'nac0')},
               **{'ceiling%d' % a: (lambda a=a: ceiling(a)) for a in CEILING_ALTS},
-              **{'conversion%d' % n: (lambda n=n: conversion(n)) for n in NACELLES})
+              **{'conversion%d' % n: (lambda n=n: conversion(n)) for n in NACELLES},
+              **{'autopilot_' + w: (lambda w=w: autopilot(w)) for w in ('holds', 'approach', 'lnav')}, tf_response=tf_response,
+              **{'tf_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]))) for c in TF_CASES},
+              **{'tf_jitter_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]), 0.077)) for c in TF_JITTER})
 
 
 def run(name):

@@ -271,6 +271,10 @@
       <!-- the instrument panel's displays (Models/Interior/Panel/MV22B, fdm/cockpit/panel.py) -->
       <file>Aircraft/MV-22B/Nasal/displays.nas</file>
     </displays>
+    <autopilot>
+      <!-- the autopilot's approach line from the ILS, VOR or route; VOR/ILS, APPR and GA (fdm/genv22.py, autopilot) -->
+      <file>Aircraft/MV-22B/Nasal/autopilot.nas</file>
+    </autopilot>
 
     aircraft.data.add(
 

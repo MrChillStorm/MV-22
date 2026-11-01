@@ -205,11 +205,13 @@ integral within Bell's collective limits.
 
 The V-22 flies by wire and holds attitude in all modes~\cite{pd}; its control laws are not public. The FlightGear aircraft has a
 stability augmentation of a common rotorcraft structure: rate damping in three axes for a 0.5\,s rate time constant in the hover;
-attitude command and heading hold below 50\,kt with the nacelles above 60$^\circ$ and rate command with attitude hold above, switched without a
+attitude command and heading hold below 50\,kt with the nacelles above 60$^\circ$ and rate command with attitude hold above (switching at
+55\,kt accelerating and 45\,kt slowing, so that a speed held near 50 does not switch back and forth), switched without a
 transient because both share one reference~\cite{patent}; in yaw below 50\,kt rate command, direction hold, the pedals commanding a yaw rate
 (30$^\circ$/s at full travel) held against the wind by an integrator, the hover's response type in ADS-33E~\cite{ads33}; a feed-forward of
 the level-flight trim's stick against nacelle angle and forward airspeed, from the model's own trims, so that the stick's centre is trimmed
-flight through the conversion; and integrators that take up the rest. A hover hold (Section~\ref{sec:hoverhold}) works through it.
+flight through the conversion; and integrators that take up the rest. A hover hold (Section~\ref{sec:hoverhold}) and an autopilot
+(Section~\ref{sec:autopilot}) work through it.
 The comparisons of Section~\ref{sec:results} fly the bare airframe, the augmentation off.
 
 \subsection{Engines, drive and mass}
@@ -247,7 +249,10 @@ and flap settings, the flaperons at 0.625 of the flap~\cite{tx};
 power or the drive's limit; the hover ceiling out of ground effect at 100\,\% rotor speed (the 1986 chart's); trims through the conversion
 at 34\,000\,lb by nacelle angle;
 \item \emph{handling} with the augmentation on: single keyboard steps in the hover, a hands-off conversion, an engine start;
-\item \emph{the hover hold}: its stops from up to 39\,kt, ADS-33E's position hold turn in up to 35\,kt of wind, its stick and lever.
+\item \emph{the hover hold}: its stops from up to 39\,kt, ADS-33E's position hold turn in up to 35\,kt of wind, its stick and lever;
+\item \emph{the autopilot}: coupled from trims at 1000\,ft, an altitude change, a turn, the conversion down and up under AUTO NAC; approaches
+to a hover and landings, a route's, go-arounds; a route's turns; terrain following over profiles of terrain set under the aircraft as it
+flies, with the plan of the FlightGear script mirrored (every 0.25\,s, and with the timer up to a frame late).
 \end{itemize}
 
 % =====================================================================================================================
@@ -400,6 +405,78 @@ the pilot can fly through it: moved for 4\,s and left, the aircraft settles \NHh
 (Fig.~\ref{fig:hoverhold}d). The hold's sideways loop works through the roll attitude's, which needed twice its first gains; the 35\,kt
 turn's errors come from the wind's loads turning with the aircraft faster than the hold's integrators follow.
 
+\subsection{The autopilot}\label{sec:autopilot}
+\begin{figure*}[t]
+\centering\includegraphics[width=\textwidth]{tf.pdf}
+\caption{Terrain following at 200\,ft, the medium ride (0.2\,$g$), SPD HOLD and AUTO NAC, reference loading: (a) over hills 500\,ft high and
+2\,nm apart; (b) over a ridge 800\,ft high with 15$^\circ$ faces; (c) the climb's response to a step in TF's command (10\,ft/s), measured, and
+the model the flight model keeps of it; (d) the clearance at the ridge's edge.}\label{fig:tf}
+\end{figure*}
+\begin{table}[t]
+\centering\small
+\caption{Terrain following, 200\,ft set, the medium ride; after the first 5\,s. Jitter: the least clearance with FlightGear's timer up to a
+frame (77\,ms) late.}\label{tab:tf}
+\resizebox{\columnwidth}{!}{\Tab{tf}}
+\end{table}
+The autopilot is a flight director that the augmentation flies when coupled, as the V-22's is~\cite{pd}; its laws are not the V-22's, which
+are not public. In airplane mode the lever and the pitch share the speed and the flight path by total energy control~\cite{lambregts}: the
+lever the total energy's rate, the pitch its share between climb and speed, the commanded flight path's angle fed forward. Blended by the
+nacelle angle from 50 to 80$^\circ$ it passes to the back side of the power curve, where the lever flies the climb and the pitch the speed.
+AUTO NAC takes the nacelle angle for the speed from the model's own level trims, the most converted angle whose trim's pitch is at most
+4$^\circ$ (7$^\circ$ at 180\,kt), within the corridor. The autopilot commands the augmentation's attitudes and their rates; the stick for those
+rates is fed forward from the airframe's measured response per inch of stick, and the augmentation damps the difference from the commanded
+rate rather than the rate itself, which had resisted every turn and pull-up. In pitch the airframe's first response to the stick is up to
+seven times its sustained rate (at 150\,kt, 50$^\circ$); the feed-forward goes through a lag and closes its error over a time both set
+from that ratio, which keeps the loop's gain at high frequency below one: fed straight it rang at 1\,Hz and diverged at 150\,kt.
+
+Coupled at 200\,kt it climbs 1000\,ft without overshoot, its pitch at most \NApAltPitch$^\circ$, and turns 90$^\circ$ banked at most
+\NApHdgBank$^\circ$ within \NApHdgDh\,ft of its altitude. Converting from 220 to 100\,kt and back under AUTO NAC it holds the altitude
+within \NApConvDh\,ft, the pitch between \NApConvPitchLo{} and \NApConvPitchHi$^\circ$. Engaging, the vertical speed's and the speed's
+references start from the aircraft's own vertical speed and acceleration and change at no more than 0.1\,$g$, the speed's in the energy's
+terms, $V\dot V/g$ (its rate changing at no more than $0.1\,g^2/V$, easing onto the selected speed too): stepped, the speed's rate to
+2\,kt/s at once and back to 0 on reaching it, an engagement at 120\,kt climbing at \NApEngClimb\,ft/s and \NApEngSlow\,kt slow, as after
+FlightGear's in-air start, pitched the nose from +7.6 to $-$3.8$^\circ$ and back to +3.6$^\circ$, ringing on. Now it pitches from
++\NApEngPitch{} to \NApEngPitchLo$^\circ$ and comes back by at most \NApEngRev$^\circ$, within \NApEngG\,$g$. An approach to a point along a course and a glide
+path (an ILS's, or a runway's or landing zone's, from 6\,nm and 2000\,ft off the line) keeps within \NApXte\,ft of the course and
+\NApPathLo{} to \NApPathHi\,ft of the path, slows down along it and hands over to the hover hold below 35\,kt over the ground
+(\NApHandKt\,kt of airspeed in still air, \NApWindHand\,kt in 15\,kt of headwind), which holds the hover within \NApHoldD\,ft of the point or
+lands \NApDownD\,ft from it, sinking at \NApSink\,ft/s. A go-around loses at most \NApGaLost\,ft. Flying a route, the speed comes down
+from \NApRouteDecel\,nm before its landing zone, where the plan drawn on the navigation display has its deceleration point at
+\NApRoutePlan\,nm, and the aircraft lands \NApRouteDown\,ft from the point. Between legs it flies its own arcs, started where an arc at
+80\,\% of the bank limit joins them, led by the roll's measured delay: past the next leg by at most \NApLnavFast\,ft at 200\,kt and
+\NApLnavSlow\,ft at 100\,kt in 90$^\circ$ turns, and \NApLnavSharp\,ft in a 149$^\circ$ turn at 120\,kt.
+
+Terrain following (TF) holds a set clearance over the scenery's terrain. Every 0.25\,s it samples the terrain along the predicted track
+(curving at the present turn rate) every 1.25\,s of flight to 45\,s ahead, on the track and 150\,ft either side, and keeps the last four
+sweeps' points, which lie between them 0.25\,s apart: one sweep's alone missed a ridge's edge by up to 1.25\,s. It does not plan from the
+aircraft. Planned from the aircraft's state, terrain nearer than its climb's delay could be met only with everything or nothing, a relay
+through a delay, and the aircraft porpoised over level ground, $\pm$8\,ft/s at 200\,kt. The flight model instead keeps a reference path, its
+vertical speed ramped at the ride's acceleration to the plan's command, and a model of the aircraft following it: two first-order lags in
+parallel fitted to the climb's measured response to a step, the pitch's quick share and the slower part the lever adds (Fig.~\ref{fig:tf}c,
+rms within \NTfFitRms). The aircraft is held to the model's height with a gain set for 60$^\circ$ of phase margin on that measured response,
+\NTfKLo--\NTfKHi/s. For a vertical speed commanded now, reached at the ride's acceleration and held to the next plan, the plan has the
+model's height at each point in closed form, with the most a pull-up at half the ride's acceleration then adds up to the climb the power
+makes, and commands the least vertical speed that clears every point. It descends into a valley and pulls up as late as half the ride
+allows. A point too near to clear in time, nearer than the height loop's time constant, is a height error, closed over that time with the
+command not eased meanwhile: FlightGear's timer, up to a frame late, otherwise left the model a fraction of a foot under the clearance and
+the plan climbing at full power for it. Where the lever reaches its stop and the aircraft still falls behind, the model and the reference come
+down to it, and the plan never counts on height the aircraft has not got. The climb the power makes comes from the power a climb takes,
+$P = P_\mathrm{level} + b\dot h + c\dot h^2$ ($b$, $c$ from three trims at each speed, the level flight's power from the present power and the
+energy's rate), divided by the share of a climb at constant calibrated airspeed that goes into the true airspeed's rise (5\,\% at 200\,kt).
+These tables are read at the speed AUTO NAC's schedule gives the present nacelle angle: through the conversion the nacelles change the
+climb more than a few knots do, \NTfClimbSixty{} and \NTfClimbSeventy\,ft/min at full power at 160 and 170\,kt. With SPD HOLD the speed is
+free within 20\,kt of its reference. Below half the clearance, or without terrain data, it climbs at full power.
+
+Table~\ref{tab:tf} and Fig.~\ref{fig:tf} give TF over level ground, hills 500\,ft high and 2\,nm apart, and a ridge 800\,ft high whose 15$^\circ$
+faces are steeper than any climb of the aircraft's. Over level ground the pitch holds within \NTfFlatRms$^\circ$ (rms), \NTfFlatJitRms$^\circ$
+with the timer's jitter. Over the hills at 120\,kt the clearance stays within \NTfHillsSlowLo--\NTfHillsSlowHi\,ft; at 200\,kt the valleys are
+narrower than the 2000\,ft/min descent and the ride allow the aircraft to follow, and it stays up to \NTfHillsFastHi\,ft over them (mean
+\NTfHillsFastMean). The ridge leaves at least \NTfRidgeLo\,ft at 120 to 200\,kt, its edge flown at the climb's limit. The vertical acceleration
+stays within \NTfG\,$g$, the ride's 0.2\,$g$ with what the height loop adds, and no run flies up. The timer's jitter changes the least clearance by at most \NTfJitter\,ft. At 170\,kt, with the
+nacelles at 20$^\circ$ and the lever near its stop, the climb lags its model and the ridge leaves \NTfRidgeSeventy\,ft. The plan's 45\,s are
+the time to clear 1000\,ft of rise at the conversion's least climb (\NTfClimbLow\,ft/min at 150\,kt) with the pull-up; higher or nearer
+terrain, or terrain coming into view round a turn, can be cleared only as the fly-up allows.
+
 % =====================================================================================================================
 \section{Corrections found during validation}\label{sec:review}
 The changes that the comparisons forced are listed here because each removed a physical or numerical inconsistency rather than tuning a coefficient.
@@ -433,6 +510,9 @@ rearward and sideward flight), carried past 90$^\circ$ of nacelle along its slop
 \item \emph{Yaw at low speed.} The augmentation only damped the yaw rate, through a washout: a steady yaw moment, a tailwind on the fins,
 turned the aircraft at will, and the pedals, opposed by the damper, were weak (a keyboard step turned it 0.6$^\circ$). Below 50\,kt the pedals
 now command a yaw rate, held by an integrator with the pedals' full travel.
+\item \emph{The elevator trim.} The original aircraft's controls file set FlightGear's elevator trim to 0.25 at the start, a YASim setting
+that the augmentation took as a quarter of the stick held forward: coupled, the flight director's pitch cue sat 5$^\circ$ above the
+aircraft. It starts at 0 now.
 \end{enumerate}
 
 % =====================================================================================================================
@@ -478,6 +558,8 @@ within 15\,kt and hover ceilings within 5\,\%, and the flight test's pitch attit
 \item Bell's airframe coefficients miss part of the flying aircraft's drag; with the gear up the XV-15 build needs a quarter to a third less power than
 its flight test in airplane mode.
 \item The helicopter mode's power against speed, the wing's lift through the middle of the conversion and the V-22's download are documented, not tuned away.
+\item Its autopilot's terrain following plans a reference path over the terrain ahead and holds the aircraft to its measured response:
+over hills and a ridge steeper than its climb it keeps within 4\,\% of a 200\,ft clearance at 120 to 200\,kt, without porpoising over level ground.
 \end{itemize}
 
 \begin{thebibliography}{99}\small
@@ -507,6 +589,7 @@ Tiltrotor in Hover using Translational Rate Command}, AHS 68th Annual Forum, 201
 \bibitem{fsf} Flight Safety Foundation, \emph{Helicopter Safety}, November--December 1988 (the V-22's handling in VTOL mode).
 \bibitem{patent} Boeing, \emph{Control law mode switching between rate command and attitude command control systems}, US patent 5\,596\,499, 1997.
 \bibitem{tis} M.\,B.\ Tischler, J.\,G.\,M.\ Leung and D.\,C.\ Dugan, \emph{Identification and Verification of Frequency-Domain Models for XV-15 Tilt-Rotor Aircraft Dynamics}, NASA TM-86009, 1984.
+\bibitem{lambregts} A.\,A.\ Lambregts, \emph{Vertical Flight Path and Speed Control Autopilot Design Using Total Energy Principles}, AIAA paper 83-2239, 1983.
 \bibitem{jsbsim} JSBSim Development Team, \emph{JSBSim: an open-source flight dynamics model}, version 1.3.3.
 \end{thebibliography}
 \end{document}

@@ -1,0 +1,23 @@
+{
+ "kcas": [
+  40.0,
+  60.0,
+  80.0,
+  100.0,
+  120.0,
+  150.0,
+  200.0,
+  250.0
+ ],
+ "p_per_in": [
+  0.2111,
+  0.1837,
+  0.1956,
+  0.2029,
+  0.2102,
+  0.1906,
+  0.1434,
+  0.1914
+ ],
+ "note": "aptest.py rollff: the airframe's roll rate per inch of lateral stick, rad/s (genv22.roll_ff)"
+}
