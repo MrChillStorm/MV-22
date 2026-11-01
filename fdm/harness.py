@@ -60,18 +60,25 @@ ACC = ['accelerations/udot-ft_sec2', 'accelerations/vdot-ft_sec2', 'acceleration
 
 
 def residual(f, x, V_kt, alt_ft=1000.0, gamma=0.0, settle_s=1.0, revs=2, nacelle=90.0, beta=0.0, extra=(),
-             terrain=TERRAIN_FT, cas=False):
-    """x = collective (deg), lon, lat, ped, alpha (pitch attitude in the hover), roll; Hann-weighted mean of the body
-    accelerations over whole rotor revolutions, and of the extra properties"""
+             terrain=TERRAIN_FT, cas=False, ned=None):
+    """x = collective (deg), lon, lat, ped, alpha (pitch attitude in the hover, or with ned), roll; Hann-weighted mean
+    of the body accelerations over whole rotor revolutions, and of the extra properties. ned: (north, down[, east])
+    velocity in ft/s heading north in still air, in place of V_kt and gamma (vertical descents, sideslip)"""
     coll, lon, lat, ped, th, ph = x
     controls(f, coll, lon, lat, ped, nacelle)
     f['ic/h-sl-ft'] = alt_ft
-    f['ic/vc-kts' if cas else 'ic/vt-kts'] = V_kt; f['ic/psi-true-deg'] = 0.0
+    if ned is None:
+        f['ic/vc-kts' if cas else 'ic/vt-kts'] = V_kt
+    f['ic/psi-true-deg'] = 0.0
     f['ic/phi-deg'] = ph
-    f['ic/beta-deg'] = beta
-    if V_kt < 1.0:
+    if ned is not None:
+        f['ic/theta-deg'] = th
+        f['ic/vn-fps'] = ned[0]; f['ic/ve-fps'] = ned[2] if len(ned) > 2 else 0.0; f['ic/vd-fps'] = ned[1]
+    elif V_kt < 1.0:
+        f['ic/beta-deg'] = beta
         f['ic/theta-deg'] = th
     else:
+        f['ic/beta-deg'] = beta
         f['ic/gamma-deg'] = gamma; f['ic/alpha-deg'] = th
     f['ic/h-sl-ft'] = alt_ft; f['ic/terrain-elevation-ft'] = terrain
     f['ic/p-rad_sec'] = 0; f['ic/q-rad_sec'] = 0; f['ic/r-rad_sec'] = 0
@@ -91,7 +98,7 @@ def residual(f, x, V_kt, alt_ft=1000.0, gamma=0.0, settle_s=1.0, revs=2, nacelle
 
 
 def trim(f, V_kt, alt_ft=1000.0, gamma=0.0, x0=None, tol=None, iters=24, verbose=False, nacelle=90.0, beta=0.0,
-         extra=('drive/power-required-hp',), fix=None, terrain=TERRAIN_FT, cas=False):
+         extra=('drive/power-required-hp',), fix=None, terrain=TERRAIN_FT, cas=False, ned=None):
     """Newton trim of collective, cyclic (or elevator), pedals, angle of attack and roll for steady straight flight
     (airframe frozen, rotors running at the held speed), bounded, with a backtracking line search. fix: {index: value}
     holds controls (e.g. the pedals in airplane mode). Returns x, residuals, extra means."""
@@ -106,7 +113,7 @@ def trim(f, V_kt, alt_ft=1000.0, gamma=0.0, x0=None, tol=None, iters=24, verbose
     h = np.array([0.2, 0.01, 0.01, 0.01, 0.3, 0.3])
     scale = np.array([1, 1, 1, 10, 10, 10.0])
     cost = lambda r: float(np.abs(r * scale).max())
-    kw = dict(nacelle=nacelle, beta=beta, terrain=terrain, cas=cas)
+    kw = dict(nacelle=nacelle, beta=beta, terrain=terrain, cas=cas, ned=ned)
     r0, e0 = residual(f, x, V_kt, alt_ft, gamma, extra=extra, **kw)
     for it in range(iters):
         if verbose:

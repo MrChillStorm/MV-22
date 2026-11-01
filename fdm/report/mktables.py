@@ -43,7 +43,7 @@ def tabular(cols, head, rows, foot=''):
 def model_table():
     root = os.path.join(FDM, 'root', 'aircraft', 'mv22b', 'Systems')
     files = [('mv22b-aero.xml', 'the aerodynamic functions: blade segments of both rotors, gimbal moments, wing strips in the wakes, fuselage, empennage; the six axes', 'function'),
-             ('mv22b-rotors.xml', 'gimbals, rotor azimuth, Peters--He wake states of each rotor with their gains and forcing', 'fcs'),
+             ('mv22b-rotors.xml', 'gimbals, rotor azimuth, Peters--He wake states of each rotor with their gains and forcing, the vortex ring state', 'fcs'),
              ('mv22b-airframe.xml', 'ring-vortex wake at the wing, stabiliser and fins; ground effect', 'fcs'),
              ('mv22b-drive.xml', 'engines, torque limit, interconnected drive and rotor speed, rotor brake, fuel', 'fcs'),
              ('mv22b-controls.xml', 'pilot controls, mixing, nacelles and conversion protection, flaperons, governor, augmentation, hover hold, servos', 'fcs'),
@@ -389,10 +389,73 @@ def freq_table():
     num('NDerCNb', dr['model']['CNb'], '%.3f'); num('NDerCNbBell', dr['bell']['CNb'], '%.3f')
 
 
+def vrs_table():
+    """steady descents through the vortex ring state: the trims' collective's extremes against the descent rate, on the
+    rotors' own scale against Johnson's N and X at their x; the model's inflow against his; and the encounter"""
+    import vrs as VRS
+    from data import johnson_vrs as JV
+    rows, err, n, errs, werr = [], 0.0, 0, [], dict(edge=0.0, **{'in': 0.0})
+    for key, tag in (('v22', ''), ('xv15', 'X')):
+        d = R('descent_' + key)
+        for sp in d['speeds']:
+            b = sp['boundary']
+            e = max(abs(r[s]['nu'] - r[s]['nu_j']) for r in sp['rows'] for s in 'rl')
+            err = max(err, e); n += len(sp['rows'])
+            errs += [abs(r[s]['nu'] - r[s]['nu_j']) for r in sp['rows'] for s in 'rl']
+            for r in sp['rows']:
+                for s in 'rl':
+                    k = 'edge' if 0.05 < r[s]['inside'] < 0.95 else 'in'       # the flag changing within the revolution
+                    werr[k] = max(werr[k], abs(r[s]['nu'] - r[s]['nu_j']))
+            cell = lambda k, i: ('%.0f & %s & %s' % (b[k]['sink_fps'] * 60, f(b[k]['z'], '%.2f'), f(VRS.vrs_points(b[k]['x'])[i], '%.2f'))
+                                 if k in b else '-- & -- & --')
+            rows.append('%s & %d & %s & %s & %.0f' % (d['name'] if sp is d['speeds'][0] else '', sp['kt'], cell('lower', 1), cell('upper', 2),
+                                                       sp['rows'][-1]['sink_fps'] * 60))
+        r0 = d['speeds'][0]['rows'][0]['r']
+        vht = math.sqrt(r0['thrust'] / (2 * d['rho'] * math.pi * d['R'] ** 2))
+        num('NVrsKappa' + tag, r0['vh'] / vht, '%.3f')
+        num('NVrsTau' + tag, VRS.TAU_REV_LH * 2 * math.pi * d['R'] / vht, '%.1f')
+        num('NVrsVh' + tag, d['vh_hover'], '%.1f'); num('NVrsVhW' + tag, d['vh_weight'], '%.1f')
+        b0 = d['speeds'][0]['boundary']
+        num('NVrsLo' + tag, b0['lower']['sink_fps'] * 60, '%.0f'); num('NVrsHi' + tag, b0['upper']['sink_fps'] * 60, '%.0f')
+        num('NVrsLoZ' + tag, b0['lower']['z'], '%.2f'); num('NVrsHiZ' + tag, b0['upper']['z'], '%.2f')
+        num('NVrsLoW' + tag, -b0['lower']['sink_fps'] / d['vh_weight'], '%.2f')
+        num('NVrsLast' + tag, d['speeds'][0]['rows'][-1]['sink_fps'] * 60, '%.0f'); num('NVrsLastZ' + tag, d['speeds'][0]['rows'][-1]['r']['z'], '%.2f')
+        pw = [r['power'] for r in d['speeds'][0]['rows']]
+        num('NVrsPow' + tag, 100 * (max(pw) / pw[0] - 1), '%.0f')
+        ed = {e['sink_vh']: e for e in d['edge']}
+        num('NVrsEdgeOut' + tag, ed[0.19]['t63'], '%.3f'); num('NVrsEdgeIn' + tag, ed[0.21]['t63'], '%.3f')
+        assert ed[0.19]['inside'] < 0.5 < ed[0.21]['inside']
+    num('NVrsNuErr', err, '%.3f'); num('NVrsMeanErr', float(np.mean(errs)), '%.4f'); num('NVrsTrims', '%d' % n)
+    num('NVrsErrIn', werr['in'], '%.2f'); num('NVrsErrEdge', werr['edge'], '%.2f')
+    write('vrs', tabular('lrrrrrrrr', 'build & kt & \\multicolumn{3}{c}{collective least: ft/min, $z$, $z_N$} & '
+                         '\\multicolumn{3}{c}{greatest: ft/min, $z$, $z_X$} & last', rows))
+    dev = [(z, t - (z + VRS.nu(z, 0.0, kappa=JV.BETZINA_KAPPA))) for z, t in JV.BETZINA_AXIAL_Q + JV.BETZINA_AXIAL_T]
+    num('NBetzRmsNX', math.sqrt(np.mean([d * d for z, d in dev if -1.3 < z < -0.45])), '%.2f')
+    num('NBetzMax', max(abs(d) for z, d in dev), '%.1f')
+    enc = R('vrs_encounter')
+    for o, tag in zip(enc, ('', 'Slip')):
+        t, vz, phi = np.array(o['t']), np.array(o['vz']), np.abs(o['phi'])
+        for s in (2, 10, 20, 30):
+            num('NEnc%sVz%s' % (tag, {2: 'Two', 10: 'Ten', 20: 'Twenty', 30: 'Thirty'}[s]), vz[np.argmin(abs(t - s))], '%.2f')
+        i = int(np.argmax(phi > 10))
+        nz = np.array(o['nz'][:i])                    # in the drop, before the roll-off
+        num('NEnc%sNz' % tag, nz.min(), '%.2f'); num('NEnc%sNzT' % tag, t[int(np.argmin(nz))], '%.0f')
+        num('NEnc%sRollT' % tag, t[i], '%.0f'); num('NEnc%sRollMax' % tag, phi.max(), '%.0f')
+        num('NEnc%sRollVz' % tag, vz[i], '%.2f'); num('NEnc%sRollZ' % tag, (o['z_r'][i] + o['z_l'][i]) / 2, '%.2f')
+        j = int(np.argmax(np.abs(o['dcoll']) >= 0.999 * max(np.abs(o['dcoll']))))
+        num('NEnc%sSatT' % tag, t[j], '%.0f'); num('NEnc%sSat' % tag, max(np.abs(o['dcoll'])), '%.1f')
+        num('NEnc%sZ' % tag, o['z_r'][0], '%.2f')
+    num('NEncJohnsonNz', min(JV.JOHNSON_ENC_NZ), '%.2f'); num('NEncJohnsonVzTen', JV.JOHNSON_ENC_VZ[JV.JOHNSON_ENC_T.index(10)], '%.2f')
+    num('NEncJohnsonVzTwo', JV.JOHNSON_ENC_VZ[0], '%.2f')
+    err, at = VRS.table_error()
+    num('NVrsTabErr', err, '%.3f'); num('NVrsTabErrZ', at[0], '%.2f'); num('NVrsTabErrX', at[1], '%.2f')
+    num('NVrsTabN', '%d' % (len(VRS.TAB_Z) * len(VRS.TAB_S)))
+
+
 if __name__ == '__main__':
     os.makedirs(TAB, exist_ok=True)
     for fn in (model_table, params_table, hover_table, xv15_table, xv15_trim_table, download_table, polar_table, perf_table, conversion_table, handling_numbers,
-               hover_hold_numbers, autopilot_numbers, tf_table, freq_table):
+               hover_hold_numbers, autopilot_numbers, tf_table, freq_table, vrs_table):
         fn()
     open(os.path.join(TAB, 'numbers.tex'), 'w').write(''.join('\\newcommand{\\%s}{%s}\n' % kv for kv in sorted(NUM.items())))
     print('%d numbers' % len(NUM))

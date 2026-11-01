@@ -62,6 +62,8 @@ sea-level hover ceiling, its maximum level speed at 42\,000\,lb is \NVsl{} and \
 through the conversion within \NCvPitchRms$^\circ$ (rms) of the flight test's. Deficiencies are quantified: the XV-15's power in
 helicopter mode, \NXhelLo\,\% at 45\,kt and \NXhelHi\,\% at 94\,kt; its collective gradient in hover, \NHgradPct\,\% steeper than
 measured; the V-22 wing's download, \NDlV\,\% of thrust against \NDlVtest; and the wing's share of the lift at 30$^\circ$ of nacelle.
+In descent each rotor's inflow follows Johnson's vortex ring state model: in vertical descent at a fixed lever the V-22 runs away between
+\NVrsLo{} and \NVrsHi\,ft/min, and in his encounter it drops and then rolls off, each rotor on its own velocities.
 \end{abstract}
 \vspace{6pt}
 \end{@twocolumnfalse}
@@ -112,6 +114,7 @@ V-22 fact sheet~\cite{fs}; GlobalSecurity~\cite{gs} & weights, fuel capacity, cr
 NACA R-824~\cite{nacar} & 64-series sections' lift, stall and drag (the sections' parameters) \\
 NASA TN D-234, NACA TR 1319~\cite{heyson,hk} & ground effect in forward flight; ring-vortex wake \\
 Peters and He~\cite{ph}, via~\cite{metu} & finite-state dynamic wake \\
+NASA/TP-2005-213477~\cite{vrs} & Johnson's vortex ring state model of a rotor's mean inflow in descent and its time lag; the flight tests' VRS encounters, a tiltrotor rotor's inflow in descent~\cite{betzina}, his V-22 encounter \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -200,6 +203,27 @@ height, carried into forward flight with Heyson's interference ratios~\cite{heys
 stabiliser and the two fins comes from a skewed cylinder of ring vortices leaving the disc~\cite{hk}, contracting below it in the
 hover: averaged over four spanwise strips of each wing half, the stabiliser and each fin, and tabulated against the wake's skew,
 its direction in the disc's plane and the nacelle angle, which moves the hub and turns the disc.
+
+Momentum theory, on which the wake's uniform state rests, has no vortex ring state. In descent each rotor's uniform state follows
+Johnson's model of the mean inflow instead~\cite{vrs}, an extension of momentum theory built on the wind tunnel and flight tests of
+rotors in descent: a cubic removes momentum theory's singularity at ideal autorotation, and three more add the vortex ring's
+increment, so that the total flow through the disc, $V_z+v$, rises as the descent rate rises between his points N and X, the
+boundary of the instability the flight tests met. Where it departs from momentum theory, descending faster than $0.2\,v_h$ at less
+than $0.95\,v_h$ edgewise, the uniform state's mass flow parameter is set for his steady inflow, $v_h/\nu(V_z/v_h, V_x/v_h)$, in place of
+momentum theory's $\sqrt{V_x^2+(V_z+v)^2}$, with $V_z$ and $V_x$ the rotor's own axial and edgewise velocities: each rotor enters the vortex
+ring on its own. Its scale $v_h$ is the wake's own: the steady uniform inflow times its mass flow, from the uniform state's row of
+the wake's $L$ matrix and the forcing. The model's momentum theory is then Glauert's in $V_z/v_h$ and $V_x/v_h$ exactly, and
+Johnson's joins it at the region's edges. While his total flow is down through the disc the mass flow keeps momentum theory's form
+on the present inflow, offset to his steady state, so that the wake keeps its own dynamics and meets momentum theory at the edges
+exactly (a step of collective in vertical descent moves the uniform inflow 63\,\% of the way in \NVrsEdgeOut\,s at 0.19\,$v_h$, outside, and
+\NVrsEdgeIn\,s at 0.21\,$v_h$, inside); past ideal autorotation, where that form has no stable state, it is his own, the two meeting there
+with the same slope; in the hover this $v_h$ is \NVrsKappa{} times the thrust's
+ideal $\sqrt{T/2\rho A}$ (the tip loss and the nonuniform inflow: Johnson's induced power factor $\kappa$, which he takes as 1.05
+to 1.2 against the tests). His curve is tabulated against $V_z/v_h$ and the coordinate his algorithm moves N in,
+$(1-(V_x/0.95\,v_h)^2)^{0.2}$, \NVrsTabN{} points within \NVrsTabErr\,$v_h$ of his algorithm. The vortex ring's increment follows with his
+first-order lag, $0.7/\lambda_h$ revolutions (\NVrsTau\,s for the V-22 in
+the hover), which he fitted to a helicopter's flight test. Johnson gives no model of the vortex ring's unsteadiness, whose measured
+frequencies and amplitudes show no trend~\cite{vrs}; none is added.
 
 \subsection{Airframe}
 The wing--pylon, fuselage, horizontal stabiliser and fin data are Bell's tables for the XV-15~\cite{cr}: the wing's lift and drag
@@ -298,7 +322,9 @@ at 34\,000\,lb by nacelle angle;
 \item \emph{the hover hold}: its stops from up to 39\,kt, ADS-33E's position hold turn in up to 35\,kt of wind, its stick and lever;
 \item \emph{the autopilot}: coupled from trims at 1000\,ft, an altitude change, a turn, the conversion down and up under AUTO NAC; approaches
 to a hover and landings, a route's, go-arounds; a route's turns; terrain following over profiles of terrain set under the aircraft as it
-flies, with the plan of the FlightGear script mirrored (every 0.25\,s, and with the timer up to a frame late).
+flies, with the plan of the FlightGear script mirrored (every 0.25\,s, and with the timer up to a frame late);
+\item \emph{the vortex ring state}: both builds trimmed in steady descents in helicopter mode at 1000\,ft, out of ground effect, at 0 to
+60\,kt; Johnson's V-22 encounter, from his descent with his collective, the augmentation on and the rotor speed held.
 \end{itemize}
 
 % =====================================================================================================================
@@ -592,6 +618,76 @@ nacelles at 20$^\circ$ and the lever near its stop, the climb lags its model and
 the time to clear 1000\,ft of rise at the conversion's least climb (\NTfClimbLow\,ft/min at 150\,kt) with the pull-up; higher or nearer
 terrain, or terrain coming into view round a turn, can be cleared only as the fly-up allows.
 
+\subsection{Descent through the vortex ring state}\label{sec:vrs}
+\begin{figure*}[t]
+\centering\includegraphics[width=\textwidth]{vrs.pdf}
+\caption{Steady descents in helicopter mode, 1000\,ft, out of ground effect, still air, the reference loadings. (a, b) Each rotor's total flow
+through the disc against its axial velocity, on its own wake's $v_h$: the trims (circles) and Johnson's model at the same axial and edgewise
+velocities (lines). (c) Vertical descent on the thrust's ideal $v_h$, against Betzina's tiltrotor rotor in a wind tunnel, the inflow from its
+torque and its thrust~\cite{betzina}, and Johnson's curve as he draws it against them~\cite{vrs}. (d) The trims' boundary, where their collective
+is least and greatest against the descent rate, on the weight's $v_h$ as the flight tests are~\cite{vrs,hrod}. (e) The V-22's boundary
+in the flight manual's terms, its warning's boundary, Johnson's on the weight's $v_h$ and the flight tests' roll-offs at this weight. (f) The V-22's trim collective.}\label{fig:vrs}
+\end{figure*}
+\begin{table}[t]
+\centering\small
+\caption{Steady descents: where the trim collective is least and greatest against the descent rate, the rotors' mean $V_z/v_h$ there on
+their own scale, Johnson's N and X at their $V_x/v_h$, and the last descent rate that trims (ft/min).}\label{tab:vrs}
+\resizebox{\columnwidth}{!}{\Tab{vrs}}
+\end{table}
+\begin{figure}[t]
+\centering\includegraphics[width=\columnwidth]{vrs_enc.pdf}
+\caption{Johnson's V-22 encounter~\cite{vrs}: from a descent at 26.8\,kt on a $-30^\circ$ path at 46\,100\,lb, his collective, 1$^\circ$
+down at once and another degree over 10\,s; the rotor speed held, the augmentation holding the attitude. (a) The vertical velocity on his
+$v_h$, 65.2\,ft/s, symmetric and trimmed in 15$^\circ$ of sideslip, and his symmetric calculation (traced); (b) the normal acceleration;
+(c) the roll and the augmentation's differential collective.}\label{fig:vrsenc}
+\end{figure}
+Johnson's algorithm (his table~3~\cite{vrs}) is coded as he gives it but for two misprints, read as his text has them: the last segment's
+far end is matched without its slope at E, not D, and the cubics' slope is $b+2cV_z+3dV_z^2$. The increments of the inflow at N and X are his
+table's values less axial momentum theory's at $V_{zN}$ and $V_{zX}$, faded with $V_x$: so his figures 38 and 39 come out within the scan's
+line width (at $V_x/v_h=0.8$ the least $V_z+v$ is 0.537, the figure's 0.53; with momentum theory taken at the moved point and $V_x$ it
+would be 0.78).
+
+Trimmed in steady descents in helicopter mode, from level flight down in steps of 0.05\,$v_h$ at 0 to 60\,kt (\NVrsTrims{} trims of the two
+builds), each rotor's uniform inflow is Johnson's at its own axial and edgewise velocity within \NVrsMeanErr\,$v_h$ on average
+(Fig.~\ref{fig:vrs}a, b): within \NVrsErrIn{} where the rotor stays in or out of his region through the revolution, the most past X, where
+the tables are a few hundredths off, and up to \NVrsErrEdge{} where it sits on the region's edge at 0.95\,$v_h$ edgewise (at 40\,kt): there
+its velocities over $v_h$, which ripple with the blades' passage, cross the edge within each revolution, where his increment, whose slopes
+at N and X do not fade with it, is still a tenth of $v_h$. Descending vertically the V-22 first needs less power, as momentum theory has it, and then more: \NVrsPow\,\% more than
+in the hover at Johnson's X. Its trim collective, which at a fixed lever decides the heave mode's stability, is least at \NVrsLo\,ft/min and
+greatest at \NVrsHi\,ft/min (Table~\ref{tab:vrs}, Fig.~\ref{fig:vrs}f); between them a descent at a fixed lever runs away. On the rotors' own
+scale these are at $V_z/v_h={}$\NVrsLoZ{} and \NVrsHiZ, against Johnson's N and X at $-0.45$ and $-1.5$, the difference the attitude, the
+thrust and the edgewise velocity changing along each descent; the XV-15's at \NVrsLoZX{} and \NVrsHiZX. With forward speed the unstable band narrows and closes as
+Johnson's boundary does. Past X the total flow falls steeply into the turbulent wake state, and the trims stop converging there, past
+\NVrsLast\,ft/min ($V_z/v_h$ \NVrsLastZ) in vertical descent: the thrust turns back on the collective.
+
+Johnson scales the flight tests he gathered by the aircraft's weight, his model by the rotor's ideal $v_h$. On the weight's scale the V-22's
+boundary in vertical descent is at $V_z/v_h={}$\NVrsLoW{}, against his $-0.45$ (Fig.~\ref{fig:vrs}d): the wake's own scale is \NVrsKappa{} times the
+thrust's ideal, and the rotors carry the wing's download besides the weight. The V-22's roll-offs in flight test~\cite{hrod} lie past the
+model's boundary, but one at $V_x/v_h=0.2$, which lies on it. In the flight manual's terms (Fig.~\ref{fig:vrs}e) the model's boundary at
+47\,500\,lb is at \NVrsLo\,ft/min in the hover, rising with the airspeed; the manual's warning, 800\,ft/min to 30\,KCAS, sits below it with a
+margin. On the thrust's ideal scale (Fig.~\ref{fig:vrs}c) the vertical descents follow Johnson's curve as he draws it against Betzina's
+tiltrotor rotor; his curve passes within \NBetzRmsNX{} (rms) of its inflow between N and X, and near X, where the test's points jump
+between two levels, up to \NBetzMax{} from them.
+
+Flown through Johnson's V-22 encounter~\cite{vrs} (his table~6, 46\,100\,lb; $V_x/v_h=0.6$, $V_z/v_h=-0.35$ on his $v_h$ of 65.2\,ft/s), the
+aircraft follows his calculation for the first seconds, $V_z/v_h$ \NEncVzTwo{} at 2\,s against his \NEncJohnsonVzTwo, and then falls behind,
+\NEncVzTen{} at 10\,s against \NEncJohnsonVzTen{} (Fig.~\ref{fig:vrsenc}). Its rotors start at $V_z/v_h={}$\NEncZ{} on their own scale, not
+$-0.35$: the download, the wake's induced losses and the shaft's tilt take a fifth off, so N lies deeper. Its descent runs away from about
+20\,s, reaching \NEncVzThirty{} at 30\,s, the normal acceleration down to \NEncNz\,$g$ at \NEncNzT\,s (his \NEncJohnsonNz\,$g$ at 12\,s). Johnson's
+aircraft, its two rotors identical, dropped and did not roll; nor did his with sideslip or the centre of gravity offset, and he needed
+rotors made different to calculate a roll-off. This one drops and then, at the bottom of the drop with its rotors at $V_z/v_h={}$\NEncRollZ{},
+rolls off out of the trim's last hundredths of a degree of asymmetry: a yaw rate slows one rotor edgewise and speeds the other; the slower
+goes deeper into the vortex ring, its inflow and power rise and its thrust falls, which rolls the aircraft towards it and yaws it further
+by the rotor's torque. The augmentation's differential collective reaches its limit, \NEncSat$^\circ$, at \NEncSatT\,s, and the roll
+passes 10$^\circ$ at \NEncRollT\,s, \NEncRollMax$^\circ$ at most. Trimmed in 15$^\circ$ of sideslip it drops faster and rolls off at
+\NEncSlipRollT\,s. The roll-off comes from each rotor's own velocities, but at the bottom of the drop rather than on entering it, where the
+V-22's flight tests met it (Fig.~\ref{fig:vrs}d); the model's wakes do not act on each other, nor is the vortex ring's
+unsteadiness modelled, both of which Johnson names as possible causes~\cite{vrs}.
+
+Outside the vortex ring state nothing changed: with the model in place, all 47 runs behind Sections~\ref{sec:hover} to~\ref{sec:autopilot}, the
+hover, the level-flight power, the frequency responses, the download, the performance, the conversion, the handling, the hover hold, the
+autopilot and terrain following, give the same results to the last digit; none enters Johnson's region.
+
 % =====================================================================================================================
 \section{Corrections found during validation}\label{sec:review}
 The changes that the comparisons forced are listed here because each removed a physical or numerical inconsistency rather than tuning a coefficient.
@@ -663,6 +759,9 @@ XV-15 cruise roll and sideslip frequency responses & \ok \\
 XV-15 cruise pitch frequency responses (stiffness \NQMaRatio$\times$) & \nok \\
 XV-15 hover pitch frequency response & \ok \\
 XV-15 hover yaw, roll and heave frequency responses & \pok \\
+Steady descents: each rotor's inflow, Johnson's VRS model & \ok \\
+VRS boundary against the flight tests (weight's $v_h$) & \pok \\
+Johnson's V-22 encounter: $V_z$ drop (later), roll-off (deeper) & \pok \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -676,7 +775,10 @@ nacelle angles; and
 the V-22 wing's download. None of the V-22's dynamic responses could be compared: no frequency responses or time histories of the aircraft are public. The
 XV-15's are~\cite{tt}: with Ferguson's revised data its cruise roll and sideslip and its hover pitch follow them, its hover yaw nearly, while in cruise it
 is too stiff in pitch, by its stabiliser or its pitch inertia, which those tests cannot separate. The V-22 shares the XV-15's tail and wing coefficients but not its inertias.
-Its augmentation is a plausible control law, not the V-22's.
+Its augmentation is a plausible control law, not the V-22's. In descent each rotor's inflow is Johnson's vortex ring state model, which
+puts the instability where the flight tests met it on the rotor's own scale; on the weight's, as the flight tests are scaled, the V-22's wing
+download and the wake's induced losses put it at $V_z/v_h={}$\NVrsLoW{} in vertical descent against their $-0.45$, and its roll-off comes at the
+bottom of the drop, not on entry.
 
 % =====================================================================================================================
 \section{Conclusions}\label{sec:concl}
@@ -695,6 +797,9 @@ too stiff.
 tests, the XV-15 build still needs a fifth less power than its flight test in airplane mode, and through the conversion it needs more: the rotors'
 wakes over the wing there, which no test checks, are the model's weakest part.
 \item The helicopter mode's power against speed, the wing's lift through the middle of the conversion and the V-22's download are documented, not tuned away.
+\item In descent each rotor's inflow follows Johnson's vortex ring state model on its own axial and edgewise velocity, joined to the
+wake's momentum theory without changing any other result: descending vertically at a fixed lever the V-22 runs away between \NVrsLo{}
+and \NVrsHi\,ft/min, and in Johnson's encounter it drops and then rolls off, out of the two rotors' own velocities.
 \item Its autopilot's terrain following plans a reference path over the terrain ahead and holds the aircraft to its measured response:
 over hills and a ridge steeper than its climb it keeps within 4\,\% of a 200\,ft clearance at 120 to 200\,kt, without porpoising over level ground.
 \end{itemize}
@@ -732,6 +837,9 @@ Tiltrotor in Hover using Translational Rate Command}, AHS 68th Annual Forum, 201
 \bibitem{tt} M.\,B.\ Tischler, \emph{Frequency-Response Identification of XV-15 Tilt-Rotor Aircraft Dynamics}, NASA TM-89428, 1987.
 \bibitem{tis} M.\,B.\ Tischler, J.\,G.\,M.\ Leung and D.\,C.\ Dugan, \emph{Identification and Verification of Frequency-Domain Models for XV-15 Tilt-Rotor Aircraft Dynamics}, NASA TM-86009, 1984.
 \bibitem{lambregts} A.\,A.\ Lambregts, \emph{Vertical Flight Path and Speed Control Autopilot Design Using Total Energy Principles}, AIAA paper 83-2239, 1983.
+\bibitem{vrs} W.\ Johnson, \emph{Model for Vortex Ring State Influence on Rotorcraft Flight Dynamics}, NASA/TP-2005-213477, 2005.
+\bibitem{betzina} M.\,D.\ Betzina, \emph{Tiltrotor Descent Aerodynamics: A Small-Scale Experimental Investigation of Vortex Ring State}, American Helicopter Society 57th Annual Forum, 2001.
+\bibitem{hrod} R.\ Kisor, R.\ Blyth, A.\ Brand and T.\ MacDonald, \emph{V-22 Low Speed/High Rate of Descent (HROD) Test Results}, American Helicopter Society 60th Annual Forum, 2004.
 \bibitem{jsbsim} JSBSim Development Team, \emph{JSBSim: an open-source flight dynamics model}, version 1.3.3.
 \end{thebibliography}
 \end{document}
