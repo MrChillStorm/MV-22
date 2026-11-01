@@ -77,6 +77,7 @@ PRECONE = 2.5 * DEG     # the JVX rotor's (XV-15 hub) [AC]; the V-22's coning fl
 DELTA3 = -15.0 * DEG    # pitch-flap coupling, nominal [WJ table 1]
 # the gimbal's hub spring: "the equivalent of a 2 % hinge offset" [RC 6.1]: K = (Nb/2) (3/2) (e/R) Ib Omega^2 at 100 %
 I_BLADE = 1000.0        # slug ft^2 per blade about the gimbal: Lock number 3.8, as the XV-15's 3.83 [CR] (estimate)
+from data import v22_blade as BLADE      # its torsion mode: the XV-15's blade scaled to WRATS's (data/v22_blade.py)
 OMEGA_100 = 397.0 * 2 * math.pi / 60    # rad/s, 100 % rotor speed: 397 rpm, 790 ft/s tip speed [PD, RC]
 K_HUB = NB / 2 * 1.5 * 0.02 * I_BLADE * OMEGA_100 ** 2          # ft lb/rad per rotor
 FLAP_STOP = 12.0 * DEG  # gimbal flapping limit (the XV-15's [TX]; [RC] designs the wing clearance for 10.5 deg)
@@ -184,7 +185,7 @@ ENGINE_TAU = 0.6            # s, power response of the engine and its FADEC to t
 # flat part from sea level to its knee at 8400 ft [RC fig. 33a] is this limit, so it is the model's power to hover at
 # its sea-level 47 700 lb at 100 % (genv22.py root ... ; performance.py prints it): FITTED. [PD fig. 8] puts the limit at
 # 1.4 times the power to hover (100 %) and 1.15 at 84 %, as a constant torque does.
-P_XMSN_100 = 9130.0
+P_XMSN_100 = 9100.0         # (9130 with rigid blades)
 J_DRIVE = 2 * 60.0          # slug ft^2 at the rotor: the engines' power turbines, gearboxes and the interconnect shaft
                             # (estimate)
 # ---------------------------------------------------------------- landing gear [3D]

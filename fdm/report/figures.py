@@ -68,19 +68,26 @@ SETS = [('nac90', 'nacelle 90$^\\circ$, flaps 20$^\\circ$'), ('nac60', 'nacelle 
         ('nac30', 'nacelle 30$^\\circ$, flaps 20$^\\circ$'), ('nac0f20', 'airplane mode, flaps 20$^\\circ$'), ('nac0', 'airplane mode, flaps up')]
 
 
+# the model's altitudes in the XV-15's comparisons: 16 000 ft only in airplane mode, where its fastest point was flown
+ALTS = (('0', '-', 'model, sea level'), ('10000', '--', 'model, 10 000 ft'), ('16000', '-.', 'model, 16 000 ft'))
+
+
 def xv15():
     fig, axs = plt.subplots(1, 5, figsize=(W2, 1.95), sharey=True)
     for i, (ax, (name, lab)) in enumerate(zip(axs, SETS)):
         r = res('xv15_' + name)
         test_pts(ax, XF.SETS[name][2], 'flight test')
-        for alt, ls, l in (('0', '-', 'model, sea level'), ('10000', '--', 'model, 10\\,000 ft')):
-            rows = [x for x in r[alt] if x['res'] < 0.05]
-            ax.plot([x['V'] for x in rows], [x['hp'] for x in rows], ls, color=C_MOD, lw=1.0, label=l.replace('\\,', ' '))
+        for alt, ls, l in ALTS:
+            rows = [x for x in r.get(alt, []) if x['res'] < 0.05]
+            if rows:
+                ax.plot([x['V'] for x in rows], [x['hp'] for x in rows], ls, color=C_MOD, lw=1.0, label=l)
         if name == 'nac0':
             rg = res('xv15_nac0_gear')
             rows = [x for x in rg['10000'] if x['res'] < 0.05]
             ax.plot([x['V'] for x in rows], [x['hp'] for x in rows], ':', color=C_REF, lw=1.0, label='gear down, 10 000 ft')
-            ax.legend(frameon=False, loc='upper left', fontsize=6.0)
+            # only the lines (a)'s legend does not explain
+            extra = [h for h in ax.get_lines() if h.get_label() in (ALTS[2][2], 'gear down, 10 000 ft')]
+            ax.legend(extra, [h.get_label() for h in extra], frameon=False, loc='upper left', fontsize=6.0)
         ax.set_title('(%s) %s' % ('abcde'[i], lab), loc='left', fontsize=7.2, pad=3)
         ax.set_xlabel('KCAS')
         if i == 0:
@@ -96,15 +103,18 @@ def xv15_trim():
     for i, (ax, (name, lab)) in enumerate(zip(axs, SETS)):
         r = res('xv15_' + name)
         test_pts(ax, XF.TRIM_DE[name], 'flight test')
-        for alt, ls, l in (('0', '-', 'model, sea level'), ('10000', '--', 'model, 10 000 ft')):
-            rows = [x for x in r[alt] if x['res'] < 0.05]
-            ax.plot([x['V'] for x in rows], [-x['de'] for x in rows], ls, color=C_MOD, lw=1.0, label=l)
+        for alt, ls, l in ALTS:
+            rows = [x for x in r.get(alt, []) if x['res'] < 0.05]
+            if rows:
+                ax.plot([x['V'] for x in rows], [-x['de'] for x in rows], ls, color=C_MOD, lw=1.0, label=l)
         ax.axhline(0, color=C_REF, lw=0.5)
         ax.set_title('(%s) %s' % ('abcde'[i], lab), loc='left', fontsize=7.2, pad=3)
         ax.set_xlabel('KCAS')
         if i == 0:
             ax.set_ylabel('elevator, deg trailing edge down')
-    axs[0].legend(frameon=False, loc='upper left', fontsize=6.3)
+    h, l = axs[0].get_legend_handles_labels()
+    h16 = [x for x in axs[-1].get_lines() if x.get_label() == ALTS[2][2]]     # (the 16 000 ft line, airplane mode's)
+    axs[0].legend(h + h16[:1], l + [x.get_label() for x in h16[:1]], frameon=False, loc='upper left', fontsize=6.3)
     fig.tight_layout(w_pad=0.5)
     save(fig, 'xv15_trim')
 

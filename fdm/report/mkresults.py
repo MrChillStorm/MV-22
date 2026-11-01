@@ -46,8 +46,10 @@ def hover():
 
 
 def xv15(name):
+    """at sea level and 10 000 ft, the airplane-mode sets also at 16 000 ft (where the fastest point was flown)"""
     import sweep
-    dump('xv15_' + name, {str(int(a)): sweep.run(name, a) for a in (0.0, 10000.0)})
+    alts = (0.0, 10000.0, 16000.0) if name in ('nac0', 'nac0f20') else (0.0, 10000.0)
+    dump('xv15_' + name, {str(int(a)): sweep.run(name, a) for a in alts})
 
 
 def xv15_gear():

@@ -201,6 +201,12 @@ class Model:
         s.air = FCS('%s airframe' % U.NAME)
         s.X, s.Y, s.Z, s.L, s.Mm, s.N = [], [], [], [], [], []
         s.segs, s.edges = segments(U.NSEG, U.R_ROOT, U.R)
+        # the blades' first torsion mode, from their mass and stiffness distribution (blademodes.py), where the
+        # aircraft's data have one (U.BLADE)
+        s.tc = None
+        if getattr(U, 'BLADE', None):
+            import blademodes
+            s.tc = blademodes.torsion_constants([a for a, b in s.segs], s.edges, U.OMEGA_100, U.SECTIONS, chord, U.BLADE)
         s.wake_tab = rotorwake.load(U)
         s.inflow_start = {}
 
@@ -1211,6 +1217,10 @@ class Model:
         for side, m in SIDES:
             for st in ('bc', 'bs', 'bcd', 'bsd', 'v0-fps'):
                 r.declare('rotor/%s/%s' % (side, st), 0.0)
+            if s.tc:
+                for k in range(U.NB):
+                    for st in ('qt', 'qtd'):
+                        r.declare('rotor/%s/b%d/%s' % (side, k, st), 0.0)
             for st, tg in ((PH_COS, 'c'), (PH_SIN, 's')):
                 for i in range(len(st)):
                     r.declare('rotor/%s/ph/%s%d' % (side, tg, i), 0.0)
@@ -1259,10 +1269,35 @@ class Model:
             r.fn(pre + '/bsd-next', IFTHEN(binit, v(0), S(M(sa, xc), M(ca, xs))), out=pre + '/bsd')
             r.fn(pre + '/bc-next', IFTHEN(binit, v(0), S(bc, M(p(pre + '/bcd'), dt))), out=pre + '/bc')
             r.fn(pre + '/bs-next', IFTHEN(binit, v(0), S(bs, M(p(pre + '/bsd'), dt))), out=pre + '/bs')
+            if s.tc:
+                s.torsion_states(side, fc, fs_, binit)
             s.inflow_states(side)
         r.channel('rotor azimuth')
         psn = S(p('rotor/psi-rad'), M(p('rotor/omega-rad_sec'), p('simulation/dt')))
         r.fn('rotor/psi-next', IFTHEN(GT(psn, v(2 * math.pi)), D(psn, v(2 * math.pi)), psn), out='rotor/psi-rad')
+
+    def torsion_states(s, side, fc, fs_, binit):
+        """the blades' first torsion mode (blademodes.torsion_constants), its tip twist qt (rad, nose up +):
+            It qt'' = Tq + Scg (fc cos psi + fs sin psi + W^2 precone) - Kt qt - (2 zeta sqrt(Kt It) + Ct rho W) qt'
+        Tq the blade elements' moments about the elastic axis and the propeller moment of the blade's whole pitch
+        (rotor(), the last frame's); the CG's offset aft of the elastic axis under the gimbal's flap acceleration
+        (fc, fs: the gimbal's own, the centrifugal force on its tilt cancelling) and the precone's centrifugal force;
+        the structural and control system stiffness, the structure's and the sections' damping. Stepped semi-
+        implicitly (31 Hz at 480 Hz); at the start the static twist"""
+        r, tc = s.rot, s.tc
+        dt, W = p('simulation/dt'), p('rotor/omega-rad_sec')
+        cdamp = r.fn('rotor/%s/qt-damp' % side, S(v(2 * tc['zeta'] * math.sqrt(tc['Kt'] * tc['It'])),
+                                                  M(v(tc['Ct']), p('atmosphere/rho-slugs_ft3'), W)))
+        for k in range(U.NB):
+            bk = 'rotor/%s/b%d' % (side, k)
+            psi = S(p('rotor/psi-rad'), v(k * 2 * math.pi / U.NB))
+            F = r.fn(bk + '/qt-force', S(p('aero/rotor/%s/b%d/Tq' % (side, k)),
+                                         M(v(tc['Scg']), S(M(fc, COS(psi)), M(fs_, SIN(psi)), M(v(U.PRECONE), SQR(W))))),
+                     desc='torsion mode forcing, ft lb')
+            qt, qtd = p(bk + '/qt'), p(bk + '/qtd')
+            qtdd = Q(D(F, S(M(v(tc['Kt']), qt), M(cdamp, qtd))), v(tc['It']))
+            r.fn(bk + '/qtd-next', IFTHEN(binit, v(0), S(qtd, M(qtdd, dt))), out=bk + '/qtd')
+            r.fn(bk + '/qt-next', IFTHEN(binit, Q(F, v(tc['Kt'])), S(qt, M(p(bk + '/qtd'), dt))), clip=('-0.5', '0.5'), out=bk + '/qt')
 
     def inflow_states(s, side):
         """Peters-He finite-state wake (as the UH-60 and Bo 105 models): M a' + L^-1 V a = tau / 2 per state set, in the
@@ -1413,7 +1448,8 @@ class Model:
             n0 = g.fn(b + '/Vn0', S(D(NEG(M(sb, vher)), M(cb, Vhz)), vi10))
             n1 = g.fn(b + '/Vn1', D(bdot, wet))
             vr = g.fn(b + '/Vr', S(M(cb, vher), NEG(M(sb, Vhz))))
-            FT, FN, DK, MF, QQ = [], [], [], [], []
+            FT, FN, DK, MF, QQ, TQ = [], [], [], [], [], []
+            qt = p('rotor/%s/b%d/qt' % (side, k)) if s.tc else None
             for j, (rr, dr) in enumerate(s.segs):
                 e = b + '/s%d' % j
                 tt, cli = SEC.interp_sections(U.SECTIONS, rr / U.R)
@@ -1426,7 +1462,9 @@ class Model:
                 Vnn = g.fn(e + '/Vn', S(n0, M(v(rr), n1), *vi), 'blade velocity along its normal (up), ft/s')
                 V2 = g.fn(e + '/V2', S(SQR(Vt), SQR(Vnn), v(1e-4)))
                 Vv = SQ(V2)
-                g.fn(e + '/alpha-deg', D(S(th0, v(twist(rr))), M(v(R2D), ATAN2(Vnn, Vt))), 'angle of attack, deg (-360..360)')
+                # the section's pitch: the blade's, its twist and the torsion mode's elastic twist
+                thj = S(th0, v(twist(rr))) if not s.tc else S(th0, v(twist(rr)), M(v(R2D * s.tc['phi'][j]), qt))
+                g.fn(e + '/alpha-deg', D(thj, M(v(R2D), ATAN2(Vnn, Vt))), 'angle of attack, deg (-360..360)')
                 g.fn(e + '/mach', MIN(Q(Vv, a_snd), v(1.0)))
                 cl = g.fn(e + '/cl', T2(e + '/alpha-deg', e + '/mach', al, mach, cl_tab))
                 cd = g.fn(e + '/cd', S(T2(e + '/alpha-deg', e + '/mach', al, mach, cd_tab), v(U.DCD)))
@@ -1438,8 +1476,29 @@ class Model:
                 Fn = g.fn(e + '/Fn', D(M(Lk, Vt), M(Dk, Vnn)), 'force along the blade normal (up), lbf')
                 FT.append(Ft); FN.append(Fn); DK.append(Dk)
                 MF.append(M(v(rr), Fn)); QQ.append(M(v(rr), Ft))
+                if s.tc:
+                    # its moment about the elastic axis in the mode: the section's at the quarter chord and the normal
+                    # force there, aft of the axis
+                    tc = s.tc
+                    TQ.append(M(v(tc['phi'][j] * tc['cm0'][j] * 0.5 * ch * ch * dr), rho, V2))
+                    if tc['d_ac'][j]:
+                        TQ.append(M(v(-tc['phi'][j] * tc['d_ac'][j]), Fn))
             ft, fn, fr = g.fn(b + '/FT', S(*FT)), g.fn(b + '/FN', S(*FN)), g.fn(b + '/FR', NEG(M(vr, S(*DK))))
             mf = g.fn(b + '/Mflap', S(*MF), 'aerodynamic flap moment about the gimbal, ft lbf (up +)')
+            if s.tc:
+                # and the propeller moment of the sections' pitch, - W^2 sum P_j sin(2 theta_j) / 2, theta_j the blade's
+                # pitch a, the section's twist and its elastic twist phi_j qt: in a and qt, exact in the first and linear
+                # in the second (a few degrees), - W^2 (A1 sin 2a + A2 cos 2a + qt (B1 cos 2a - B2 sin 2a))
+                tw = [math.radians(twist(rr)) for rr, dr in s.segs]
+                P, ph_ = s.tc['P'], s.tc['phi']
+                A1 = sum(P[j] * math.cos(2 * tw[j]) for j in range(len(tw))) / 2
+                A2 = sum(P[j] * math.sin(2 * tw[j]) for j in range(len(tw))) / 2
+                B1 = sum(P[j] * ph_[j] * math.cos(2 * tw[j]) for j in range(len(tw)))
+                B2 = sum(P[j] * ph_[j] * math.sin(2 * tw[j]) for j in range(len(tw)))
+                a2 = M(v(2 / R2D), th0)
+                s2, c2 = SIN(a2), COS(a2)
+                prop = M(SQR(W), S(M(v(A1), s2), M(v(A2), c2), M(qt, D(M(v(B1), c2), M(v(B2), s2)))))
+                g.fn(b + '/Tq', D(S(*TQ), prop), 'torsion mode\'s generalized moment: the sections\' and the propeller moment, ft lbf')
             qb = g.fn(b + '/Q', M(cb, S(*QQ)), 'aerodynamic moment about the shaft, in the rotation\'s sense, ft lbf')
             # the inflow's forcing: each shape's moment of the normal loads along the shaft
             for (jj, rh) in shapes:
@@ -1467,6 +1526,13 @@ class Model:
             kb = 1 / U.TIP_LOSS ** 2
             ph.fn(b_ + '/ph/tau-%s%d' % (tg, i), Q(M(v(kb / (2 * math.pi) if rh == 0 else kb / math.pi), S(*terms)), qn))
         s.rot.channels[s.inflow_start[side]][1][0:0] = ph.channels[0][1]
+        if getattr(U, 'SPINNER_DRAG', None):
+            # the spinner's drag, on the flow through the disc (the hub's motion and the induced velocity): its area
+            # along the mast and across it, D = q' (S0 + S1 sin^2 a) against the flow (shaft axes)
+            S0, S1 = U.SPINNER_DRAG
+            Vp = p(b_ + '/Vprime-fps')
+            ks = g.fn(b_ + '/spinner-k', M(v(0.5), rho, S(M(v(S0), Vp), Q(M(v(S1), SQR(Vip)), Vp))))
+            Fx.append(NEG(M(ks, Vhx))); Fy.append(NEG(M(ks, Vhy))); Fz.append(M(ks, Vn))
         Fs = [g.fn(b_ + '/F%s-s' % a, S(*x)) for a, x in zip('xyz', (Fx, Fy, Fz))]
         # moments on the airframe in shaft axes: the hub spring's (and its damping and stop) and the drive's reaction
         C = 0.02 * 2 * math.sqrt(U.K_HUB * U.NB * U.I_BLADE / 2)
@@ -1527,18 +1593,36 @@ class Model:
         """Bell's wing-pylon lift and drag coefficients over +-180 deg: against the angle of attack (rows), the flap
         index fx (columns: -1 F4, 0 F1, 1 F2, 2 F3) and Bell's mast angle (tables: 0 helicopter, 90 airplane). Past the
         data (+-40 deg; F2 and F3 to -90) the coefficients blend over 10 deg into a flat plate's, normal force CN90
-        sin(alpha), CN90 the data's at -90 deg (F2's for F1 and F4, which have none)."""
+        sin(alpha), CN90 the data's at -90 deg (F2's for F1 and F4, which have none). U.WING_DATA 'gtrs20' adds
+        Ferguson's 20/12.5 [data/gtrs.py] at the flap index 0.5; 'gtrs' also takes his F1, F2 and F3: his within +-40
+        deg, Bell's beyond (the download's factors are fitted to Bell's), and beyond them the 20/12.5 halfway between F1
+        and F2 (as the index's interpolation without it)."""
         al = sorted(set(list(range(-180, 181, 10)) + list(range(-40, 41, 2)) + [-45, 45, -85, -95, 85, 95]))
         cn90 = {(F, bm): B.WIV[('F2' if F in ('F1', 'F4') else F, bm)][0] for F in ('F1', 'F2', 'F3', 'F4') for bm in (0, 90)}
+        src = getattr(U, 'WING_DATA', 'bell')
+
+        def pts(xs, ys, keep):
+            return [(a, y) for a, y in zip(xs, ys) if y is not None and keep(a)]
+
+        def ferguson(F, bm):
+            """Ferguson's within +-40 deg for Bell's setting F, or '20' for his 20/12.5"""
+            if F == 'F1':
+                return ((GTRS.WP_ALPHA1, GTRS.CL_WP1[0.2] if bm == 90 else GTRS.CL_WP1_HELO),
+                        (GTRS.WD_ALPHA1, GTRS.CD_WP1[0.2] if bm == 90 else GTRS.CD_WP1_HELO))
+            G = {'20': 'F2', 'F2': 'F3', 'F3': 'F4'}[F]
+            return tuple(tuple(map(list, zip(*pts(xs, tab[(G, bm)], lambda a: abs(a) <= 40))))
+                         for xs, tab in ((GTRS.WP_ALPHA2, GTRS.CL_WP), (GTRS.WD_ALPHA2, GTRS.CD_WP)))
 
         def data(F, bm):
             if F == 'F1':
-                return (B.WI_ALPHA, B.WI_APLN[0.2] if bm == 90 else B.WI_HELO), (B.WIII_ALPHA, B.WIII_APLN[0.2] if bm == 90 else B.WIII_HELO)
-            xs = [a for a, y in zip(B.WII_ALPHA, B.WII[(F, bm)]) if y is not None]
-            ys = [y for y in B.WII[(F, bm)] if y is not None]
-            xd = [a for a, y in zip(B.WIV_ALPHA, B.WIV[(F, bm)]) if y is not None]
-            yd = [y for y in B.WIV[(F, bm)] if y is not None]
-            return (xs, ys), (xd, yd)
+                bell = (B.WI_ALPHA, B.WI_APLN[0.2] if bm == 90 else B.WI_HELO), (B.WIII_ALPHA, B.WIII_APLN[0.2] if bm == 90 else B.WIII_HELO)
+            else:
+                bell = tuple(tuple(map(list, zip(*pts(xs, tab[(F, bm)], lambda a: True))))
+                             for xs, tab in ((B.WII_ALPHA, B.WII), (B.WIV_ALPHA, B.WIV)))
+            if src != 'gtrs' or F == 'F4':
+                return bell
+            return tuple(tuple(map(list, zip(*sorted(pts(xb, yb, lambda a: abs(a) > 40) + pts(xf, yf, lambda a: True)))))
+                         for (xb, yb), (xf, yf) in zip(bell, ferguson(F, bm)))
 
         def ext(xs, ys, a, kind, cn):
             r = math.radians(a)
@@ -1551,20 +1635,28 @@ class Model:
             edge = lo if a < lo else hi
             w = min(1.0, abs(a - edge) / 10.0)
             return (1 - w) * float(np.interp(edge, xs, ys)) + w * plate
+        sets = ['F4', 'F1', '20', 'F2', 'F3'] if src in ('gtrs20', 'gtrs') else ['F4', 'F1', 'F2', 'F3']
         CL, CD = [], []
         for bm in (0, 90):
             tl, td = [], []
             for a in al:
                 rl, rd = [], []
-                for F in ('F4', 'F1', 'F2', 'F3'):
+                for F in sets:
+                    if F == '20':
+                        continue
                     (xl, yl), (xd, yd) = data(F, bm)
                     # the download factor, from 40 deg towards the flow's normal incidence (full from 60 deg)
                     k = 1 + (DL_K[F] - 1) * min(1.0, max(0.0, (abs(a) - 40) / 20.0)) if abs(a) <= 120 else DL_K[F]
                     rl.append(k * ext(xl, yl, a, 'l', cn90[(F, bm)]))
                     rd.append(k * ext(xd, yd, a, 'd', cn90[(F, bm)]))
+                if '20' in sets:
+                    (xl, yl), (xd, yd) = ferguson('20', bm)
+                    inside = -40 <= a <= 40
+                    rl.insert(2, float(np.interp(a, xl, yl)) if inside else (rl[1] + rl[2]) / 2)
+                    rd.insert(2, float(np.interp(a, xd, yd)) if inside else (rd[1] + rd[2]) / 2)
                 tl.append(rl); td.append(rd)
             CL.append(tl); CD.append(td)
-        return al, [-1, 0, 1, 2], [0, 90], CL, CD
+        return al, ([-1, 0, 0.5, 1, 2] if '20' in sets else [-1, 0, 1, 2]), [0, 90], CL, CD
 
     def wing(s):
         """The wing in NSTRIP spanwise strips a side, each in its own flow: the airframe's motion at the strip and both
@@ -1580,13 +1672,22 @@ class Model:
         fx = g.fn('aero/wing/flap-index', T1('ctl/flaperon-deg', fdeg, [-1, 0, 1, 2]), 'Bell\'s flap setting: -1 F4, 0 F1, 1 F2, 2 F3')
         # compressibility of the clean wing in airplane mode [Table WI, WIII]: increments over Mach 0.2
         ma = [0.2, 0.4, 0.5, 0.6]
-        dcl = [[B.WI_APLN[mm][i] - B.WI_APLN[0.2][i] for mm in ma] for i in range(len(B.WI_ALPHA))]
-        dcd = [[B.WIII_APLN[mm][i] - B.WIII_APLN[0.2][i] for mm in ma] for i in range(len(B.WIII_ALPHA))]
+        if getattr(U, 'WING_DATA', 'bell') == 'gtrs':
+            la, lt, da_, dt = GTRS.WP_ALPHA1, GTRS.CL_WP1, GTRS.WD_ALPHA1, GTRS.CD_WP1       # Ferguson's [tables 4-I, 4-III]
+        else:
+            la, lt, da_, dt = B.WI_ALPHA, B.WI_APLN, B.WIII_ALPHA, B.WIII_APLN
+        dcl = [[lt[mm][i] - lt[0.2][i] for mm in ma] for i in range(len(la))]
+        dcd = [[dt[mm][i] - dt[0.2][i] for mm in ma] for i in range(len(da_))]
         wM = g.fn('aero/wing/mach-weight', M(MAX(v(0), D(v(1), ABS(fx))), Q(p('ctl/beta-m-deg'), v(90))))
         rho = p('atmosphere/rho-slugs_ft3')
         strips = rotorwake.wing_strips(U)
         Sstrip = U.S_W / (2 * len(strips))
-        cm0 = T1('aero/wing/flap-index', [-1, 0, 1, 2], [B.CM0['F4'], B.CM0['F1'], B.CM0['F2'], B.CM0['F3']])
+        if getattr(U, 'WING_DATA', 'bell') == 'gtrs':
+            # Ferguson's moment at zero lift by the flap setting and mast angle [table 4-VIII]; the reflex Bell's
+            cm0 = T2('aero/wing/flap-index', 'ctl/beta-m-deg', [-1, 0, 0.5, 1, 2], GTRS.CM_WP_BETAM,
+                     [[B.CM0['F4']] * len(GTRS.CM_WP_BETAM)] + [GTRS.CM_WP[F] for F in ('F1', 'F2', 'F3', 'F4')])
+        else:
+            cm0 = T1('aero/wing/flap-index', [-1, 0, 1, 2], [B.CM0['F4'], B.CM0['F1'], B.CM0['F2'], B.CM0['F3']])
         g.fn('aero/wing/cm0', cm0)
         lifts, downs = [], []
         for side, m in SIDES:
@@ -1598,9 +1699,9 @@ class Model:
                 g.fn(tg + '/alpha-deg', wrap180(S(M(v(R2D), ATAN2(Vz, Vx)), v(U.WING_DALPHA))))
                 g.fn(tg + '/mach', Q(Vn, p('atmosphere/a-fps')))
                 cl = g.fn(tg + '/cl', S(T3(tg + '/alpha-deg', 'aero/wing/flap-index', 'ctl/beta-m-deg', al, fx_cols, bm_tabs, CL),
-                                        M(p('aero/wing/mach-weight'), T2(tg + '/alpha-deg', tg + '/mach', B.WI_ALPHA, ma, dcl))))
+                                        M(p('aero/wing/mach-weight'), T2(tg + '/alpha-deg', tg + '/mach', la, ma, dcl))))
                 cd = g.fn(tg + '/cd', S(T3(tg + '/alpha-deg', 'aero/wing/flap-index', 'ctl/beta-m-deg', al, fx_cols, bm_tabs, CD),
-                                        M(p('aero/wing/mach-weight'), T2(tg + '/alpha-deg', tg + '/mach', B.WIII_ALPHA, ma, dcd))))
+                                        M(p('aero/wing/mach-weight'), T2(tg + '/alpha-deg', tg + '/mach', da_, ma, dcd))))
                 qs = g.fn(tg + '/qS', M(v(0.5 * Sstrip), rho, SQR(Vn)))
                 Fx = g.fn(tg + '/Fx-lbs', M(qs, Q(D(M(cl, Vz), M(cd, Vx)), Vn)))
                 Fz = g.fn(tg + '/Fz-lbs', M(qs, Q(NEG(S(M(cl, Vx), M(cd, Vz))), Vn)))
@@ -1608,6 +1709,15 @@ class Model:
                 rx, ry, rz = s.arm_rp(fs, m * y, wl)
                 s.add((Fx, None, Fz), (M(ry, Fz), S(D(M(rz, Fx), M(rx, Fz)), My), NEG(M(ry, Fx))))
                 lifts.append(NEG(Fz))
+                if getattr(U, 'PYLON_INTERFERENCE', None) and i == len(strips) - 1:
+                    # the drag where the wing meets the pylon, half of both pylons' area here at the outer strip, on the
+                    # free stream's dynamic pressure (Ferguson's "wing dynamic pressure in the wake" is the free stream's:
+                    # his rotors induce nothing at the wing), along the free stream
+                    bm_, dq_ = U.PYLON_INTERFERENCE
+                    ua, wa = p('velocities/u-aero-fps'), p('velocities/w-aero-fps')
+                    kq = g.fn(tg + '/pylon-k', M(v(0.25), T1('ctl/beta-m-deg', bm_, dq_), rho, SQ(S(SQR(ua), SQR(wa), v(1e-4)))))
+                    Fpx, Fpz = g.fn(tg + '/pylon-Fx-lbs', NEG(M(kq, ua))), g.fn(tg + '/pylon-Fz-lbs', NEG(M(kq, wa)))
+                    s.add((Fpx, None, Fpz), (M(ry, Fpz), D(M(rz, Fpx), M(rx, Fpz)), NEG(M(ry, Fpx))))
         g.fn('aero/wing/lift-lbs', S(*lifts), 'the wing\'s force up (body axes); in the hover minus its download')
         g.fn('aero/wing/download-lbs', NEG(p('aero/wing/lift-lbs')))
         # ailerons, dihedral effect: on the freestream dynamic pressure and angle of attack. The ailerons as revised
@@ -1714,7 +1824,13 @@ class Model:
         attack, the true airspeed and the mast angle (an upwash between the two rotors), at the stabiliser times its
         sideslip factor, each reaching the tail through a lag of the hubs' distance ahead of it over the speed. Returns
         the air's velocity (to be subtracted) in body axes at the stabiliser and at the fins"""
-        share = g.fn('aero/emp/wake-share', T3('aero/alpha-deg', 'velocities/vtrue-kts', 'ctl/beta-m-deg', GTRS.RH_ALPHA, GTRS.RH_V,
+        # (the tables are the XV-15's, against its airspeed: where the wake meets the tail goes with the wake's skew,
+        # the airspeed over the rotors' induced velocity, so another aircraft reads them at the XV-15's airspeed for
+        # its skew, its own times the ratio of the two's induced velocities in the hover at their design weights)
+        vh = lambda gw, r: math.sqrt(gw / 2 / (2 * 0.0023769 * math.pi * r * r))
+        kv = vh(GTRS.GW, B.R) / vh(U.GW_DESIGN, U.R)
+        g.fn('aero/emp/wake-v-kts', M(v(kv), p('velocities/vtrue-kts')), 'the airspeed at which the XV-15 had this wake skew')
+        share = g.fn('aero/emp/wake-share', T3('aero/alpha-deg', 'aero/emp/wake-v-kts', 'ctl/beta-m-deg', GTRS.RH_ALPHA, GTRS.RH_V,
                                                GTRS.RH_BETAM, [GTRS.RH[b] for b in GTRS.RH_BETAM]))
         kb = T2('aero/mag-beta-deg', 'ctl/beta-m-deg', GTRS.KHB_BETA, GTRS.RH_BETAM, GTRS.KHB)
         vi = M(v(0.5), S(p('aero/rotor/r/vi-fps'), p('aero/rotor/l/vi-fps')))

@@ -16,6 +16,7 @@ Frames: Bell's stations [CR] (FS aft, BL right, WL up, in). Nacelle angle 90 in 
 import math
 from data import bell301 as B
 from data import gtrs as GTRS
+from data import xv15_blade as BLADE      # the metal blade's mass and stiffness [TP-2004-212262]: its torsion mode
 
 NAME = 'XV-15'
 DEG = math.pi / 180
@@ -79,6 +80,10 @@ FS_V, BL_V, WL_V = B.FS_V, B.BL_V, B.WL_V
 FUS_SCALE = 1.0
 FS_F, WL_F = B.FS_F, B.WL_F
 DRAG_EXTRA = 0.0            # FITTED in the test programme (sweep.py)
+# the pylons' interference drag and the spinners' drag, Ferguson's from the flight tests [GTRS, data/gtrs.py]: Bell's
+# tables lacked them
+PYLON_INTERFERENCE = (GTRS.PYINT_BETAM, GTRS.PYINT)
+SPINNER_DRAG = (GTRS.SPINNER_DQ0, GTRS.SPINNER_DQ)
 
 # ---------------------------------------------------------------- mass [CR table I, B-5; GTRS p. B-98]
 # as the aircraft flew, its modifications and research instrumentation counted: the pylons, the CG and the inertias

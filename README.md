@@ -17,7 +17,8 @@ carried to the V-22 with what Boeing, Bell and NASA have published about it:
   governor,
 - Ferguson's revision of those data against the XV-15's flight tests for
   NASA's generic tilt-rotor simulation (NASA CR-166536): its tail, ailerons,
-  mass and inertias, and Tischler's frequency responses of the XV-15
+  mass and inertias (not its wing lift, which he raised to tune his own
+  simulation: the report says why), and Tischler's frequency responses of the XV-15
   identified from its flight tests (NASA TM-89428),
 - NASA's hover test of the full-scale XV-15 rotor (TM-86833) and the XV-15's
   level-flight power in flight (TM-84222),
@@ -39,8 +40,13 @@ it, every system, mode and procedure, is in the flight manual:
   motion, the nacelle's tilting, the rotation, the gimbal's tilt and the
   induced flow. Their sections are built from the V-22's published thickness
   and camber distribution (Boeing's XN sections, 28 % thick at the root to
-  9 % at the tip), with a stall fitted to the full-scale XV-15 rotor's hover
-  power. The blades are twisted 47.5° from root to tip, as the V-22's.
+  9 % at the tip), with a stall and minimum drag fitted to the full-scale
+  XV-15 rotor's hover power. The blades are twisted 47.5° from root to tip,
+  as the V-22's, and twist further under load in their first torsion mode,
+  each blade's own: the propeller moment and the sections' moments turn
+  them nose down by about a degree (the XV-15's metal blades, from NASA's
+  model of them, by four to six). The V-22's torsion is its 1/5-scale
+  aeroelastic model's, measured in a ground vibration test.
 - **Inflow.** A dynamic wake (Peters–He) for each rotor, with ground effect.
   A ring-vortex wake carries each rotor's downwash to the wing, the
   horizontal tail and the two fins, for any nacelle angle, speed and
@@ -243,52 +249,53 @@ Every number comes from the scripted test programme in the report.
 
 | | Reference | This model |
 |---|---|---|
-| XV-15 rotor in hover, power at C_T/σ 0.08–0.18 | NASA's full-scale test (TM-86833) | −4.6 to +0.9 % (stall fitted) |
-| XV-15 rotor, maximum thrust | the test reached C_T/σ 0.181 | 0.188 |
-| XV-15 wing download in the hover, by flap | XV-15 flight test | within 1.0 % of thrust (fitted) |
-| XV-15 power through the conversion, 60° and 30° | XV-15 flight test (TM-84222), altitudes unpublished | −20 to −9 % at sea level, −1 to +8 % at 10,000 ft: the test lies between, nearer 10,000 ft |
-| XV-15 power in airplane mode, flaps up, gear up | XV-15 flight test | −42 to −30 % at 10,000 ft (−18 to −4 % with the gear down) |
-| XV-15 trim elevator, airplane mode / nacelles 60° and 30° / helicopter mode | XV-15 flight test (TM-84222 fig. 21) | within 0.5° / 4–6° short / 1–4° short |
-| XV-15 frequency responses in cruise, roll / sideslip / pitch / normal acceleration | flight tests (TM-89428); Bell's simulation 60 / 131 / 3768 / 187 | Tischler's cost J 102 / 390 / 544 / 500 (under ~100 matches well) |
-| XV-15 frequency responses in the hover, pitch / yaw / roll / heave | flight tests (TM-89428) | J 203 / 859 / 2284 / 716 |
+| XV-15 rotor in hover, power at C_T/σ 0.08–0.18 | NASA's full-scale test (TM-86833) | −2.8 to +3.4 % (stall and minimum drag fitted) |
+| XV-15 rotor, maximum thrust | the test reached C_T/σ 0.181 | 0.184 |
+| XV-15 rotor, thrust against collective | the test's gradient (collective at the actuator) | 20 % steeper (34 % with rigid blades) |
+| XV-15 wing download in the hover, by flap | XV-15 flight test | within 1.2 % of thrust (fitted) |
+| XV-15 power through the conversion, 60° and 30° | XV-15 flight test (TM-84222), altitudes unpublished | +11 to +28 % at sea level, +26 to +52 % at 10,000 ft |
+| XV-15 power in airplane mode, flaps up, gear up | XV-15 flight test | −27 to −16 % at 10,000 ft, −22 to −10 % at 16,000 ft (the fastest point's altitude); −8 to +10 % at 10,000 ft with the gear down |
+| XV-15 trim elevator, airplane mode / nacelles 60° and 30° / helicopter mode | XV-15 flight test (TM-84222 fig. 21) | within 0.5° / 1–3° short / up to 2° short |
+| XV-15 frequency responses in cruise, roll / sideslip / pitch / normal acceleration | flight tests (TM-89428); Bell's simulation 60 / 131 / 3768 / 187 | Tischler's cost J 113 / 387 / 503 / 462 (under ~100 matches well) |
+| XV-15 frequency responses in the hover, pitch / yaw / roll / heave | flight tests (TM-89428) | J 142 / 1019 / 2238 / 676 |
 | V-22 airframe polar, flaps and gear up | Boeing's estimate | C_L 0.22 at zero angle of attack (0.18), drag within 30 counts at C_L 0.2–0.55 (drag fitted) |
-| V-22 maximum level speed, 42,000 lb | Boeing: 274 KTAS at sea level, 321 at 17,000 ft | 290, 316 |
-| V-22 hover ceiling out of ground effect | Boeing: 47,700 lb at sea level, 43,300 at 8400 ft, 31,000 at 16,000 ft | 47,690 (fitted), 42,280, 32,580 |
-| V-22 pitch attitude through the conversion | V-22 flight test (Dunford) | within 2.9° rms |
-| V-22 wing download at 67° | 0.658-scale rotor and wing test | 11.7 % against 9.2 % |
+| V-22 maximum level speed, 42,000 lb | Boeing: 274 KTAS at sea level, 321 at 17,000 ft | 293, 319 |
+| V-22 hover ceiling out of ground effect | Boeing: 47,700 lb at sea level, 43,300 at 8400 ft, 31,000 at 16,000 ft | 47,690 (fitted), 42,230, 32,600 |
+| V-22 pitch attitude through the conversion | V-22 flight test (Dunford) | within 2.8° rms |
+| V-22 wing download at 67° | 0.658-scale rotor and wing test | 11.8 % against 9.2 % |
 
 ## Known gaps
 
-- **XV-15 in helicopter mode.** The power falls too fast with speed: 19 %
-  over the test at 45 kt, 27 % under at 94 kt. The blade elements and the
+- **XV-15 in helicopter mode.** The power falls too fast with speed: 24 %
+  over the test at 45 kt, 8 % under at 94 kt. The blade elements and the
   wake give more translational lift than the test shows; Bell's own
   simulation used an empirical profile power there.
-- **XV-15 trim through the conversion.** In airplane mode the model trims
-  at the flight test's elevator, but with the nacelles up it needs 4–6° less
-  (trailing edge down) than the aircraft did: a nose-up moment it lacks
-  there, from the rotors and the wing in each other's flow rather than from
-  the tail, whose downwash and rotor wake are Ferguson's.
-- **Drag of the XV-15's tables.** With the gear up, the XV-15 build needs a
-  third less power than its flight test in airplane mode: Bell's wind tunnel
-  coefficients miss part of the flying aircraft's drag. The V-22 build
-  supplies it by a drag area fitted to Boeing's polar; the XV-15 build keeps
-  Bell's data as they are. Ferguson's revision adds a pylon interference drag
-  fitted to the flight tests, not taken yet.
-- **Hover at low thrust.** The rotor needs 3–21 % more power than the test
-  below C_T/σ 0.075, and its thrust rises 34 % faster with collective than the
-  test's, whose collective was read at the actuator, with the blades' elastic
-  twist, which the rigid blades here don't have. Past its maximum thrust the
+- **The XV-15 through the conversion.** With the nacelles up the model
+  needs 11–52 % more power than the flight test and 1–3° less elevator
+  (trailing edge down): excess power, and a nose-up moment it lacks, both
+  from the rotors' wakes over the wing, which no test checks. In airplane
+  mode it trims at the flight test's elevator.
+- **Drag of the XV-15's tables.** Bell's wind tunnel coefficients miss part
+  of the flying aircraft's drag. The XV-15 build adds what Ferguson found
+  from its flight tests, the spinners' and the pylons' interference drag,
+  and still needs a fifth less power than the test in airplane mode with
+  the gear up. The V-22 build supplies its own by a drag area fitted to
+  Boeing's polar.
+- **Hover at low thrust.** The rotor needs 5–19 % more power than the test
+  below C_T/σ 0.075, and its thrust rises 20 % faster with collective than the
+  test's, whose collective was read at the actuator: the blades' torsion
+  takes away 14 of the 34 % the rigid blades had. Past its maximum thrust the
   blades stall and the gimbal whirls by a few degrees.
 - **Through the conversion** the wing carries 8 % of the weight less than the
   V-22's flight test (rms), most at 30° of nacelle, and the aircraft trims a
   few degrees nose-up at each nacelle angle's higher speeds. The test's
   weight and flap setting aren't published. One trim, at 30° and 97 kt,
   doesn't converge.
-- **Download.** The V-22's wing carries 11.7 % of the thrust down in the
+- **Download.** The V-22's wing carries 11.8 % of the thrust down in the
   hover, against 9.2 % in Boeing's 0.658-scale test.
 - **Hover hold in a strong wind.** In ADS-33E's position hold check, a 360°
   pedal turn in about 30 s, it stays within its 10 ft circle in still air but
-  strays 7 ft in 20 kt of wind and 10 ft in 35 kt, about twice the circle's
+  strays 6 ft in 20 kt of wind and 9 ft in 35 kt, about twice the circle's
   radius; its integrators follow the wind's loads turning with the aircraft
   too slowly.
 - **Terrain following** sees 45 s ahead: enough to climb 1000 ft at the
@@ -296,7 +303,7 @@ Every number comes from the scripted test programme in the report.
   the engines can climb in that time, or coming into view round a turn,
   can't be cleared by the set height, and the fly-up takes over below half
   of it. Climbing at full power at about 170 kt the aircraft lags its model
-  a little, and a ridge steeper than its climb leaves it 15 % under the
+  a little, and a ridge steeper than its climb leaves it 20 % under the
   clearance.
 - **Dynamics.** No time histories or frequency responses of the V-22 are
   public. The XV-15's are, and with Ferguson's revised tail, ailerons and
@@ -309,7 +316,8 @@ Every number comes from the scripted test programme in the report.
   coefficients, not its inertias. The augmentation is a plausible control
   law, not the V-22's.
 - **Not modelled:** the engines' fuel controls and temperatures (the gauges'
-  temperatures come from the original's converter), blade torsion and bending,
+  temperatures come from the original's converter), the blades' bending
+  (on the gimbal it would cone and lag them by a degree at most),
   failures other than an engine cut (the interconnect shaft then drives both
   rotors), the fuel transfer's pumps and valves.
 - **Cockpit.** The V-22's display formats follow its published layout and

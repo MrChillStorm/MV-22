@@ -6234,7 +6234,8 @@
 <fcs_function name="aero/gear/nose/FX-lbs"><function><product><value>-0.92807361</value><property>gear/gear-pos-norm</property><property>atmosphere/rho-slugs_ft3</property><property>velocities/u-aero-fps</property><property>aero/fus/V-fps</property></product></function></fcs_function>
 <fcs_function name="aero/gear/nose/FY-lbs"><function><product><value>-0.92807361</value><property>gear/gear-pos-norm</property><property>atmosphere/rho-slugs_ft3</property><property>velocities/v-aero-fps</property><property>aero/fus/V-fps</property></product></function></fcs_function>
 <fcs_function name="aero/gear/nose/FZ-lbs"><function><product><value>-0.92807361</value><property>gear/gear-pos-norm</property><property>atmosphere/rho-slugs_ft3</property><property>velocities/w-aero-fps</property><property>aero/fus/V-fps</property></product></function></fcs_function>
-<fcs_function name="aero/emp/wake-share"><function><table><independentVar lookup="row">aero/alpha-deg</independentVar><independentVar lookup="column">velocities/vtrue-kts</independentVar><independentVar lookup="table">ctl/beta-m-deg</independentVar><tableData breakPoint="0">
+<fcs_function name="aero/emp/wake-v-kts"><description>the airspeed at which the XV-15 had this wake skew</description><function><product><value>0.79692934</value><property>velocities/vtrue-kts</property></product></function></fcs_function>
+<fcs_function name="aero/emp/wake-share"><function><table><independentVar lookup="row">aero/alpha-deg</independentVar><independentVar lookup="column">aero/emp/wake-v-kts</independentVar><independentVar lookup="table">ctl/beta-m-deg</independentVar><tableData breakPoint="0">
         0 20 40 60 80 100 120 140
 -180 0 0 0 0 0 0 0 0
 -30 0 0 0 0 0 0 0 0

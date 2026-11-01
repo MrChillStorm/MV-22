@@ -9,10 +9,15 @@ R = 12.5                    # ft
 NB = 3
 CONE = 2.5                  # deg, precone
 K_GIMBAL = 12587.0          # ft lb/rad, the gimbal's spring
-K_PITCH_LINK = 22400.0      # the pitch link's stiffness [TP: KPL]
+K_PITCH_LINK = 22400.0      # lb/ft, the pitch link's stiffness [TP: KPL]
+X_PITCH_HORN = 0.059        # /R, its arm on the pitch horn [TP: XPH] (with it the rigid blade's pitch frequency is
+                            # Johnson's 4.8/rev at 458 rpm)
 # the rigid blade's pitch frequency on the control system's stiffness: 4.8/rev in cyclic and 5.2/rev in collective with
 # the XV-15's original control system, 5.4/rev with its stiffened one [TX-73213 p. 6]
 PITCH_FREQ_CYCLIC, PITCH_FREQ_COLL, PITCH_FREQ_STIFF = 4.8, 5.2, 5.4
+
+# (the blade's inertia about the gimbal from these, slug ft^2: Bell's is 102.5 [CR, the Lock number 3.83])
+I_BLADE_CHECK = 102.5
 
 # stations, r/R
 R_R = [0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2,

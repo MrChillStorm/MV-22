@@ -121,30 +121,34 @@ SETNAMES = [('nac90', '90$^\\circ$, flaps 20$^\\circ$'), ('nac60', '60$^\\circ$,
 
 
 def xv15_power(name, data=None):
-    """(V, test hp, model hp at sea level, at 10 000 ft) at each test point (data: the test's set, else name's)"""
+    """(V, test hp, model hp at sea level, at 10 000 ft, at 16 000 ft) at each test point (data: the test's set, else
+    name's; nan where the model has no trim or the altitude was not run)"""
     res = R('xv15_' + name)
     out = []
     for v, p in XF.SETS[data or name][2]:
         m = {}
-        for alt in ('0', '10000'):
-            rows = [r for r in res[alt] if r['res'] < 0.05]
+        for alt in ('0', '10000', '16000'):
+            rows = [r for r in res.get(alt, []) if r['res'] < 0.05]
             Vs = [r['V'] for r in rows]; hp = [r['hp'] for r in rows]
             m[alt] = float(np.interp(v, Vs, hp)) if rows and Vs[0] - 1 <= v <= Vs[-1] + 1 else float('nan')
-        out.append((v, p, m['0'], m['10000']))
+        out.append((v, p, m['0'], m['10000'], m['16000']))
     return out
+
+
+def span(d):
+    """'min to max' of a list of percentages, or a dash for none"""
+    return '%s to %s' % (f(min(d), '%+.0f'), f(max(d), '%+.0f')) if d else '--'
 
 
 def xv15_table():
     out = []
     for name, lab in SETNAMES:
         pts = xv15_power(name)
-        d0 = [100 * (m0 / p - 1) for v, p, m0, m1 in pts if m0 == m0]
-        d1 = [100 * (m1 / p - 1) for v, p, m0, m1 in pts if m1 == m1]
-        out.append('%s & %.0f--%.0f & %s to %s & %s to %s' % (lab, pts[0][0], pts[-1][0], f(min(d0), '%+.0f'), f(max(d0), '%+.0f'),
-                                                          f(min(d1), '%+.0f'), f(max(d1), '%+.0f')))
+        d0, d1, d2 = ([100 * (pt[k] / pt[1] - 1) for pt in pts if pt[k] == pt[k]] for k in (2, 3, 4))
+        out.append('%s & %.0f--%.0f & %s & %s & %s' % (lab, pts[0][0], pts[-1][0], span(d0), span(d1), span(d2)))
         if name == 'nac90':
             # without the hover point: in forward flight, at 45 and 94 kt
-            fwd = [(v, p, m0) for v, p, m0, m1 in pts if v > 1]
+            fwd = [pt for pt in pts if pt[0] > 1]
             num('NXhelLo', 100 * (fwd[0][2] / fwd[0][1] - 1), '%+.0f'); num('NXhelHi', 100 * (fwd[-1][2] / fwd[-1][1] - 1), '%+.0f')
             num('NXhover', 100 * (pts[0][2] / pts[0][1] - 1), '%+.0f')
         if name in ('nac30', 'nac0f20', 'nac60'):
@@ -154,31 +158,36 @@ def xv15_table():
         if name == 'nac0':
             num('NXaMin', min(d1), '%+.0f'); num('NXaMax', max(d1), '%+.0f')
             num('NXaSlMin', min(d0), '%+.0f'); num('NXaSlMax', max(d0), '%+.0f')
+        if name in ('nac0', 'nac0f20') and d2:
+            k = {'nac0': 'a', 'nac0f20': 'f'}[name]
+            num('NX%sSixMin' % k, min(d2), '%+.0f'); num('NX%sSixMax' % k, max(d2), '%+.0f')
     pts = xv15_power('nac0_gear', 'nac0')
-    d0 = [100 * (m0 / p - 1) for v, p, m0, m1 in pts if m0 == m0]; d1 = [100 * (m1 / p - 1) for v, p, m0, m1 in pts if m1 == m1]
-    out.append('0$^\\circ$, flaps up, gear down & %.0f--%.0f & %s to %s & %s to %s' % (pts[0][0], pts[-1][0], f(min(d0), '%+.0f'), f(max(d0), '%+.0f'),
-                                                                                f(min(d1), '%+.0f'), f(max(d1), '%+.0f')))
+    d0, d1, d2 = ([100 * (pt[k] / pt[1] - 1) for pt in pts if pt[k] == pt[k]] for k in (2, 3, 4))
+    out.append('0$^\\circ$, flaps up, gear down & %.0f--%.0f & %s & %s & %s' % (pts[0][0], pts[-1][0], span(d0), span(d1), span(d2)))
     num('NXgMin', min(d1), '%+.0f'); num('NXgMax', max(d1), '%+.0f')
-    write('xv15', tabular('lrrr', 'Nacelle, flaps & KCAS & sea level, \\% & 10\\,000\\,ft, \\%', out))
+    write('xv15', tabular('lrrrr', 'Nacelle, flaps & KCAS & sea level, \\% & 10\\,000\\,ft, \\% & 16\\,000\\,ft, \\%', out))
 
 
 def xv15_trim_table():
-    """the trim elevator against the flight test's [TM-84222 fig. 21]: model (sea level, 10 000 ft) less flight, deg
-    trailing edge down, at the flight's points within the model's trims"""
+    """the trim elevator against the flight test's [TM-84222 fig. 21]: model (sea level, 10 000 ft, 16 000 ft in airplane
+    mode) less flight, deg trailing edge down, at the flight's points within the model's trims"""
     out = []
     key = {'nac90': 'Hel', 'nac60': 'Sixty', 'nac30': 'Thirty', 'nac0f20': 'Flap', 'nac0': 'Plane'}
     for name, lab in SETNAMES:
         r = R('xv15_' + name)
         cells = []
-        for alt, tag in (('0', 'Sl'), ('10000', 'Hi')):
-            rows = [x for x in r[alt] if x['res'] < 0.05]
+        for alt, tag in (('0', 'Sl'), ('10000', 'Hi'), ('16000', 'Six')):
+            rows = [x for x in r.get(alt, []) if x['res'] < 0.05]
+            if not rows:
+                cells.append('--')
+                continue
             V = np.array([x['V'] for x in rows]); de = -np.array([x['de'] for x in rows])
             d = [float(np.interp(v, V, de)) - e for v, e in XF.TRIM_DE[name] if V.min() - 2 <= v <= V.max() + 2]
             cells.append('%s (%s to %s)' % (f(np.mean(d)), f(min(d)), f(max(d))))
             num('NXte%s%s' % (key[name], tag), np.mean(d), '%+.1f')
         pts = XF.TRIM_DE[name]
-        out.append('%s & %.0f--%.0f & %s & %s' % (lab, min(v for v, e in pts), max(v for v, e in pts), cells[0], cells[1]))
-    write('xv15trim', tabular('lrrr', 'Nacelle, flaps & KCAS & sea level, deg & 10\\,000\\,ft, deg', out))
+        out.append('%s & %.0f--%.0f & %s & %s & %s' % (lab, min(v for v, e in pts), max(v for v, e in pts), *cells))
+    write('xv15trim', tabular('lrrrr', 'Nacelle, flaps & KCAS & sea level, deg & 10\\,000\\,ft, deg & 16\\,000\\,ft, deg', out))
 
 
 def download_table():

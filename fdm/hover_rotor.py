@@ -16,7 +16,7 @@ def sweep(colls=None):
     f['ctl/init'] = 1
     H.freeze(f)
     rows = []
-    for c in colls or np.arange(-8.0, 13.1, 1.0):
+    for c in colls or np.arange(-8.0, 18.1, 1.0):
         acc, ex = H.residual(f, [c, 0, 0, 0, 0, 0], 0.0, settle_s=1.5, revs=3,
                              extra=('aero/rotor/r/thrust-lbs', 'aero/rotor/r/power-hp', 'ctl/r/theta75-deg', 'aero/rotor/r/a1-deg', 'aero/rotor/r/b1-deg'))
         T, P, th, a1, b1 = ex

@@ -22,7 +22,9 @@ design lift has:
          number Mdd = KAPPA_A - t - 0.1 |cl| (KAPPA_A 0.87 for conventional sections) with Lock's rise
          20 (M - Mdd + 0.108)^4; past the stall a flat plate's 1.98 sin^2(alpha); in reversed flow 1.5 times the attached
          drag of the angle from the trailing edge
-  moment not modelled: the blades are rigid in torsion
+  moment  about the quarter chord, -0.8 cl_i / 4: the a = 1.0 mean line's thin airfoil moment, -cl_i / 4, taken at 0.8
+         of it as the zero-lift angle (NACA R-824's 64-series); its own change with the angle of attack and past the
+         stall left out. For the blades' torsion (blademodes.py)
 
 The constants marked FITTED are fitted to the full-scale XV-15 rotor's hover test [TM-86833] in the test programme
 (hover_rotor.py); the same constants serve the V-22's sections.
@@ -37,7 +39,7 @@ CN_PLATE = 1.98
 A0 = 0.110                  # lift slope per deg at t = 0.09, M = 0
 CLMAX0 = 1.55               # FITTED: maximum lift of a symmetric 12 % section at M = 0 (C-81's 0012: 1.334)
 DCLMAX_T = 6.0              # loss of maximum lift with thickness away from 12 %, per (t - 0.12)^2
-CD0_12 = 0.0080             # FITTED: minimum drag of a 12 % section (production blade, tripped)
+CD0_12 = 0.0065             # FITTED: minimum drag of a 12 % section (production blade, tripped; 0.0080 with rigid blades)
 DCD0_T = 0.06               # rise of the minimum drag with thickness away from 12 %, per (t - 0.12)^2
 KAPPA_A = 0.87              # Korn's technology factor for conventional (NACA 6-series) sections
 
@@ -116,6 +118,11 @@ class Section:
 def alphas():
     a = list(range(0, 21)) + [22, 24, 26, 28, 30, 35, 40] + list(range(50, 170, 10)) + [170, 175, 180]
     return sorted(set([-x for x in a] + a))
+
+
+def cm0(cl_i):
+    """the section's moment coefficient about its quarter chord (the module's notes)"""
+    return -0.8 * cl_i / 4
 
 
 def interp_sections(stations, r):
