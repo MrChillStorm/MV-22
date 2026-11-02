@@ -339,7 +339,113 @@ def freq():
     save(fig, 'freq')
 
 
+def vrs():
+    """steady descents through the vortex ring state (descent.py) against Johnson's model and the tests he gathered"""
+    import vrs as VRS
+    from data import johnson_vrs as JV
+    KT = 1.6878
+    builds = [res('descent_v22'), res('descent_xv15')]
+    fig, axs = plt.subplots(2, 3, figsize=(W2, 4.3))
+    spd_c = {0: '#b2182b', 20: '#ef8a62', 30: '#67a9cf', 40: '#2166ac'}
+    for ax, d, t in zip(axs[0, :2], builds, 'ab'):
+        for sp in d['speeds']:
+            if sp['kt'] not in spd_c:
+                continue
+            rr = [r['r'] for r in sp['rows']]
+            z = [r['z'] for r in rr]
+            ax.plot(z, [r['z'] + r['nu_j'] for r in rr], '-', color=spd_c[sp['kt']], lw=0.9)
+            ax.plot(z, [r['z'] + r['nu'] for r in rr], 'o', mfc='none', mec=spd_c[sp['kt']], ms=2.6, mew=0.6, label='%d kt' % sp['kt'])
+        zz = np.linspace(-1.7, 0.0, 200)
+        ax.plot(zz, [z + VRS.upper(z, 0.0) for z in zz], ':', color=C_REF, lw=0.8, label='momentum, 0 kt')
+        ax.set_xlabel(r'$V_z/v_h$' + " (the rotor's own)"); ax.set_ylabel(r'$(V_z+v)/v_h$'); ax.set_xlim(-1.8, 0.05); ax.set_ylim(0, 1.45)
+        ax.set_title('(%s) %s, %.0f lb' % (t, d['name'], d['weight']), loc='left', fontsize=8.5, pad=3)
+        if t == 'a':
+            ax.legend(frameon=False, loc='lower left', ncol=1, fontsize=6.8)
+    # (c) vertical descent on the thrust's ideal vh against Betzina's tiltrotor rotor
+    ax = axs[0, 2]
+    zz = np.linspace(-2.2, 0.3, 300)
+    k = JV.BETZINA_KAPPA
+    ax.plot(zz, [z + VRS.nu(z, 0.0, kappa=k) for z in zz], '-', color=C_REF, lw=0.9, label=r'Johnson, $\kappa$ %.2f' % k)
+    for d, mk in zip(builds, ('o', 's')):
+        rows = d['speeds'][0]['rows']
+        Z, Y = [], []
+        for r in rows:
+            vht = math.sqrt(r['r']['thrust'] / (2 * d['rho'] * math.pi * d['R'] ** 2))
+            ke = r['r']['vh'] / vht
+            Z.append(ke * r['r']['z']); Y.append(ke * (r['r']['z'] + r['r']['nu']))
+        ax.plot(Z, Y, mk, mfc='none', mec=C_MOD, ms=2.6, mew=0.6, label='model, ' + d['name'])
+    test_pts(ax, JV.BETZINA_AXIAL_Q, 'Betzina, from $Q$', C_TEST, 'v')
+    test_pts(ax, JV.BETZINA_AXIAL_T, 'from $T$', C_TEST, '^')
+    ax.set_xlabel(r'$V_z/v_h$' + " (the thrust's ideal)"); ax.set_ylabel(r'$(V_z+v)/v_h$'); ax.set_xlim(-2.0, 0.05); ax.set_ylim(0, 1.6)
+    ax.legend(frameon=False, loc='lower right', fontsize=6.5); tag(ax, 'c')
+    # (d) the stability boundary on the weight's vh against the flight tests
+    ax = axs[1, 0]
+    xs = np.linspace(0, VRS.XM, 100)
+    pts = [VRS.vrs_points(x) for x in xs]
+    ax.plot(list(xs) + list(xs[::-1]), [p[1] for p in pts] + [p[2] for p in pts][::-1], '-', color=C_REF, lw=0.9, label='Johnson\'s boundary')
+    for d, mk, ls in zip(builds, ('o', 's'), ('-', '--')):
+        b = [[(sp['kt'] * KT / d['vh_weight'], -sp['boundary'][key]['sink_fps'] / d['vh_weight']) for sp in d['speeds'] if key in sp['boundary']]
+             for key in ('lower', 'upper')]
+        ax.plot(*zip(*(b[0] + b[1][::-1])), mk + ls, color=C_MOD, mfc='none', ms=2.6, mew=0.6, lw=0.7, label='model, ' + d['name'])
+    ax.plot(*zip(*JV.V22_ROLLOFF), 'o', color='#d6604d', ms=3.0, ls='none', label='V-22 roll-off')
+    ax.plot(*zip(*JV.D6075_DROP), 'D', color='#4393c3', ms=2.4, ls='none', label=r'D6075 $V_z$ drop')
+    ax.plot(*zip(*JV.D6075_STAB), 'D', mfc='none', mec='#4393c3', ms=2.4, mew=0.5, ls='none', label='D6075 stabilised')
+    ax.set_xlabel(r'$V_x/v_h$' + " (the weight's)"); ax.set_ylabel(r'$V_z/v_h$'); ax.set_xlim(0, 1.65); ax.set_ylim(-1.8, 0)
+    ax.legend(frameon=False, loc='lower right', fontsize=6.0, handlelength=1.5); tag(ax, 'd')
+    # (e) the V-22's boundary in the flight manual's terms
+    ax = axs[1, 1]
+    d = builds[0]
+    for key, ls in (('lower', 'o-'), ('upper', 'o--')):
+        b = [(sp['kt'], sp['boundary'][key]['sink_fps'] * 60) for sp in d['speeds'] if key in sp['boundary']]
+        ax.plot(*zip(*b), ls, color=C_MOD, mfc='none', ms=2.6, mew=0.6, lw=0.9,
+                label='model: ' + ('least collective (in)' if key == 'lower' else 'greatest (out)'))
+    kt = np.linspace(0, VRS.XM * d['vh_weight'] / KT, 60)
+    jb = [-VRS.vrs_points(k_ * KT / d['vh_weight'])[1] * d['vh_weight'] * 60 for k_ in kt]
+    ax.plot(kt, jb, '-', color=C_REF, lw=0.9, label='Johnson: N')
+    vk, vs = V.VRS_SINK
+    ax.plot([0] + list(vk) + [vk[-1]], [vs[0]] + list(vs) + [0], '-', color=C_TEST, lw=1.0, label='flight manual warning')
+    ax.plot([x * d['vh_weight'] / KT for x, z in JV.V22_ROLLOFF], [-z * d['vh_weight'] * 60 for x, z in JV.V22_ROLLOFF], 'o', color='#d6604d', ms=3.0,
+            ls='none', label='V-22 roll-off (at %.0f lb)' % d['weight'])
+    ax.set_xlabel('airspeed (kt)'); ax.set_ylabel('descent rate (ft/min)'); ax.set_xlim(0, 65); ax.set_ylim(0, 9000)
+    ax.legend(frameon=False, loc='upper right', fontsize=6.2); tag(ax, 'e')
+    # (f) the collective against the descent rate: the trims' bucket
+    ax = axs[1, 2]
+    for sp in d['speeds']:
+        if sp['kt'] not in spd_c:
+            continue
+        ax.plot([r['sink_fps'] * 60 for r in sp['rows']], [r['coll'] for r in sp['rows']], '-', color=spd_c[sp['kt']], label='%d kt' % sp['kt'])
+    ax.set_xlabel('descent rate (ft/min)'); ax.set_ylabel(r'trim collective, $\Delta\theta$ (deg)'); ax.legend(frameon=False, fontsize=6.5)
+    ax.set_title('(f) V-22 trims', loc='left', fontsize=8.5, pad=3)
+    fig.tight_layout(w_pad=0.6, h_pad=0.8)
+    save(fig, 'vrs')
+
+
+def vrs_encounter():
+    """Johnson's V-22 encounter [TP figs. 65-67] (descent.py)"""
+    from data import johnson_vrs as JV
+    runs = res('vrs_encounter')
+    fig, axs = plt.subplots(3, 1, figsize=(W1, 4.2), sharex=True)
+    lab = {0.0: 'symmetric', -15.0: '15$^\\circ$ sideslip'}
+    for o, c in zip(runs, (C_MOD, '#2166ac')):
+        t = o['t']
+        axs[0].plot(t, o['vz'], '-', color=c, label=lab[o['beta0']])
+        axs[1].plot(t, o['nz'], '-', color=c)
+        axs[2].plot(t, o['phi'], '-', color=c, label='roll (deg)')
+        axs[2].plot(t, [10 * x for x in o['dcoll']], ':', color=c, lw=0.9, label=r'differential collective $\times 10$')
+    axs[0].plot(JV.JOHNSON_ENC_T, JV.JOHNSON_ENC_VZ, 'o', mfc='none', mec=C_TEST, ms=3.2, mew=0.7, label='Johnson')
+    axs[1].plot(JV.JOHNSON_ENC_T, JV.JOHNSON_ENC_NZ, 'o', mfc='none', mec=C_TEST, ms=3.2, mew=0.7)
+    axs[0].set_ylabel(r'$V_z/v_h$'); axs[1].set_ylabel(r'$n_z$ ($g$)'); axs[2].set_ylabel('deg')
+    axs[0].legend(frameon=False, fontsize=6.3, loc='lower left', handlelength=1.4)
+    h, l = axs[2].get_legend_handles_labels()
+    axs[2].legend(h[:2], l[:2], frameon=False, fontsize=6.5, loc='upper left')
+    axs[2].set_xlabel('time from the collective\'s step (s)'); axs[2].set_xlim(0, max(runs[0]['t']))
+    for ax, t in zip(axs, 'abc'):
+        tag(ax, t)
+    fig.tight_layout(h_pad=0.4)
+    save(fig, 'vrs_enc')
+
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
-    for fn in (hover, xv15, xv15_trim, download_polar, perf, conversion, handling, hover_hold, tf, freq):
+    for fn in (hover, xv15, xv15_trim, download_polar, perf, conversion, handling, hover_hold, tf, freq, vrs, vrs_encounter):
         fn()

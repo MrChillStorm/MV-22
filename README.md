@@ -51,6 +51,13 @@ it, every system, mode and procedure, is in the flight manual:
   A ring-vortex wake carries each rotor's downwash to the wing, the
   horizontal tail and the two fins, for any nacelle angle, speed and
   direction.
+- **Vortex ring state.** Descending steeply at low speed, each rotor enters
+  its own wake on its own: its mean inflow follows Johnson's model
+  (NASA/TP-2005-213477), built on the wind tunnel and flight tests of rotors
+  in descent, on the rotor's own axial and edgewise velocity, with his lag
+  for the ring's building up. Past about 1900 ft/min near the hover a descent
+  at a fixed lever runs away, and deep in it a yaw that slows one rotor
+  edgewise puts that rotor deeper in, and the aircraft rolls off towards it.
 - **Nacelles.** They tilt at up to 8°/s from 97.5° (7.5° aft of vertical)
   to 0°, airplane mode. The conversion protection holds them inside the
   V-22's corridor of nacelle angle against airspeed.
@@ -263,6 +270,10 @@ Every number comes from the scripted test programme in the report.
 | V-22 hover ceiling out of ground effect | Boeing: 47,700 lb at sea level, 43,300 at 8400 ft, 31,000 at 16,000 ft | 47,690 (fitted), 42,230, 32,600 |
 | V-22 pitch attitude through the conversion | V-22 flight test (Dunford) | within 2.8° rms |
 | V-22 wing download at 67° | 0.658-scale rotor and wing test | 11.8 % against 9.2 % |
+| Each rotor's inflow in steady descents, both builds | Johnson's vortex ring state model (NASA/TP-2005-213477) | within 0.001 v_h on average; 0.04 past its point X, 0.10 on its edge at 0.95 v_h edgewise |
+| V-22 vortex ring state boundary, vertical descent, 47,500 lb | flight tests by weight: Vz/vh −0.45 (Johnson); flight manual warning 800 ft/min | −0.48: a fixed lever runs away between 1930 and 7150 ft/min |
+| V-22 in Johnson's VRS encounter | his calculation: Vz/vh −0.79 at 10 s, 0.75 g, no roll | −0.60 at 10 s, 0.83 g, then a roll-off at 42 s (31 s in sideslip) |
+| Everything above, with the vortex ring state model in | the results without it | identical: none of these runs enters it |
 
 ## Known gaps
 
@@ -305,6 +316,17 @@ Every number comes from the scripted test programme in the report.
   of it. Climbing at full power at about 170 kt the aircraft lags its model
   a little, and a ridge steeper than its climb leaves it 20 % under the
   clearance.
+- **Vortex ring state.** Johnson's model is an isolated rotor's mean
+  inflow. It is scaled here by each rotor's own wake, which carries the
+  wing's download and the wake's induced losses: on the weight's scale,
+  as the flight tests are, the V-22's boundary in vertical descent lies at
+  Vz/vh −0.48 against their −0.45. The two rotors' wakes don't act on each other, and the
+  ring's unsteadiness isn't modelled (Johnson gives no model of it: his
+  tests' thrust fluctuations show no trend). Flown through Johnson's own
+  V-22 encounter the aircraft drops later than his calculation and rolls
+  off at the bottom of the drop, deeper than the V-22's flight-test
+  roll-offs. Trims past the vortex ring, in the turbulent wake state,
+  don't converge.
 - **Dynamics.** No time histories or frequency responses of the V-22 are
   public. The XV-15's are, and with Ferguson's revised tail, ailerons and
   inertias the XV-15 build follows them in cruise roll and sideslip and in
@@ -355,7 +377,11 @@ python3 genv22.py root-polar/aircraft/mv22b --no-inline
   the trim schedule of the augmentation (`trimmap.py --write` recomputes it).
 - `harness.py` drives the model offline. `hover_rotor.py`, `sweep.py`,
   `download.py`, `airframe_polar.py`, `performance.py` and `handling.py`
-  compare it with the tests; `freqresp.py` sweeps the XV-15 build for its
+  compare it with the tests; `vrs.py` is Johnson's vortex ring state model
+  (`python3 vrs.py` checks it against his figures and its tables), and
+  `descent.py` trims both builds in steady descents through it and flies his
+  V-22 encounter (`descent.py encounter`), against the tests he gathered
+  (`data/johnson_vrs.py`); `freqresp.py` sweeps the XV-15 build for its
   frequency responses against Tischler's (`data/xv15_freq.py`), and
   `derivs.py` compares its stability derivatives with Bell's. `hoverhold.py`
   and `aptest.py` fly the hover hold and the autopilot (the holds,
@@ -376,8 +402,9 @@ python3 genv22.py root-polar/aircraft/mv22b --no-inline
   flies FlightGear through the situations the manual shows and takes each
   display square on from the cockpit, flattened from where a frame drawn
   round the screen shows its corners. Run it when a format changes.
-- `report/mkresults.py` runs the whole programme (about four and a half
-  minutes on 8 cores) into `report/results/`; `report/build.sh` makes every
+- `report/mkresults.py` runs the whole programme (about 13 minutes on 8
+  cores, the descents through the vortex ring state the longest) into
+  `report/results/`; `report/build.sh` makes every
   figure, table and number of the report from them and builds the PDF.
 - `rotorvis.py` builds the rotors' blur models, and `cockpit/panel.py` the
   instrument panel, glareshield and console (their 3-D model, legends and

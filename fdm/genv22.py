@@ -13,8 +13,8 @@ aerodynamic flap moments, the gyroscopic moments of the shaft's rotation and the
 coupling (delta-3). Each blade has NSEG segments of equal annulus area at their own angle of attack and Mach number in
 section tables over +-180 deg (data/sections.py), in the air the full kinematics give them: the aircraft's motion, the
 nacelle's tilting, the rotor's rotation, the gimbal's tilt and its rate, and the induced inflow (Peters-He finite-state
-wake per rotor, with ground effect). The nacelles tilt from 90 deg (helicopter) to 0 (airplane); the rotor's frame and
-its hub turn with them. The rotors are geared together by the interconnect shaft: one rotor speed.
+wake per rotor, with ground effect, and in descent Johnson's vortex ring state: vrs.py). The nacelles tilt from 90 deg
+(helicopter) to 0 (airplane); the rotor's frame and its hub turn with them. The rotors are geared together by the interconnect shaft: one rotor speed.
 
 Shaft axes of a rotor: x along the disc (forward in helicopter mode, down in airplane mode), y right, z along the shaft
 into the wake. The right rotor turns anticlockwise seen from above in helicopter mode (its inboard blade moving aft, up
@@ -32,6 +32,7 @@ from data import bell301 as B
 from data import gtrs as GTRS
 from data import heyson_ground as HG
 import rotorwake
+import vrs as VRS
 
 U = None                  # the aircraft's data module, set by configure()
 G0 = 32.174
@@ -73,7 +74,9 @@ KEEP = {'aero/rotor/r/thrust-lbs', 'aero/rotor/l/thrust-lbs', 'aero/rotor/r/torq
         'ap/tcl-cmd', 'ap/nacelle-sched-deg', 'ap/auto-nac-on', 'ap/lat', 'ap/vert', 'ap/spd', 'ap/coupled', 'ap/nav', 'ap/line', 'ap/app',
         'ap/app-dist-ft', 'ap/app-xte-ft', 'ap/app-path-ft', 'ap/v-sel-kt', 'ap/roll-lag-s', 'ap/app-route',
         'ap/tf-on', 'ap/tf-flyup', 'ap/tf-climb-cap-fps', 'ap/tf-ref-ft', 'ap/tf-model-ft', 'ap/tf-v1-fps',
-        'ap/tf-v2-fps', 'ap/tf-w', 'ap/tf-tau1-s', 'ap/tf-tau2-s', 'ap/tf-kh'}
+        'ap/tf-v2-fps', 'ap/tf-w', 'ap/tf-tau1-s', 'ap/tf-tau2-s', 'ap/tf-kh',
+        # read by descent.py (the others it reads are read twice in the model)
+        'aero/rotor/r/vrs/nu-base', 'aero/rotor/l/vrs/nu-base', 'aero/rotor/r/vrs/dnu', 'aero/rotor/l/vrs/dnu'}
 INLINE = True
 
 
@@ -1233,7 +1236,7 @@ class Model:
         r.declare('rotor/omega-rad_sec', U.OMEGA_100 * U.NR_HELO / 100)
         r.declare('rotor/psi-rad', 0.0)
         for side, m in SIDES:
-            for st in ('bc', 'bs', 'bcd', 'bsd', 'v0-fps'):
+            for st in ('bc', 'bs', 'bcd', 'bsd', 'v0-fps', 'vrs-dv'):
                 r.declare('rotor/%s/%s' % (side, st), 0.0)
             if s.tc:
                 for k in range(U.NB):
@@ -1414,12 +1417,6 @@ class Model:
         mu, lm, la = Q(Vip, WR), Q(v0, WR), Q(Vn, WR)
         ph.fn(b_ + '/ph/V', MAX(Q(v(5), WR), Q(S(SQR(mu), M(S(la, lm), la)), VT)))
         Xs = [0.05 * i for i in range(21)]
-        for st, tg, kind in ((PH_COS, 'c', 'c'), (PH_SIN, 's', 's')):
-            Li = [np.linalg.inv(PH.Lmat(st, x, kind)) for x in Xs]
-            for i in range(len(st)):
-                for kk in range(len(st)):
-                    Vk = VT if st[kk] == (1, 0) else p(b_ + '/ph/V')
-                    ph.fn(b_ + '/ph/A%s%d-%d' % (tg, i, kk), M(T1(b_ + '/ph/X', Xs, [float(L_[i, kk]) for L_ in Li]), Vk))
         nw = SQ(S(SQR(Vhx), SQR(Vhy)))
         slow = LT(nw, v(0.5))
         ph.fn(b_ + '/ph/cd', IFTHEN(slow, v(1), Q(Vhx, MAX(nw, v(0.5)))))
@@ -1543,6 +1540,13 @@ class Model:
             rh = (PH_COS if tg == 'c' else PH_SIN)[i][1]
             kb = 1 / U.TIP_LOSS ** 2
             ph.fn(b_ + '/ph/tau-%s%d' % (tg, i), Q(M(v(kb / (2 * math.pi) if rh == 0 else kb / math.pi), S(*terms)), qn))
+        VTu = s.vrs(side, ph, Xs, WR, VT, Vhz, Vip)
+        for st, tg, kind in ((PH_COS, 'c', 'c'), (PH_SIN, 's', 's')):
+            Li = [np.linalg.inv(PH.Lmat(st, x, kind)) for x in Xs]
+            for i in range(len(st)):
+                for kk in range(len(st)):
+                    Vk = VTu if st[kk] == (1, 0) else p(b_ + '/ph/V')
+                    ph.fn(b_ + '/ph/A%s%d-%d' % (tg, i, kk), M(T1(b_ + '/ph/X', Xs, [float(L_[i, kk]) for L_ in Li]), Vk))
         s.rot.channels[s.inflow_start[side]][1][0:0] = ph.channels[0][1]
         if getattr(U, 'SPINNER_DRAG', None):
             # the spinner's drag, on the flow through the disc (the hub's motion and the induced velocity): its area
@@ -1569,6 +1573,52 @@ class Model:
         # gimbal tilt (deg) for the tests: + forward, + towards the right (the rotor's own frame)
         g.fn(b_ + '/a1-deg', M(v(R2D), bc), 'gimbal tilt, longitudinal: + disc forward (aft blade up)')
         g.fn(b_ + '/b1-deg', M(v(-R2D), bs), 'gimbal tilt, lateral: + disc towards the rotor\'s outboard side... (mirror frame: right)')
+
+    def vrs(s, side, ph, Xs, WR, VT, Vhz, Vip):
+        """Vortex ring state: Johnson's model of the mean inflow [TP-2005-213477] (vrs.py). Where it departs from
+        momentum theory, in descent below 0.2 vh and slower than 0.95 vh edgewise, the uniform wake state's mass flow
+        parameter is set for his steady inflow, vh / nu (Vz / vh, Vx / vh), in place of momentum theory's
+        sqrt(Vx^2 + (Vz + v)^2) (Vprime). vh is the wake's own: its steady uniform inflow times its mass flow, the
+        uniform state's row of L times the forcing, so that its momentum theory is Glauert's in Vz / vh and Vx / vh
+        exactly (Vx with the mass flow's 5 ft/s floor) and Johnson's joins it at the region's edges. The wake states keep
+        their own dynamics: while his total flow is down through the disc the mass flow is momentum theory's on the
+        present inflow, offset to his steady state; his increment for the vortex ring follows with his time lag,
+        tau = 0.7 / lambda_h revolutions, lambda_h the thrust's ideal. Each rotor on its own axial and edgewise velocity.
+        Returns the uniform state's mass flow parameter."""
+        b_, st_, w = 'aero/rotor/%s' % side, 'rotor/%s' % side, 'aero/rotor/%s/vrs/' % side
+        cd, sd = p(b_ + '/ph/cd'), p(b_ + '/ph/sd')
+        Lc = [PH.Lmat(PH_COS, x, 'c') for x in Xs]
+        terms = []
+        for kk, (j, rh) in enumerate(PH_COS):
+            tau = p(b_ + '/ph/tau-c%d' % kk)
+            if rh:          # in the wake's frame, as inflow_states turns it
+                tau = S(M(tau, cd), M(p(b_ + '/ph/tau-s%d' % PH_SIN.index((j, rh))), sd))
+            terms.append(M(T1(b_ + '/ph/X', Xs, [float(L_[0, kk]) for L_ in Lc]), tau))
+        vh = ph.fn(w + 'vh-fps', M(WR, SQ(MAX(v(1e-8), M(v(0.5 * math.sqrt(3)), S(*terms))))),
+                   desc='hover induced velocity of the forcing: the steady uniform inflow times its mass flow, ft/s')
+        ph.fn(w + 'z', Q(NEG(Vhz), vh), desc='axial velocity (climb +) over vh')
+        ph.fn(w + 'x', Q(SQ(S(SQR(Vip), v(25.0))), vh), desc='edgewise velocity over vh, with the mass flow\'s floor')
+        ph.fn(w + 's', tag('pow', MAX(v(0), D(v(1), SQR(Q(p(w + 'x'), v(VRS.XM))))), v(0.2)), desc='the tables\' coordinate across (vrs.py)')
+        xs, zs = VRS.edge_table()
+        inside = ph.fn(w + 'in', M(LT(p(w + 'z'), v(VRS.ZD)), LT(p(w + 'x'), v(VRS.XM)), GT(p(w + 'z'), T1(w + 'x', xs, zs))),
+                       desc='in the region where Johnson\'s model departs from momentum theory')
+        nb, dn = VRS.tables()
+        nub = ph.fn(w + 'nu-base', T2(w + 'z', w + 's', VRS.TAB_Z, VRS.TAB_S, nb), desc='the baseline\'s v / vh')
+        dnu = ph.fn(w + 'dnu', T2(w + 'z', w + 's', VRS.TAB_Z, VRS.TAB_S, dn), desc='the vortex ring\'s increment of v / vh')
+        dv = p(st_ + '/vrs-dv')
+        # Johnson's mass flow v_h / nu; while his total flow is down through the disc, momentum theory's form, on the present
+        # inflow, offset to his (the wake's own dynamics, and at the region's edges exactly momentum theory's); past ideal
+        # autorotation, where that form has no stable state, his own (the two meet there, with the same slope)
+        nu = ph.fn(w + 'nu', S(nub, Q(dv, vh)), desc='Johnson\'s v / vh with the lagged vortex ring')
+        Sj = SQ(S(SQR(p(w + 'x')), SQR(S(p(w + 'z'), nu))))
+        VTj = IFTHEN(GT(S(p(w + 'z'), nu), v(0)), Q(S(p(b_ + '/Vprime-fps'), M(vh, D(Q(v(1), nu), Sj))), WR), Q(vh, M(WR, nu)))
+        VTu = ph.fn(b_ + '/ph/VTu', IFTHEN(inside, VTj, VT), desc='the uniform state\'s mass flow parameter')
+        # the lag, 1 / (tau s + 1) stepped semi-implicitly; at a start or a trim's evaluation its steady value
+        vhi = SQ(Q(MAX(p(b_ + '/thrust-lbs'), v(1.0)), M(v(2 * math.pi * U.R ** 2), p('atmosphere/rho-slugs_ft3'))))
+        k = M(p('simulation/channel-dt'), vhi, v(1 / (VRS.TAU_REV_LH * 2 * math.pi * U.R)))
+        tgt = M(inside, vh, dnu)
+        ph.fn(st_ + '/vrs-dv-next', IFTHEN(GT(p('ctl/init-fast'), v(0.5)), tgt, Q(S(dv, M(k, tgt)), S(v(1), k))), out=st_ + '/vrs-dv')
+        return VTu
 
     # ------------------------------------------------------------ wakes on the airframe
     def wake(s, g, target):

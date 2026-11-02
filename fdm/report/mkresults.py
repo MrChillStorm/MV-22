@@ -10,7 +10,7 @@ Stages: hover (hover_rotor.py), xv15_<set> for the sets of data/xv15_flight.py a
 polar (airframe_polar.py), speed, ceiling<alt>, conversion<nacelle> (performance.py), handling_hover,
 handling_conversion, start (handling.py), hover_hold_stop, hover_hold_turn, hover_hold_controls (hoverhold.py), autopilot_holds,
 autopilot_approach, autopilot_lnav, tf_response, tf_<terrain>_<kt> and tf_jitter_<terrain>_<kt> (aptest.py), freq_hover, freq_cruise
-(freqresp.py), derivs (derivs.py)."""
+(freqresp.py), derivs (derivs.py), descent_v22, descent_xv15, vrs_encounter (descent.py)."""
 import os, sys, json, time
 from multiprocessing import Pool
 import numpy as np
@@ -176,6 +176,18 @@ def tf(name, V, frame=0.0):
     dump('tf_%s%s_%d' % ('jitter_' if frame else '', name, V), out)
 
 
+def descent(xv15):
+    """steady descents through the vortex ring state (descent.py)"""
+    import descent as DS
+    dump('descent_' + ('xv15' if xv15 else 'v22'), DS.sweep(xv15))
+
+
+def vrs_encounter():
+    """Johnson's V-22 encounter, symmetric and in sideslip (descent.py)"""
+    import descent as DS
+    dump('vrs_encounter', [DS.encounter(b) for b in (0.0, -15.0)])
+
+
 TF_CASES = [(n, V) for n in ('flat', 'hills', 'ridge') for V in (120, 150, 200)] + [('ridge', 170)]
 TF_JITTER = [(n, V) for n in ('flat', 'ridge') for V in (120, 200)]
 
@@ -188,7 +200,8 @@ STAGES = dict(hover=hover, xv15_nac0_gear=xv15_gear, download=download, polar=po
               **{'autopilot_' + w: (lambda w=w: autopilot(w)) for w in ('holds', 'approach', 'lnav')}, tf_response=tf_response,
               **{'freq_' + c: (lambda c=c: freq(c)) for c in ('hover', 'cruise')}, derivs=derivs,
               **{'tf_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]))) for c in TF_CASES},
-              **{'tf_jitter_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]), 0.077)) for c in TF_JITTER})
+              **{'tf_jitter_%s_%d' % c: (lambda c=c: tf(c[0], float(c[1]), 0.077)) for c in TF_JITTER},
+              descent_v22=lambda: descent(False), descent_xv15=lambda: descent(True), vrs_encounter=vrs_encounter)
 
 
 def run(name):
