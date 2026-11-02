@@ -396,6 +396,11 @@ setlistener("/sim/signals/fdm-initialized", func {
   }
   is_initialized = 1;
 
+  # the nav receivers' audio (their stations' Morse idents) off at each start until the pilot selects it, as on an
+  # audio panel: FlightGear's nav radio switches it on at its init (navradio.cxx), after the saved aircraft data
+  foreach (var n; [0, 1])
+    setprop("/instrumentation/nav[" ~ n ~ "]/audio-btn", 0);
+
   setlistener("/sim/signals/reinit", func(n) {
     n.getBoolValue() and return;
     cprint("/32;1", "reinit");

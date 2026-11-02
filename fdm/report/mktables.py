@@ -320,6 +320,8 @@ def autopilot_numbers():
     num('NApPathLo', min(r['path'][0] for r in ap['final']), '%.0f'); num('NApPathHi', max(r['path'][1] for r in ap['final']), '%.0f')
     num('NApHandKt', max(r['hand_vc'] for r in ap['final'][:2]), '%.0f')
     num('NApHoldD', max(r['hold_d'] for r in ap['final']), '%.0f')
+    num('NApPast', max(r.get('past_ft', 0.0) for r in ap['final'] + [ap['route']]), '%.0f')
+    num('NApHandD', min(r['hand_d'] for r in ap['final']), '%.0f')
     num('NApDownD', max(r['down_d'] for r in (land3, land6)), '%.1f'); num('NApSink', max(r['sink'] for r in (land3, land6)), '%.1f')
     num('NApWindHand', land6['hand_vc'], '%.0f')
     num('NApGaLost', max(g['h0'] - g['h_min'] for g in ap['ga']), '%.0f')

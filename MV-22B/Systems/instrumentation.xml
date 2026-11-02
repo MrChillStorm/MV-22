@@ -35,7 +35,8 @@
   <adf>
     <adf-btn                          type="bool">true</adf-btn>
     <bfo-btn                          type="bool">false</bfo-btn>
-    <volume-norm                      type="double">0.5</volume-norm>
+    <!-- the ADF's audio at the aircraft's sound scale: 0.5 x 0.027 (fdm/rotorsound.py) -->
+    <volume-norm                      type="double">0.0135</volume-norm>
     <power-btn                        type="bool">true</power-btn>
     <frequencies>
       <standby-khz                    type="int">291</standby-khz>
@@ -100,7 +101,10 @@
   <comm                               n="0">
     <serviceable                      type="bool">true</serviceable>
     <power-btn                        type="bool">true</power-btn>
-    <volume                           type="double">0.95</volume>
+    <!-- the radio's audio at the aircraft's sound scale: the original 0.95 x 0.027 (fdm/rotorsound.py); no static
+         (FlightGear's comm radio loops radionoise.wav at (1 - signal quality) x volume unless add-noise is false) -->
+    <volume                           type="double">0.026</volume>
+    <add-noise                        type="bool">false</add-noise>
     <display-volume                   type="bool">false</display-volume>
     <frequencies>
       <selected-mhz                   type="double">121.50</selected-mhz>
@@ -110,7 +114,10 @@
   <comm                               n="1">
     <serviceable                      type="bool">true</serviceable>
     <power-btn                        type="bool">true</power-btn>
-    <volume                           type="double">0.95</volume>
+    <!-- the radio's audio at the aircraft's sound scale: the original 0.95 x 0.027 (fdm/rotorsound.py); no static
+         (FlightGear's comm radio loops radionoise.wav at (1 - signal quality) x volume unless add-noise is false) -->
+    <volume                           type="double">0.026</volume>
+    <add-noise                        type="bool">false</add-noise>
     <display-volume                   type="bool">false</display-volume>
     <frequencies>
       <standby-mhz                    type="double">133.70</standby-mhz>
@@ -120,8 +127,10 @@
   <nav                                n="0">
     <serviceable                      type="bool">true</serviceable>
     <power-btn                        type="bool">true</power-btn>
-    <volume                           type="double">0.5</volume>
-    <audio-btn                        type="bool">true</audio-btn>
+    <!-- the radios' audio at the aircraft's sound scale: the original 0.5 times the cockpit's factor for the original
+         sounds (fdm/rotorsound.py: x 0.027); the nav receivers' audio (their Morse idents) off until selected -->
+    <volume                           type="double">0.0135</volume>
+    <audio-btn                        type="bool">false</audio-btn>
     <ident                            type="bool">true</ident>
     <display-volume                   type="bool">false</display-volume>
     <radials>
@@ -134,8 +143,10 @@
   <nav                                n="1">
     <serviceable                      type="bool">true</serviceable>
     <power-btn                        type="bool">true</power-btn>
-    <volume                           type="double">0.5</volume>
-    <audio-btn                        type="bool">true</audio-btn>
+    <!-- the radios' audio at the aircraft's sound scale: the original 0.5 times the cockpit's factor for the original
+         sounds (fdm/rotorsound.py: x 0.027); the nav receivers' audio (their Morse idents) off until selected -->
+    <volume                           type="double">0.0135</volume>
+    <audio-btn                        type="bool">false</audio-btn>
     <ident                            type="bool">true</ident>
     <display-volume                   type="bool">false</display-volume>
     <radials>

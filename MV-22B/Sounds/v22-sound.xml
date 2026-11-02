@@ -5,256 +5,1337 @@
   <fx>
 
     <!-- Left engine -->
-    <engine>
-      <name>left-engine-start</name>
-      <path>v22_turbine_strt_out.wav</path>
-      <mode>once</mode>
-      <condition>
-        <greater-than>
-          <!-- <property>sim/model/v22/engine_left</property> (each engine's own spool) -->
-          <property>sim/multiplay/generic/float[2]</property>
-          <value>0.01</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <factor>0.12</factor>
-      </volume>
-      <position>
-        <x>  1.50 </x>
-        <y> -7.00 </y>
-        <z>  0.00 </z>
-      </position>
-      <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
-    </engine>
 
-    <engine>
-      <name>left-engine-loop</name>
-      <path>v22_turbine_out.wav</path>
-      <mode>looped</mode>
-      <condition>
-        <greater-than>
-          <!-- <property>sim/model/v22/engine_left</property> (each engine's own spool) -->
-          <property>sim/multiplay/generic/float[2]</property>
-          <value>0.01</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <!-- <property>sim/model/v22/engine_left</property> -->
-        <property>sim/multiplay/generic/float[2]</property>
-        <factor>3</factor>
-        <min>0</min>
-        <max>0.25</max>
-      </volume>
-      <volume>
-        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
-        <property>sim/multiplay/generic/float[36]</property>
-      </volume>
-      <position>
-        <x>  2.50 </x>
-        <y> -7.00 </y>
-        <z>  1.00 </z>
-      </position>
-      <pitch>
-        <!-- <property>sim/model/v22/engine_left</property> -->
-        <property>sim/multiplay/generic/float[2]</property>
-        <factor>1.03</factor>
-        <offset>-0.0</offset>
-        <max>2.0</max>
-      </pitch>
-      <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
-    </engine>
 
-    <engine>
-      <name>left-exhaust-loop</name>
-      <path>v22_exh.wav</path>
-      <mode>looped</mode>
-      <condition>
-        <greater-than>
-          <!-- <property>sim/model/v22/engine_left</property> (each engine's own spool) -->
-          <property>sim/multiplay/generic/float[2]</property>
-          <value>0.01</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <!-- <property>sim/model/v22/engine_left</property> -->
-        <property>sim/multiplay/generic/float[2]</property>
-        <factor>1.5</factor>
-        <min>0</min>
-        <max>0.25</max>
-      </volume>
-      <volume>
-        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
-        <property>sim/multiplay/generic/float[36]</property>
-      </volume>
-      <position>
-        <x> 2.50 </x>
-        <y> 0.00 </y>
-        <z> 1.00 </z>
-      </position>
-      <pitch>
-        <!-- <property>sim/model/v22/engine_left</property> -->
-        <property>sim/multiplay/generic/float[2]</property>
-        <factor>1</factor>
-        <offset>-0.0</offset>
-        <max>2.0</max>
-      </pitch>
-      <orientation>
-        <x>  1 </x>
-        <y>  0 </y>
-        <z> -1 </z>
-        <inner-angle>50</inner-angle>
-        <outer-angle>130</outer-angle>
-        <outer-gain>0.6</outer-gain>
-      </orientation>
-      <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
-    </engine>
 
     <!-- Right engine -->
-    <engine>
-      <name>right-engine-start</name>
-      <path>v22_turbine_strt_out.wav</path>
-      <mode>once</mode>
-      <condition>
-        <greater-than>
-          <!-- <property>sim/model/v22/engine_right</property> (each engine's own spool) -->
-          <property>sim/multiplay/generic/float[3]</property>
-          <value>0.01</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <factor>0.12</factor>
-      </volume>
-      <position>
-        <x> 1.50 </x>
-        <y> 7.00 </y>
-        <z> 0.00 </z>
-      </position>
-      <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
-    </engine>
 
-    <engine>
-      <name>right-engine-loop</name>
-      <path>v22_turbine_out.wav</path>
-      <mode>looped</mode>
-      <condition>
-        <greater-than>
-          <!-- <property>sim/model/v22/engine_right</property> (each engine's own spool) -->
-          <property>sim/multiplay/generic/float[3]</property>
-          <value>0.01</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <!-- <property>sim/model/v22/engine_right</property> -->
-        <property>sim/multiplay/generic/float[3]</property>
-        <factor>3</factor>
-        <max>0.25</max>
-        <min>0</min>
-      </volume>
-      <volume>
-        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
-        <property>sim/multiplay/generic/float[36]</property>
-      </volume>
-      <position>
-        <x> 2.50 </x>
-        <y> 7.00 </y>
-        <z> 1.00 </z>
-      </position>
-      <pitch>
-        <!-- <property>sim/model/v22/engine_right</property> -->
-        <property>sim/multiplay/generic/float[3]</property>
-        <factor>1</factor>
-        <offset>-0.0</offset>
-        <max>2.0</max>
-      </pitch>
-      <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
-    </engine>
 
-    <engine>
-      <name>right-exhaust-loop</name>
-      <path>v22_exh.wav</path>
-      <mode>looped</mode>
-      <condition>
-        <greater-than>
-          <!-- <property>sim/model/v22/engine_right</property> (each engine's own spool) -->
-          <property>sim/multiplay/generic/float[3]</property>
-          <value>0.01</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <!-- <property>sim/model/v22/engine_right</property> -->
-        <property>sim/multiplay/generic/float[3]</property>
-        <factor>1.5</factor>
-        <min>0</min>
-        <max>0.25</max>
-      </volume>
-      <volume>
-        <!-- <property>rotors/gear/torque-sound-filtered</property> -->
-        <property>sim/multiplay/generic/float[36]</property>
-      </volume>
-      <position>
-        <x> 2.50 </x>
-        <y> 0.00 </y>
-        <z> 1.00 </z>
-      </position>
-      <pitch>
-        <!-- <property>sim/model/v22/engine_right</property> -->
-        <property>sim/multiplay/generic/float[3]</property>
-        <factor>1</factor>
-        <offset>-0.0</offset>
-        <max>2.0</max>
-      </pitch>
-      <orientation>
-        <x>  1 </x>
-        <y>  0 </y>
-        <z> -1 </z>
-        <inner-angle>50</inner-angle>
-        <outer-angle>130</outer-angle>
-        <outer-gain>0.6</outer-gain>
-      </orientation>
-      <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
-    </engine>
 
-    <!-- outside -->
-    <!-- rotor -->
+    <!-- the proprotors, helicopter and airplane modes: written by fdm/rotorsound.py from PyWopWop banks -->
     <rotor>
-      <name>rotor</name>
-      <path>v22_flap.wav</path>
+      <name>pww-hover-side-rotor</name>
       <mode>looped</mode>
+      <path>pywopwop/hover_side_rotor.wav</path>
       <condition>
         <and>
-          <greater-than>
-            <property>rotors/main/rpm</property>
-            <value>5</value>
-          </greater-than>
-          <!-- <not><property>sim/crashed</property></not> -->
-          <not><property>sim/multiplay/generic/bool[6]</property></not>
           <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
         </and>
       </condition>
-      <volume>
-        <!-- <property>rotors/main/stall-filtered</property> -->
-        <factor>0.5</factor>
-      </volume>
-      <pitch>
-        <property>rotors/main/rpm</property>
-        <factor>0.00243</factor>
-        <offset>-0.</offset>
-        <max>2.5</max>
-      </pitch>
-      <position>
-        <x> 1.5 </x>
-        <y> 0.0 </y>
-        <z> 2.0 </z>
-      </position>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>0.0525155</value></product><value>-0.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
       <reference-dist>100</reference-dist>
-      <max-dist>1000</max-dist>
+      <max-dist>4000</max-dist>
     </rotor>
+    <rotor>
+      <name>pww-hover-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>0.0525155</value></product><value>-0.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-transition-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/transition_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-transition-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/transition_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-cruise_slow-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_slow_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-cruise_slow-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_slow_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-cruise-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-cruise-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-hover_ige-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_ige_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>-0.0525155</value></product><value>1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-hover_ige-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_ige_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>-0.0525155</value></product><value>1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-climb-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/climb_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-climb-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/climb_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-bvi-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/bvi_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-bvi-side-slap</name>
+      <mode>looped</mode>
+      <path>pywopwop/bvi_side_slap.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><product><property>/rotors/main/slap-ext</property><value>0.114886</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-bvi-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/bvi_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-descent_steep-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/descent_steep_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-descent_steep-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/descent_steep_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-hover-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>0.0525155</value></product><value>-0.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-hover-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>0.0525155</value></product><value>-0.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-transition-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/transition_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-transition-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/transition_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-cruise_slow-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_slow_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-cruise_slow-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_slow_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-cruise-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-cruise-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/cruise_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-hover_ige-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_ige_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>-0.0525155</value></product><value>1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-hover_ige-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/hover_ige_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>position/altitude-agl-ft</property><value>-0.0525155</value></product><value>1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-climb-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/climb_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-climb-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/climb_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.0857143</value></product><value>-0.428571</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-bvi-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/bvi_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-bvi-cockpit-slap</name>
+      <mode>looped</mode>
+      <path>pywopwop/bvi_cockpit_slap.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><product><property>/rotors/main/slap-int</property><value>0.382604</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-bvi-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/bvi_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.12</value></product><value>-0.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.15</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.625</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2.3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-descent_steep-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/descent_steep_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-descent_steep-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/descent_steep_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>82</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.15</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_180-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_180_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_180-side-slap</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_180_side_slap.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_180-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_180_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_220-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_220_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>6.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_220-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_220_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>6.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_260-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_260_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_260-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_260_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_climb-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_climb_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_climb-side-slap</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_climb_side_slap.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_climb-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_climb_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_descent-side-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_descent_side_rotor.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_descent-side-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_descent_side_swish.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.156081</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_180-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_180_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_180-cockpit-slap</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_180_cockpit_slap.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_180-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_180_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_220-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_220_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>6.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_220-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_220_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>6.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_260-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_260_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_260-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_260_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-5.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><difference><value>1</value><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product><product><clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></difference><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_climb-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_climb_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_climb-cockpit-slap</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_climb_cockpit_slap.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_climb-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_climb_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-3.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>4.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_descent-cockpit-rotor</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_descent_cockpit_rotor.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-airplane_descent-cockpit-swish</name>
+      <mode>looped</mode>
+      <path>pywopwop/airplane_descent_cockpit_swish.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <greater-than><property>rotors/main/rpm</property><value>67</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product>
+        <clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>-0.0333333</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <value>0.673442</value>
+        <clip><sum><product><property>velocities/vertical-speed-fps</property><value>-0.05</value></product><value>-0.25</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>0.025</value></product><value>-4.75</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>velocities/airspeed-kt</property><value>-0.02</value></product><value>5.6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+        <clip><sum><product><property>rotors/main/rpm</property><value>0.0029985</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>
+      </product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0029985</factor><min>0.2</min><max>1.25</max></pitch>
+    </rotor>
+    <wind>
+      <name>pww-wind-30</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_30kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.03333333</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.03333333</value></product><value>2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-60</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_60kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.03333333</value></product><value>-1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.025</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-100</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_100kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.025</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.02</value></product><value>3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-150</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_150kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.02</value></product><value>-2</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.02</value></product><value>4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-200</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_200kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.02</value></product><value>-3</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.02</value></product><value>5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-250</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_250kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.02</value></product><value>-4</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.02</value></product><value>6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-300</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_300kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.02</value></product><value>-5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>-0.02</value></product><value>7</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <wind>
+      <name>pww-wind-350</name>
+      <mode>looped</mode>
+      <path>pywopwop/wind_350kt_cockpit.wav</path>
+      <condition><property>sim/current-view/internal</property></condition>
+      <volume><expression><product><sqrt><clip><sum><product><product><div><property>/velocities/equivalent-kt</property><sqrt><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></sqrt></div><pow><div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div></div><value>-0.1666667</value></pow></product><value>0.02</value></product><value>-6</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></sqrt><sqrt><product><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><product><pow><div><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>288.15</value></div><value>1.5</value></pow><div><value>398.55</value><sum><sum><property>/environment/temperature-degc</property><value>273.15</value></sum><value>110.4</value></sum></div></product></product></sqrt></product></expression></volume>
+    </wind>
+    <!-- the engines: casing and exhaust at Levine and DeFelice's turboshaft levels (fdm/rotorsound.py: engine outside 81 dBA, engine cockpit 77 dBA, exhaust outside 84 dBA, exhaust cockpit 82 dBA) -->
+    <engine>
+      <name>right-engine-outside</name>
+      <mode>looped</mode>
+      <path>v22_turbine_out.wav</path>
+      <condition><and><not><property>sim/current-view/internal</property></not><greater-than><property>/sim/model/v22/engine_right</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.0222645</value><sqrt><clip><div><property>/fdm/jsbsim/eng[0]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_right</property><factor>1.03</factor><max>2.0</max></pitch>
+      <position><x>-1.88</x><y>-7.04</y><z>0.52</z></position>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </engine>
+    <engine>
+      <name>right-exhaust-outside</name>
+      <mode>looped</mode>
+      <path>v22_exh.wav</path>
+      <condition><and><not><property>sim/current-view/internal</property></not><greater-than><property>/sim/model/v22/engine_right</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.040015</value><sqrt><clip><div><property>/fdm/jsbsim/eng[0]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_right</property><factor>1</factor><max>2.0</max></pitch>
+      <position><x>-1.88</x><y>-7.04</y><z>0.52</z></position>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </engine>
+    <engine>
+      <name>right-engine-cockpit</name>
+      <mode>looped</mode>
+      <path>v22_turbine_out.wav</path>
+      <condition><and><property>sim/current-view/internal</property><greater-than><property>/sim/model/v22/engine_right</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.00455408</value><sqrt><clip><div><property>/fdm/jsbsim/eng[0]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_right</property><factor>1.03</factor><max>2.0</max></pitch>
+    </engine>
+    <engine>
+      <name>right-exhaust-cockpit</name>
+      <mode>looped</mode>
+      <path>v22_exh.wav</path>
+      <condition><and><property>sim/current-view/internal</property><greater-than><property>/sim/model/v22/engine_right</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.0101147</value><sqrt><clip><div><property>/fdm/jsbsim/eng[0]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_right</property><factor>1</factor><max>2.0</max></pitch>
+    </engine>
+    <engine>
+      <name>right-start</name>
+      <mode>once</mode>
+      <path>v22_turbine_strt_out.wav</path>
+      <condition><and><greater-than><property>/fdm/jsbsim/eng[0]/running</property><value>0.5</value></greater-than><greater-than><property>/sim/model/v22/engine_right</property><value>0.01</value></greater-than><less-than><property>/sim/model/v22/engine_right</property><value>0.99</value></less-than></and></condition>
+      <volume><expression><sum><value>0.0249984</value><product><property>sim/current-view/internal</property><value>-0.0198851</value></product></sum></expression></volume>
+      <position><x>-1.88</x><y>-7.04</y><z>0.52</z></position>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </engine>
+    <engine>
+      <name>left-engine-outside</name>
+      <mode>looped</mode>
+      <path>v22_turbine_out.wav</path>
+      <condition><and><not><property>sim/current-view/internal</property></not><greater-than><property>/sim/model/v22/engine_left</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.0222645</value><sqrt><clip><div><property>/fdm/jsbsim/eng[1]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_left</property><factor>1.03</factor><max>2.0</max></pitch>
+      <position><x>-1.88</x><y>7.04</y><z>0.52</z></position>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </engine>
+    <engine>
+      <name>left-exhaust-outside</name>
+      <mode>looped</mode>
+      <path>v22_exh.wav</path>
+      <condition><and><not><property>sim/current-view/internal</property></not><greater-than><property>/sim/model/v22/engine_left</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.040015</value><sqrt><clip><div><property>/fdm/jsbsim/eng[1]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_left</property><factor>1</factor><max>2.0</max></pitch>
+      <position><x>-1.88</x><y>7.04</y><z>0.52</z></position>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </engine>
+    <engine>
+      <name>left-engine-cockpit</name>
+      <mode>looped</mode>
+      <path>v22_turbine_out.wav</path>
+      <condition><and><property>sim/current-view/internal</property><greater-than><property>/sim/model/v22/engine_left</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.00455408</value><sqrt><clip><div><property>/fdm/jsbsim/eng[1]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_left</property><factor>1.03</factor><max>2.0</max></pitch>
+    </engine>
+    <engine>
+      <name>left-exhaust-cockpit</name>
+      <mode>looped</mode>
+      <path>v22_exh.wav</path>
+      <condition><and><property>sim/current-view/internal</property><greater-than><property>/sim/model/v22/engine_left</property><value>0.01</value></greater-than></and></condition>
+      <volume><expression><product><value>0.0101147</value><sqrt><clip><div><property>/fdm/jsbsim/eng[1]/power-hp</property><value>6150</value></div><clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt></product></expression></volume>
+      <pitch><property>/sim/model/v22/engine_left</property><factor>1</factor><max>2.0</max></pitch>
+    </engine>
+    <engine>
+      <name>left-start</name>
+      <mode>once</mode>
+      <path>v22_turbine_strt_out.wav</path>
+      <condition><and><greater-than><property>/fdm/jsbsim/eng[1]/running</property><value>0.5</value></greater-than><greater-than><property>/sim/model/v22/engine_left</property><value>0.01</value></greater-than><less-than><property>/sim/model/v22/engine_left</property><value>0.99</value></less-than></and></condition>
+      <volume><expression><sum><value>0.0249984</value><product><property>sim/current-view/internal</property><value>-0.0198851</value></product></sum></expression></volume>
+      <position><x>-1.88</x><y>7.04</y><z>0.52</z></position>
+      <reference-dist>100</reference-dist>
+      <max-dist>4000</max-dist>
+    </engine>
+    <!-- end of fdm/rotorsound.py's proprotors -->
+
 
     <wing>
       <name>wingrotation</name>
@@ -286,6 +1367,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </wing>
 
     <blade_fold>
@@ -318,6 +1401,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </blade_fold>
 
     <flap>
@@ -351,6 +1436,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </flap>
 
     <engine_tilt>
@@ -383,6 +1470,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </engine_tilt>
 
     <overspeed>
@@ -432,6 +1521,8 @@
       </position>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </rumble>
 
     <squeal>
@@ -468,6 +1559,8 @@
       </position>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </squeal>
 
     <squeal>
@@ -504,6 +1597,8 @@
       </position>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </squeal>
 
     <squeal>
@@ -540,6 +1635,8 @@
       </position>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </squeal>
 
     <gear>
@@ -554,6 +1651,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </gear>
 
     <gear>
@@ -567,6 +1666,8 @@
       </condition>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </gear>
 
     <crash>
@@ -582,6 +1683,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </crash>
 
     <!-- DOORS -->
@@ -602,6 +1705,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -621,6 +1726,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -640,6 +1747,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -659,6 +1768,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -678,6 +1789,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -697,6 +1810,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </door>
 
     <flare>
@@ -715,6 +1830,8 @@
       </volume>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </flare>
 
     <rain>
@@ -741,6 +1858,8 @@
       </pitch>
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
+      <!-- at the banks' scale (fdm/rotorsound.py) -->
+      <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </rain>
 
   </fx>

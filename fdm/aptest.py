@@ -703,7 +703,7 @@ def tf_climb_check(speeds=(60.0, 80.0, 100.0, 120.0, 150.0, 200.0, 250.0), T=40.
 
 def approach_numbers(r):
     """an approach's (approach, route_approach) numbers: on the final, the cross-track error and the height off the path
-    once on it; the handover, the hover, the touchdown"""
+    once on it; the handover, how far past the point it ran (ft), the hover, the touchdown"""
     t, st, d, xte, dh = (np.array(r[k]) for k in ('t', 'state', 'd', 'xte', 'dh'))
     gp = (st == 1) & (np.array(r['gp']) > 0.5) & (d > 1500)        # on the path once it is captured
     on_final = (st == 1) & (d < 15000) & (d > 1500)
@@ -712,6 +712,7 @@ def approach_numbers(r):
     wow = np.where(np.array(r['wow']) > 0.5)[0]
     out = dict(xte_max=float(np.abs(xte[on_final]).max()), path=(float(dh[gp].min()), float(dh[gp].max())) if gp.any() else (0.0, 0.0),
                hand_t=float(t[i2]), hand_d=float(d[i2]), hand_vc=r['vc'][i2], taken=bool((st == 3).any()),
+               past_ft=float(max(0.0, -d[st >= 1].min())) if (st >= 1).any() else 0.0,
                theta=(min(r['theta']), max(r['theta'])), phi=(min(r['phi']), max(r['phi'])))
     if len(held):
         h0 = held[0]
@@ -725,8 +726,8 @@ def approach_numbers(r):
 
 def approach_summary(r):
     a = approach_numbers(r)
-    out = 'final: xte max %4.0f ft, path %+4.0f..%+4.0f ft; handed over at %3.0f s (%4.0f ft to go, %4.1f kt)' % (
-        a['xte_max'], a['path'][0], a['path'][1], a['hand_t'], a['hand_d'], a['hand_vc'])
+    out = 'final: xte max %4.0f ft, path %+4.0f..%+4.0f ft; handed over at %3.0f s (%4.0f ft to go, %4.1f kt), %3.0f ft past the point at most' % (
+        a['xte_max'], a['path'][0], a['path'][1], a['hand_t'], a['hand_d'], a['hand_vc'], a['past_ft'])
     if not a['taken']:
         out += '; NOT TAKEN by the hold'
     if 'hold_t' in a:

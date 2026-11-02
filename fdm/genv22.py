@@ -48,6 +48,7 @@ START_TRIM_TAU_S = 0.25                   # its stick's trim's time constant (sc
 AUTOPILOT_EXECRATE = 8                  # the autopilot's outer loops: 60 Hz
 AIRFRAME_EXECRATE = 8
 SLOW_EXECRATE = 8
+SLAP_TAU_S = 0.25         # the slap's sound follows the rotors' state through this lag: their 3/rev loads (20 Hz) out
 # Peters-He states (j, r): three axisymmetric (the hover's radial distribution) and the first harmonic
 PH_COS = [(1, 0), (3, 0), (5, 0), (2, 1)]
 PH_SIN = [(2, 1)]
@@ -177,6 +178,13 @@ def start_trim():
     """the level-flight trims FlightGear's in-air start takes (trimmap.py --start): along AUTO NAC's schedule over the
     calibrated airspeed, the gross weight and the density altitude, the gear up and down; None without them"""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'start_trim_v22.json')
+    return json.load(open(path)) if os.path.exists(path) else None
+
+
+def slap_table():
+    """the blade slap's loudness over the rotor's advance ratio and inflow through the tip-path plane, outside and in
+    the cockpit, relative to the sound bank's slap loops (rotorsound.py from PyWopWop's map); None without it"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'slap_v22.json')
     return json.load(open(path)) if os.path.exists(path) else None
 
 
@@ -784,7 +792,17 @@ class Model:
         jerk = Q(M(p('ap/vert-accel-g'), v(G0 * G0)), M(V, v(KT)))
         ev = D(vsel, vref)
         rmax = MIN(SQ(M(v(2), jerk, ABS(ev))), Q(ABS(ev), MAX(dt, v(1e-3))))
-        rtgt = IFTHEN(GT(ev, v(0)), MIN(p('ap/accel-kts'), rmax), NEG(MIN(p('ap/decel-kts'), rmax)))
+        # On the approach the reference stops itself over the point: the deceleration that brings its ground speed to
+        # rest in the distance to go, v^2 / 2d, up to its own largest rate (the acceleration's). Chasing the profile's
+        # speed at the profile's own deceleration instead fell behind for good: the jerk-limited start put the reference
+        # a few knots slow, and from there the profile drops faster than its deceleration (by v_aircraft / v_profile),
+        # so the gap grew, to 17 kt 250 ft out, and the hover hold took over at the point at 30 kt, ran 190 ft past it
+        # and backed up (aptest.py approach). The stop law corrects itself: behind, it asks more
+        vg_ref = MAX(v(0), D(vref, hw))
+        rstop = c.fn('ap/v-ref-stop-kts', IFTHEN(GT(M(app, GT(dgo, v(1))), v(0.5)),
+                                                 MIN(p('ap/accel-kts'), Q(M(SQR(vg_ref), v(KT)), M(v(2), MAX(dgo, v(1))))), v(0)),
+                     desc='on the approach, the deceleration that stops the reference over the point, kt/s')
+        rtgt = IFTHEN(GT(ev, v(0)), MIN(p('ap/accel-kts'), rmax), NEG(MAX(MIN(p('ap/decel-kts'), rmax), rstop)))
         rprev, rj = p('ap/v-ref-dot-kts'), M(jerk, dt)
         vref_dot = c.fn('ap/v-ref-dot-next', IFTHEN(GT(M(spd, NOT(srise)), v(0.5)), S(rprev, MAX(NEG(rj), MIN(rj, D(rtgt, rprev)))),
                                                     M(p('ap/vdot-fps2'), Q(vc, MAX(vt, v(1))))), out='ap/v-ref-dot-kts')
@@ -1997,6 +2015,40 @@ class Model:
             o.fn('out/b%d-pitch' % k, S(th, M(h, D(v(90), th))), out='/rotors/main/blade[%d]/incidence-deg' % k)
         o.fn('out/gimbal-fwd', M(v(0.5), S(p('aero/rotor/r/a1-deg'), p('aero/rotor/l/a1-deg'))), out='/rotors/main/yaw-deg')
         o.fn('out/gimbal-right', M(v(-0.5), S(p('aero/rotor/r/b1-deg'), M(v(-1), p('aero/rotor/l/b1-deg')))), out='/rotors/main/roll-deg')
+        sl = slap_table() if U.NAME == 'V-22' else None
+        if sl:
+            # the blade slap's loudness for the sound (Sounds/v22-sound.xml's slap loops; data/slap_v22.json): PyWopWop's
+            # map of it over the advance ratio and the inflow through the tip-path plane, which set where the tip
+            # vortices pass the blades. Each rotor's kinematics in the plane normal to its force (PyWopWop's trim puts
+            # the tip-path plane there): its advance ratio and upflow; the inflow PyWopWop's at them, scaled with the
+            # thrust (the map's levels come from its wake at its own inflow: this model's runs 10-15 % higher at low
+            # speed); the vortices' strength with the thrust; the two rotors' sound power added. Lagged so that the
+            # blade passages' loads stay out of it
+            o.channel('rotor sound', execrate=SLOW_EXECRATE)
+            WR = MAX(M(W, v(U.R)), v(30))
+            g2 = {'ext': [], 'int': []}
+            for side, m in SIDES:
+                b_, o_ = 'aero/rotor/%s' % side, 'out/%s/slap' % side
+                F = [p(b_ + '/F%s-s' % a) for a in 'xyz']
+                Vh = [p(b_ + '/Vh%s-fps' % a) for a in 'xyz']
+                Fm = o.fn(o_ + '-F-lbs', MAX(SQ(S(*[SQR(f) for f in F])), v(1.0)), desc='the rotor\'s force')
+                vn = o.fn(o_ + '-Vn-fps', Q(S(*[M(a, f) for a, f in zip(Vh, F)]), Fm),
+                          desc='the hub\'s velocity along the force: the air\'s through the tip-path plane, into the wake +')
+                o.fn(o_ + '-muz-now', NEG(Q(vn, WR)), desc='upflow through the tip-path plane over the tip speed')
+                o.fn(o_ + '-mu-now', Q(SQ(MAX(v(0), D(S(*[SQR(a) for a in Vh]), SQR(vn)))), WR))
+                muz = o.lag(o_ + '-muz', o_ + '-muz-now', SLAP_TAU_S)
+                o.lag(o_ + '-mu', o_ + '-mu-now', SLAP_TAU_S)
+                T = o.lag(o_ + '-T-lbs', o_ + '-F-lbs', SLAP_TAU_S)
+                l0 = T2(o_ + '-muz', o_ + '-mu', sl['mu_z'], sl['mu'], sl['lam0'])
+                o.fn(o_ + '-lam', D(M(l0, Q(T, v(sl['thrust_ref_lbf']))), muz), desc='inflow through the tip-path plane')
+                for k in g2:
+                    a = o.fn('%s-%s' % (o_, k), M(T2(o_ + '-lam', o_ + '-mu', sl['lam'], sl['mu'], sl[k]),
+                                                  Q(T, v(sl['thrust_ref_lbf']))))
+                    g2[k].append(SQR(a))
+            o.fn('out/slap-ext', SQ(M(v(0.5), S(*g2['ext']))), out='/rotors/main/slap-ext',
+                 desc='the slap loops\' amplitude outside, 1 at the bank\'s')
+            o.fn('out/slap-int', SQ(M(v(0.5), S(*g2['int']))), out='/rotors/main/slap-int',
+                 desc='the slap loops\' amplitude in the cockpit, 1 at the bank\'s')
         o.channel('gear', execrate=SLOW_EXECRATE)
         # the landing gear's retraction and extension, 10 s (estimate)
         o.raw('<actuator name="gear/gear-actuator"><input>gear/gear-cmd-norm</input><rate_limit>0.1</rate_limit>'

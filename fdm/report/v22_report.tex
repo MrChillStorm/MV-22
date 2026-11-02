@@ -553,8 +553,11 @@ terms, $V\dot V/g$ (its rate changing at no more than $0.1\,g^2/V$, easing onto 
 FlightGear's in-air start, pitched the nose from +7.6 to $-$3.8$^\circ$ and back to +3.6$^\circ$, ringing on. Now it pitches from
 +\NApEngPitch{} to \NApEngPitchLo$^\circ$ and comes back by at most \NApEngRev$^\circ$, within \NApEngG\,$g$. An approach to a point along a course and a glide
 path (an ILS's, or a runway's or landing zone's, from 6\,nm and 2000\,ft off the line) keeps within \NApXte\,ft of the course and
-\NApPathLo{} to \NApPathHi\,ft of the path, slows down along it and hands over to the hover hold below 35\,kt over the ground
-(\NApHandKt\,kt of airspeed in still air, \NApWindHand\,kt in 15\,kt of headwind), which holds the hover within \NApHoldD\,ft of the point or
+\NApPathLo{} to \NApPathHi\,ft of the path, slows down along it, its speed's reference stopping itself over the point (the
+deceleration $v^2/2d$ of its ground speed in the distance to go), and hands over to the hover hold below 35\,kt over the ground at least
+\NApHandD\,ft before the point (\NApHandKt\,kt of airspeed in still air, \NApWindHand\,kt in 15\,kt of headwind), running at most
+\NApPast\,ft past it. (Chasing the stopping profile's speed at the profile's own deceleration, the reference fell further behind as it
+slowed, and the hold took over at the point at 34\,kt, ran up to 330\,ft past it and backed up.) The hold holds the hover within \NApHoldD\,ft of the point or
 lands \NApDownD\,ft from it, sinking at \NApSink\,ft/s. A go-around loses at most \NApGaLost\,ft. Flying a route, the speed comes down
 from \NApRouteDecel\,nm before its landing zone, where the plan drawn on the navigation display has its deceleration point at
 \NApRoutePlan\,nm, and the aircraft lands \NApRouteDown\,ft from the point. Between legs it flies its own arcs, started where an arc at
