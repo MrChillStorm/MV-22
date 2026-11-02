@@ -195,7 +195,6 @@ var corridor = {
     load: func {
         me.lv = column(DATA ~ "cps/lower", "kt"); me.ln = column(DATA ~ "cps/lower", "nac");
         me.uv = column(DATA ~ "cps/upper", "kt"); me.un = column(DATA ~ "cps/upper", "nac");
-        me.sk = column(DATA ~ "vrs", "kt"); me.ss = column(DATA ~ "vrs", "sink-fpm");
     },
     nac_min: func(v) { interp(v, me.lv, me.ln) },
     nac_max: func(v) { interp(v, me.uv, me.un) },
@@ -218,23 +217,7 @@ var corridor = {
         if (num(JSB ~ "drive/nr-pct") > 94) return num(a ~ "vmo-100-kt");
         return math.min(num(a ~ "vmo-kt"), ias * num(a ~ "mmo") / math.max(0.05, num("/velocities/mach")));
     },
-    # the high sink rate warning's boundary (ft/min of descent) at an airspeed, nil past it
-    vrs_sink: func(kt) { kt > me.sk[-1] ? nil : interp(kt, me.sk, me.ss) },
 };
-
-# the power to hover (hp) at the present weight and air density: out of ground effect, or in it with the wheels 10 ft
-# over the ground, the ground effect slowing the induced velocity as the flight model's does; FM: the induced power's
-# share of the power to hover (about the rotors' figure of merit, estimate)
-var FM = 0.75;
-var hover_power = func(ige) {
-    var h = DATA ~ "hover/";
-    var p = num(h ~ "power-hp") * math.pow(num(JSB ~ "inertia/weight-lbs") / num(h ~ "weight-lb"), 1.5)
-          / math.sqrt(math.max(0.2, num(JSB ~ "atmosphere/sigma", 1)));
-    if (!ige) return p;
-    var z = num(h ~ "hub-height-ft") + 10;
-    var kge = math.pow(1 + num(h ~ "ge-k") * math.pow(num(h ~ "radius-ft") / z, 2), num(h ~ "ge-exp"));
-    return p * (1 - FM + FM * kge);
-}
 
 # a moving tape with its ticks inside its box (x0..x1): side -1 on its right edge (the airspeed), 1 on its left (the
 # altitude); returns the group to translate by the value times px
@@ -263,7 +246,11 @@ var lowpass = func(y, x, dt, tau) { y + (x - y) * math.min(1, dt / tau) };
 # as the drift is about to stop), the hover point, the radar height on a stretched tape; below 200 ft the tape (and its
 # trend) goes and a green gauge under the readout drains to its foot as the height goes to nothing. Linear: the time
 # the eye sees it take to empty is the time to the ground (a square-root scale showed twice it). Past 60 deg of bank or 25 deg
-# of pitch the clutter goes and an arrow shows the way to roll level.
+# of pitch the clutter goes and an arrow shows the way to roll level. With ENG OUT on (both engines out: the flight
+# model's eng_out) it flies that: the guidance cue its pitch and bank, the speed bug its glide's speed, the corridor's
+# target its nacelles, the lever's way its lever; the flare's height on the altitude tape, the tail's strike on the
+# pitch ladder in the flare, and in place of the configuration the glide's reach along the track (to the flare, from
+# the energy height at the model's own glide ratio, the wind's ground speed with it).
 var AX0 = 96; var AY0 = 46; var AX1 = 416; var AY1 = 330;      # the attitude's window
 var CX = 256; var CY = 178; var K = 6.0;                       # its centre (the aircraft's waterline), px per deg
 var GROUND_BAND = [0.43, 0.27, 0.12];
@@ -322,6 +309,14 @@ var Flight = {
         m.cue = g.createChild("group");
         m.cue.createChild("path").circle(9, 0, 0).setColor(MAGENTA).setStrokeLineWidth(3);
         line(m.cue, [[-15, 0], [-9, 0]], MAGENTA, 3); line(m.cue, [[9, 0], [15, 0]], MAGENTA, 3);
+        # ENG OUT's flare: the pitch at which the fuselage meets the ground on the wheels (the waterline on it, the tail
+        # strikes), on the ladder
+        var ts = num(DATA ~ "tail-strike-deg", 7.3);
+        m.tail = m.pitch.createChild("group");
+        line(m.tail, [[CX - 70, CY - ts * K], [CX - 22, CY - ts * K]], RED, 2.5);
+        line(m.tail, [[CX + 22, CY - ts * K], [CX + 70, CY - ts * K]], RED, 2.5);
+        txt(m.tail, "TAIL", CX + 92, CY - ts * K, 13, RED);
+        m.tail.hide();
         # ---- the hover: the stop ball on its line (a target: opposite the ground velocity 3 s on), the hover point
         m.hov = g.createChild("group").setTranslation(CX, CY + 46);
         for (var a = 0; a < 360; a += 12) {
@@ -355,12 +350,16 @@ var Flight = {
         m.altb = tape_in(aw, 420, 468, -2000, 30000, 100, 200, 0.32, 1);
         m.altr = tape_in(aw, 420, 468, 0, 400, 10, 50, RAD_PX, 1);
         m.abug = line(g, [[420, 0], [411, -7], [411, 7], [420, 0]], CYAN, 2);
+        m.fbug = g.createChild("group");                                  # ENG OUT's flare height
+        line(m.fbug, [[420, 0], [411, -7], [411, 7], [420, 0]], MAGENTA, 2).setColorFill(MAGENTA);
+        txt(m.fbug, "FLR", 408, 0, 11, MAGENTA, "right-center");
+        m.fbug.hide();
         m.atrend = g.createChild("path").setColor(GREEN).setStrokeLineWidth(2.5);
         box(g, 419, CY - 15, 58, 30, WHITE, [0, 0, 0], 2);
         m.alttxt = txt(g, "0", 424, CY, 21, WHITE, "left-center", MONO);
         m.asel = txt(g, "", 444, AY0 - 9, 15, CYAN);
         m.altlow = txt(g, "", 444, AY1 + 11, 15, GREEN);
-        # ---- the vertical speed: its scale square-rooted, the vortex ring state's sink rate at this airspeed
+        # ---- the vertical speed: its scale square-rooted, SINK RATE's descent rate
         var vx = 488;
         line(g, [[vx, m.vsy(2000)], [vx, m.vsy(-2000)]], [0.3, 0.3, 0.32], 2);
         foreach (var f; [-2000, -1000, -500, 0, 500, 1000, 2000]) line(g, [[vx - 4, m.vsy(f)], [vx + 4, m.vsy(f)]], WHITE, 1.5);
@@ -431,6 +430,12 @@ var Flight = {
         # ---- the modes, the configuration, the recovery arrow
         m.modes = txt(g, "", CX, 22, 16, GREEN);
         m.alert = txt(g, "", CX, 40, 16, AMBER);
+        # a time-critical warning (Nasal/alerts.nas: SINK RATE), red under the aircraft in the attitude's window
+        m.tc = g.createChild("group");
+        box(m.tc, CX - 105, 238, 210, 62, RED, [0, 0, 0, 0.85], 2);
+        m.tctxt = txt(m.tc, "", CX, 257, 30, RED);
+        m.tccue = txt(m.tc, "", CX, 286, 18, WHITE);           # its recovery, where the model shows one
+        m.tc.hide();
         m.config = txt(g, "", CX, 497, 14);
         m.recover = g.createChild("path").setColor(RED).setColorFill(RED);
         return m;
@@ -528,10 +533,13 @@ var Flight = {
             me.vlim.reset();
             for (var b = 0; b < size(bands); b += 2) me.vlim.rect(84, bands[b], 8, bands[b + 1] - bands[b]);
         }
-        var ssel = num("/autopilot/settings/target-speed-kt");
-        me.sbug.setTranslation(0, clamp(sy(ssel), AY0 + 8, AY1 - 8));
-        me.ssel.setText(me.hover or ssel <= 0 ? "" : sprintf("%d", ssel));
-        me.sbug.setVisible(!me.hover and ssel > 0);
+        # (ENG OUT's glide speed in its place, diving and gliding: magenta, the flight director's)
+        var eo = num(AFCS ~ "eng-out"); var eph = eo ? num(JSB ~ "ap/eo-phase") : 0;
+        var eglide = eo and eph < 2.5;
+        var ssel = eglide ? num(JSB ~ "ap/eo-vg-kt") : eo ? 0 : num("/autopilot/settings/target-speed-kt");
+        me.sbug.setTranslation(0, clamp(sy(ssel), AY0 + 8, AY1 - 8)).setColor(eglide ? MAGENTA : CYAN);
+        me.ssel.setText((me.hover and !eglide) or ssel <= 0 ? "" : sprintf("%d", ssel)).setColor(eglide ? MAGENTA : CYAN);
+        me.sbug.setVisible((!me.hover or eglide) and ssel > 0);
         var tr = clamp(me.dias * 10, -60, 60);
         if (math.abs(tr) <= 1) tr = 0;
         if (changed(me.strend, math.round(tr * 2.2))) {
@@ -563,7 +571,10 @@ var Flight = {
             }
         }
         var asel = num("/autopilot/settings/target-altitude-ft");
-        me.abug.setVisible(!rad and asel > 0); me.abug.setTranslation(0, clamp(ay(asel), AY0 + 8, AY1 - 8));
+        me.abug.setVisible(!rad and asel > 0 and !eo); me.abug.setTranslation(0, clamp(ay(asel), AY0 + 8, AY1 - 8));
+        var fy = eglide ? ay((rad ? 0 : alt - agl) + num(JSB ~ "ap/eo-gate-ft")) : -1;
+        me.fbug.setVisible(fy > AY0 and fy < AY1);
+        if (fy > AY0 and fy < AY1) me.fbug.setTranslation(0, fy);
         me.asel.setText(rad ? "RAD ALT" : asel > 0 ? sprintf("%d", asel) : ""); me.asel.setColor(rad ? GREEN : CYAN);
         me.altlow.setText(rad ? sprintf("MSL %d", math.round(alt / 10) * 10) : agl < 5000 ? sprintf("R %d", math.round(agl)) : "");
         me.altlow.setColor(rad ? GREY : GREEN);
@@ -575,7 +586,10 @@ var Flight = {
         }
         # ---- the vertical speed as a bar from naught, its colour the sink's closeness to the vortex ring state's
         # boundary at this airspeed (marked): green to half its sink, amber by 0.8 of it, red at it
-        var lim = corridor.vrs_sink(ias);
+        # SINK RATE's own descent rate at this edgewise speed and weight (fdm/alerts.py: half the vortex ring state's
+        # onset in the more critical rotor's hover induced velocity), the bar red at it
+        var lim = num(JSB ~ "alert/vrs/sink-fpm", 1e5);
+        if (lim > 9e4) lim = nil;
         var r = lim == nil ? 0 : -vs / lim;
         var vy = math.round(me.vsy(vs));
         if (changed(me.vsbar, sprintf("%d %d", vy, math.round(clamp(r, 0.5, 1) * 40)))) {
@@ -613,8 +627,9 @@ var Flight = {
         me.nactxt.setText(sprintf("NAC %d", math.round(nac)));
         # ---- power, per engine: the busier engine's against its share of the transmission's torque limit or its own
         # power available, whichever is less; with the rotor stopped the transmission's at 100 % rotor speed, the
-        # engines' not yet one. The power to hover is shared by the two engines
+        # engines' not yet one. The power to hover is shared by the engines running
         var p = math.max(num(JSB ~ "eng[0]/power-hp"), num(JSB ~ "eng[1]/power-hp"));
+        var nrun = math.max(1, (num(JSB ~ "eng[0]/running") > 0.5) + (num(JSB ~ "eng[1]/running") > 0.5));
         var xm = num(JSB ~ "eng/xmsn-limit-hp"); var av = num(JSB ~ "eng/power-available-hp");
         if (xm < 50) xm = num(DATA ~ "hover/power-hp") / 2;
         var lim_p = av > 50 ? math.min(xm, av) : xm;
@@ -626,32 +641,53 @@ var Flight = {
         var vtol = nac > 60;
         me.oge.setVisible(vtol); me.ige.setVisible(vtol);
         if (vtol) {
-            me.oge.setTranslation(0, me.py(hover_power(0) / 2 / lim_p * 100));
-            me.ige.setTranslation(0, me.py(hover_power(1) / 2 / lim_p * 100));
+            # the model's own power to hover (fdm/alerts.py, its trims), out of ground effect and with the wheels 10 ft up
+            me.oge.setTranslation(0, me.py(num(JSB ~ "alert/hover-oge-hp") / nrun / lim_p * 100));
+            me.ige.setTranslation(0, me.py(num(JSB ~ "alert/hover-ige-hp") / nrun / lim_p * 100));
         }
         me.nrtxt.setText(sprintf("%d", num(JSB ~ "drive/nr-pct")));
         # ---- the modes and the configuration
         var am = afcs_modes();
         me.modes.setText(me.hover and !hold ? "HOVER" ~ (am == "" ? "" : "  " ~ am) : am);
         me.modes.setColor(num(JSB ~ "ap/coupled") or hold ? GREEN : WHITE);
-        me.alert.setText(hold_alert());
+        me.alert.setText(alerts.flight_line());
+        var tc = alerts.critical_line();
+        me.tc.setVisible(tc[0] != "");
+        if (tc[0] != "") { me.tctxt.setText(tc[0]); me.tccue.setText(tc[1]); }
         # ---- the flight director: the guidance cue, AUTO NAC's target, the lever's way
+        # (ENG OUT's in the air: its pitch and bank, its nacelles at the airspeed, its lever; in the hover's format too)
         var fd_v = num(JSB ~ "ap/vert"); var fd_l = num(JSB ~ "ap/lat");
-        me.cue.setVisible((fd_v or fd_l) and !unusual and !me.hover);
-        if (fd_v or fd_l) {
+        var efd = eo and eph < 4.5;
+        me.cue.setVisible((fd_v or fd_l or efd) and !unusual and (!me.hover or efd));
+        if (efd)
+            me.cue.setTranslation(CX + clamp((num(JSB ~ "ap/eo-phi-cmd-deg") - roll) * 3, -90, 90),
+                                  CY - clamp((num(JSB ~ "ap/eo-theta-cmd-deg") - pitch) * K, -110, 110));
+        elsif (fd_v or fd_l) {
             var dth = fd_v ? num(JSB ~ "ap/theta-ref-rad") * R2D - pitch : 0;
             var dph = fd_l ? num(JSB ~ "ap/phi-ref-rad") * R2D - roll : 0;
             me.cue.setTranslation(CX + clamp(dph * 3, -90, 90), CY - clamp(dth * K, -110, 110));
         }
+        me.tail.setVisible(eo and eph > 2.5);
         var spd_on = num(JSB ~ "ap/spd");
-        me.ncue.setVisible(spd_on);
-        if (spd_on) me.ncue.setTranslation(me.cvx(math.min(num(JSB ~ "ap/v-ref-kt"), 220)), me.cny(num(JSB ~ "ap/nacelle-sched-deg")));
-        var dl = spd_on and !num(JSB ~ "ap/lever-on") ? num(JSB ~ "ap/tcl-cmd") - num("/controls/engines/engine[0]/throttle") : 0;
+        me.ncue.setVisible(spd_on or efd);
+        if (efd) me.ncue.setTranslation(me.cvx(math.min(ias, 220)), me.cny(num(JSB ~ "ap/eo-nac-cmd-deg")));
+        elsif (spd_on) me.ncue.setTranslation(me.cvx(math.min(num(JSB ~ "ap/v-ref-kt"), 220)), me.cny(num(JSB ~ "ap/nacelle-sched-deg")));
+        var dl = efd and !num(JSB ~ "ap/eo-fly") ? num(JSB ~ "ap/eo-lever-cmd") - num("/controls/engines/engine[0]/throttle")
+               : spd_on and !num(JSB ~ "ap/lever-on") ? num(JSB ~ "ap/tcl-cmd") - num("/controls/engines/engine[0]/throttle") : 0;
         me.lcue.setText(dl > 0.02 ? "TCL UP" : dl < -0.02 ? "TCL DN" : "");
         var gear = num(JSB ~ "gear/gear-pos-norm", 1);
-        me.config.setText(sprintf("%s   FLAP %d   %s%s", gear > 0.99 ? "GEAR DN" : gear < 0.01 ? "GEAR UP" : "GEAR TRANS",
-                                  num(JSB ~ "ctl/flaperon-deg"), num(JSB ~ "scas/attitude-command") > 0.5 ? "ATT CMD" : "RATE CMD",
-                                  num("/controls/rotor/brake") > 0.05 ? "   ROTOR BRAKE" : ""));
+        var gtxt = gear > 0.99 ? "GEAR DN" : gear < 0.01 ? "GEAR UP" : "GEAR TRANS";
+        if (efd) {
+            # the reach along the track: the still air's at the present ground speed over the true airspeed
+            var reach = num(JSB ~ "ap/eo-reach-nm") * (tas > 30 ? gs / tas : 1);
+            me.config.setText(sprintf("%s   %s", !eglide ? "FLARE" : nac < 1 ? sprintf("REACH %.1f NM", reach) : "CONVERTING", gtxt));
+            me.config.setColor(AMBER);
+        } else {
+            me.config.setText(sprintf("%s   FLAP %d   %s%s", gtxt, num(JSB ~ "ctl/flaperon-deg"),
+                                      num(JSB ~ "scas/attitude-command") > 0.5 ? "ATT CMD" : "RATE CMD",
+                                      num("/controls/rotor/brake") > 0.05 ? "   ROTOR BRAKE" : ""));
+            me.config.setColor(WHITE);
+        }
     },
     # the ground grid: lines north-south and east-west on the ground, spaced by the height, seen from the aircraft:
     # depression below the horizon and azimuth off the heading, in degrees (the pitch ladder's scale)
@@ -709,7 +745,7 @@ var TRAFFIC_MAX = 12; var WPT_MAX = 16;
 var Nav = {
     new: func(g) {
         var m = {parents: [Nav], range_i: 3, north: 0, terrain: 1, cells: [], elev: [], prof: [], idx: 0, rate: 0,
-                 trk0: nil, t0: systime()};
+                 trk0: nil, t0: systime(), eo_r: -1};
         # the terrain's sample points: a grid over the map, those in its sector or a little outside it (gi: the grid
         # to the samples, -1 where there is none)
         m.nx = int((MAP_CLIP[2] - MAP_CLIP[0]) / CELL) + 1; m.ny = int((MAP_CLIP[3] - MAP_CLIP[1]) / CELL) + 1;
@@ -808,6 +844,10 @@ var Nav = {
             var ar = t.createChild("path").setStrokeLineWidth(1.8);
             append(m.traffic, {g: t, d: d, t: tt, a: ar});
         }
+        # ENG OUT's glide reach: the flare's circle, drifting with the wind
+        m.reach = map.createChild("path").setColor(AMBER).setStrokeLineWidth(2).setStrokeDashArray([10, 6]);
+        m.reacht = txt(map, "GLIDE", 0, 0, 12, AMBER);
+        m.reacht.hide();
         # the path ahead, the aircraft
         m.path = map.createChild("path").setColor(WHITE).setStrokeLineWidth(2);
         m.pathc = fixed_path(m.path, 1, 21);
@@ -838,6 +878,7 @@ var Nav = {
         m.vsel = g.createChild("path").setColor(CYAN).setStrokeLineWidth(1.5);
         m.vlz = g.createChild("path").setColor(WHITE).setStrokeLineWidth(2);
         m.vfpa = g.createChild("path").setColor(GREEN).setStrokeLineWidth(2.5);
+        m.vglide = g.createChild("path").setColor(AMBER).setStrokeLineWidth(2).setStrokeDashArray([10, 6]);
         m.vacft = g.createChild("path").setColor(WHITE).setColorFill(WHITE);
         m.vscale = [txt(g, "", vx0 - 3, 0, 11, GREY, "right-center"), txt(g, "", vx0 - 3, 0, 11, GREY, "right-center")];
         txt(g, "PROFILE ALONG TRACK", vx1 - 8, vy0 + 10, 11, GREY, "right-center");
@@ -995,6 +1036,26 @@ var Nav = {
                 me.pathc[n].setDoubleValue(x); me.pathc[n + 1].setDoubleValue(y); n += 2;
                 if (s == 30 or s == 60) me.dots[s == 30 ? 0 : 1].setTranslation(x, y);
             }
+        }
+        # ---- ENG OUT: the glide's reach to the flare (the flight model's, in still air) about where the wind takes the
+        # air the aircraft glides in over the glide's time
+        me.reach.reset(); me.reacht.hide();
+        me.eo_r = -1;
+        if (num(AFCS ~ "eng-out") and num(JSB ~ "ap/eo-phase") < 2.5 and num(JSB ~ "ctl/nacelle-deg") < 1) {
+            var r = num(JSB ~ "ap/eo-reach-nm"); var ts = num(JSB ~ "ap/eo-reach-s");
+            var wkt = num("/environment/wind-speed-kt"); var wto = (num("/environment/wind-from-heading-deg") + 180) * D2R;
+            var ce = wkt * ts / 3600 * math.sin(wto); var cn = wkt * ts / 3600 * math.cos(wto);
+            for (var i = 0; i <= 48; i += 1) {
+                var a = i / 48 * 2 * math.pi;
+                var q = to_map(ce + r * math.sin(a), cn + r * math.cos(a));
+                if (i == 0) me.reach.moveTo(q[0], q[1]); else me.reach.lineTo(q[0], q[1]);
+            }
+            var q = to_map(ce + r * math.sin(up * D2R), cn + r * math.cos(up * D2R));
+            me.reacht.setTranslation(q[0], q[1] - 10).show();
+            # (along the track, for the profile: the circle's edge ahead)
+            var at = (ce * math.sin(trk * D2R) + cn * math.cos(trk * D2R));
+            var ac = -ce * math.cos(trk * D2R) + cn * math.sin(trk * D2R);
+            me.eo_r = at + math.sqrt(math.max(0, r * r - ac * ac));
         }
         # ---- traffic
         var shown = 0;
@@ -1159,7 +1220,20 @@ var Nav = {
         if (sel > 0) me.vsel.moveTo(vx(0), vy(sel)).lineTo(vx(rng), vy(sel));
         me.vacft.reset().moveTo(vx(0) - 6, vy(alt) - 5).lineTo(vx(0) + 7, vy(alt)).lineTo(vx(0) - 6, vy(alt) + 5).close();
         var gam = gs > 10 ? vs / (gs * 101.27) : 0;          # the path: ft per ft of ground
-        me.vfpa.reset().moveTo(vx(0), vy(alt)).lineTo(vx(rng * 0.6), vy(alt + gam * rng * 0.6 * 6076));
+        # (ended where it leaves the profile's height scale: drawn on to 0.6 of the range and clamped there, a steep
+        # descent's line bent along the bottom and read shallower than it was)
+        var pd = rng * 0.6;
+        if (gam < 0 and alt + gam * pd * 6076 < 0) pd = alt / (-gam * 6076);
+        elsif (gam > 0 and alt + gam * pd * 6076 > top) pd = (top - alt) / (gam * 6076);
+        me.vfpa.reset().moveTo(vx(0), vy(alt)).lineTo(vx(pd), vy(alt + gam * pd * 6076));
+        # ENG OUT's glide, to the flare's height over the ground here, at the reach ahead
+        me.vglide.reset();
+        if (me.eo_r > 0) {
+            var fl = alt - num("/position/gear-agl-m") / 0.3048 + num(JSB ~ "ap/eo-flare-ft");
+            var d = math.min(me.eo_r, rng); var z = alt + (fl - alt) * d / me.eo_r;
+            me.vglide.moveTo(vx(0), vy(alt)).lineTo(vx(d), vy(z));
+            if (d == me.eo_r) me.vglide.moveTo(vx(d) - 6, vy(z)).lineTo(vx(d) + 6, vy(z));
+        }
         me.vlz.reset();
         if (size(legs) > 1) {
             var togo = 0;
@@ -1182,45 +1256,100 @@ var bar = func(g, x, y0, h, w, color) {
     return g.createChild("path").rect(x, y0 - h, w, h).setColorFill(color).setColor(color);
 }
 
-var Engines = {
-    new: func(g) {
-        var m = {parents: [Engines]};
-        txt(g, "ENGINES AND DRIVE", 256, 52, 22);
+# an alert window (Nasal/alerts.nas), the ENG format's and the CDU EICAS page's: warnings red, cautions and let-go
+# autopilot modes amber, advisories green, the latest first in each; a new one (not yet acknowledged) in reverse video;
+# the last line counts what does not fit
+var ALERT_COLOUR = {warning: RED, caution: AMBER, autopilot: AMBER, advisory: GREEN};
+var ALERT_SHORT = {warning: "WARN", caution: "CAUT", autopilot: "CAUT", advisory: "ADVY"};
+var BLACK = [0, 0, 0];
+
+var AlertWindow = {
+    new: func(g, x, y, w, rows, lh, fs) {
+        var m = {parents: [AlertWindow], rows: []};
+        box(g, x, y, w, rows * lh + 8, GREY, nil, 1);
+        for (var i = 0; i < rows; i += 1) {
+            var ry = y + 4 + lh * i;
+            append(m.rows, {back: box(g, x + 4, ry, w - 8, lh, BLACK, BLACK, 0),
+                            text: txt(g, "", x + 16, ry + lh / 2 + 1, fs, WHITE, "left-center")});
+        }
+        return m;
+    },
+    update: func {
+        var list = alerts.standing();
+        var rows = size(me.rows);
+        var n = size(list) > rows ? rows - 1 : size(list);
+        forindex (var i; me.rows) {
+            var r = me.rows[i];
+            if (i < n) {
+                var a = list[i]; var c = ALERT_COLOUR[a[1]];
+                r.back.setColorFill(a[2] ? c : BLACK);
+                r.text.setText(a[0]).setColor(a[2] ? BLACK : c);
+            } elsif (i == n and size(list) > rows) {
+                var more = {}; var order = [];
+                for (var j = n; j < size(list); j += 1) {
+                    var k = ALERT_SHORT[list[j][1]];
+                    if (!contains(more, k)) { more[k] = 0; append(order, k); }
+                    more[k] += 1;
+                }
+                var s = "";
+                foreach (var k; order) s ~= sprintf("+%d %s  ", more[k], k);
+                r.back.setColorFill(BLACK);
+                r.text.setText(s).setColor(WHITE);
+            } else {
+                r.back.setColorFill(BLACK);
+                r.text.setText("");
+            }
+        }
+    },
+};
+
+# the engines' torque bars (0-120 %, the limit's line amber) and readouts either side, the rotor speed and the drive's
+# power between: the ENG format's and the CDU EICAS page's. x1, x2: the engines' columns, xm the middle's; y0 the top,
+# h the bars' height; brake: the rotor brake under the middle
+var Gauges = {
+    new: func(g, x1, x2, xm, y0, h, brake) {
+        var m = {parents: [Gauges], h: h};
         m.cols = [];
         foreach (var e; [0, 1]) {
-            var x = e == 0 ? 120 : 392;
+            var x = e == 0 ? x1 : x2;
             var c = {};
-            txt(g, sprintf("ENG %d", e + 1), x, 86, 20, WHITE);
-            box(g, x - 22, 112, 44, 220, GREY, nil, 2);                     # torque, 0..120 %
-            line(g, [[x - 28, 332 - 220 * 100 / 120], [x + 28, 332 - 220 * 100 / 120]], AMBER, 2);
-            c.bar = bar(g, x - 18, 330, 0, 36, GREEN);
-            c.tq = txt(g, "0", x, 352, 22, GREEN, "center-center", MONO);
-            txt(g, "TQ %", x, 374, 16, GREY);
-            c.ng = txt(g, "NG 0", x, 404, 18, WHITE, "center-center", MONO);
-            c.shp = txt(g, "SHP 0", x, 428, 18, WHITE, "center-center", MONO);
-            c.ff = txt(g, "FF 0", x, 452, 18, WHITE, "center-center", MONO);
-            c.state = txt(g, "", x, 476, 18, AMBER, "center-center");
+            txt(g, sprintf("ENG %d", e + 1), x, y0 + 16, 20, WHITE);
+            box(g, x - 22, y0 + 32, 44, h, GREY, nil, 2);
+            # the engine's limit (fdm/alerts.py: its own power or its share of the drive's, whichever is less),
+            # moved to it
+            c.lim = line(g, [[x - 28, 0], [x + 28, 0]], AMBER, 2);
+            c.bar = bar(g, x - 18, y0 + 30 + h, 0, 36, GREEN);
+            c.y = y0 + 30 + h;
+            var y = y0 + 32 + h;
+            c.tq = txt(g, "0", x, y + 18, 22, GREEN, "center-center", MONO);
+            txt(g, "TQ %", x, y + 38, 16, GREY);
+            c.ng = txt(g, "NG 0", x, y + 62, 18, WHITE, "center-center", MONO);
+            c.shp = txt(g, "SHP 0", x, y + 84, 18, WHITE, "center-center", MONO);
+            c.ff = txt(g, "FF 0", x, y + 106, 18, WHITE, "center-center", MONO);
+            c.state = txt(g, "", x, y + 128, 18, AMBER, "center-center");
             c.x = x;
             append(m.cols, c);
         }
-        txt(g, "NR", 256, 120, 20, GREY);
-        m.nr = txt(g, "0", 256, 150, 34, GREEN, "center-center", MONO);
-        txt(g, "% REF", 256, 178, 16, GREY);
-        m.ref = txt(g, "0", 256, 198, 18, CYAN, "center-center", MONO);
-        txt(g, "DRIVE", 256, 240, 18, GREY);
-        m.req = txt(g, "0", 256, 264, 18, WHITE, "center-center", MONO);
-        txt(g, "LIMIT", 256, 292, 16, GREY);
-        m.lim = txt(g, "0", 256, 314, 18, WHITE, "center-center", MONO);
-        m.brake = txt(g, "", 256, 352, 18, AMBER);
+        txt(g, "NR", xm, y0 + 36, 20, GREY);
+        m.nr = txt(g, "0", xm, y0 + 64, 32, GREEN, "center-center", MONO);
+        txt(g, "% REF", xm, y0 + 90, 16, GREY);
+        m.ref = txt(g, "0", xm, y0 + 108, 18, CYAN, "center-center", MONO);
+        txt(g, "DRIVE", xm, y0 + 138, 18, GREY);
+        m.req = txt(g, "0", xm, y0 + 158, 18, WHITE, "center-center", MONO);
+        txt(g, "LIMIT", xm, y0 + 182, 16, GREY);
+        m.lim = txt(g, "0", xm, y0 + 202, 18, WHITE, "center-center", MONO);
+        m.brake = brake ? txt(g, "", xm, y0 + 234, 18, AMBER) : nil;
         return m;
     },
     update: func {
         forindex (var e; me.cols) {
             var c = me.cols[e];
             var tq = num("/engines/engine[" ~ e ~ "]/torque-pct");
-            var h = math.min(1.2, math.max(0, tq / 100)) / 1.2 * 216;
-            c.bar.reset().rect(c.x - 18, 330 - h, 36, h);
-            c.tq.setText(sprintf("%d", tq)).setColor(tq > 100 ? AMBER : GREEN);
+            var h = math.min(1.2, math.max(0, tq / 100)) / 1.2 * (me.h - 4);
+            c.bar.reset().rect(c.x - 18, c.y - h, 36, h);
+            var lp = num(JSB ~ "alert/limit-pct", 100);
+            c.lim.setTranslation(0, c.y + 2 - math.min(1.2, lp / 100) / 1.2 * me.h);
+            c.tq.setText(sprintf("%d", tq)).setColor(tq >= lp - 1 ? AMBER : GREEN);
             c.ng.setText(sprintf("NG %d", num("/engines/engine[" ~ e ~ "]/n1-pct")));
             c.shp.setText(sprintf("SHP %d", num(JSB ~ "eng[" ~ e ~ "]/power-hp")));
             c.ff.setText(sprintf("FF %d", num("/engines/engine[" ~ e ~ "]/fuel-flow-pph")));
@@ -1230,8 +1359,24 @@ var Engines = {
         me.nr.setText(sprintf("%d", num(JSB ~ "drive/nr-pct")));
         me.ref.setText(sprintf("%d", num(JSB ~ "gov/nr-ref-pct")));
         me.req.setText(sprintf("%d HP", num(JSB ~ "drive/power-required-hp")));
-        me.lim.setText(sprintf("%d HP", 2 * num(JSB ~ "eng/xmsn-limit-hp")));
-        me.brake.setText(num("/controls/rotor/brake") > 0.05 ? "ROTOR BRAKE ON" : "");
+        # the drive's limit: each running engine's share of it (fdm/drive.py) times the engines running
+        var nrun = math.max(1, (num(JSB ~ "eng[0]/running") > 0.5) + (num(JSB ~ "eng[1]/running") > 0.5));
+        me.lim.setText(sprintf("%d HP", nrun * num(JSB ~ "eng/xmsn-limit-hp")));
+        if (me.brake != nil) me.brake.setText(num("/controls/rotor/brake") > 0.05 ? "ROTOR BRAKE ON" : "");
+    },
+};
+
+var Engines = {
+    new: func(g) {
+        var m = {parents: [Engines]};
+        txt(g, "ENGINES AND DRIVE", 256, 42, 20);
+        m.alerts = AlertWindow.new(g, 24, 56, 464, 6, 22, 20);
+        m.gauges = Gauges.new(g, 120, 392, 256, 202, 140, 1);
+        return m;
+    },
+    update: func {
+        me.alerts.update();
+        me.gauges.update();
     },
 };
 
@@ -1307,7 +1452,9 @@ var Mfd = {
     },
     key: func(k) {
         me.touched = systime();
-        if (k[0] == `T`) {
+        if (k == "ACK") alerts.acknowledge();
+        elsif (k == "CA") me.show("ENG");                   # the caution/advisory key: the format with the alert window
+        elsif (k[0] == `T`) {
             var i = num_key(k) - 1;
             if (i < size(MFD_PAGES)) me.show(MFD_PAGES[i]);
         } elsif (me.page == "FLT" or me.page == "NAV") me.pages[me.page].key(k);
@@ -1330,24 +1477,6 @@ var num_key = func(k) {
 }
 
 # ---------------------------------------------------------------- the control display unit: EICAS, status, the scratchpad
-var cautions = func {
-    var out = [];
-    var jsb = func(p) num(JSB ~ p);
-    for (var e = 0; e < 2; e += 1) {
-        var other = 1 - e;
-        if (!jsb("eng[" ~ e ~ "]/running") and jsb("eng[" ~ other ~ "]/running")) append(out, [sprintf("ENG %d OUT", e + 1), RED]);
-    }
-    var total = num("/consumables/fuel/total-fuel-lbs");
-    if (total < 1000) append(out, ["FUEL LOW", AMBER]);
-    if (jsb("drive/nr-pct") > 5 and math.abs(jsb("drive/nr-pct") - jsb("gov/nr-ref-pct")) > 3) append(out, ["NR", AMBER]);
-    if (num("/engines/engine[0]/torque-pct") > 100 or num("/engines/engine[1]/torque-pct") > 100) append(out, ["TORQUE", AMBER]);
-    if (math.abs(num("/controls/flight/nacelle-cmd-deg") - jsb("ctl/nacelle-cmd-limited-deg")) > 1) append(out, ["CONV PROT", AMBER]);
-    if (num("/controls/rotor/brake") > 0.05) append(out, ["ROTOR BRAKE", GREEN]);
-    if (num("/position/altitude-agl-ft") > 50 and jsb("gear/gear-pos-norm") > 0.99 and num("/velocities/airspeed-kt") > 150) append(out, ["GEAR DOWN", AMBER]);
-    if (!num("/controls/electric/battery-switch")) append(out, ["BATTERY OFF", GREEN]);
-    return out;
-}
-
 var Cdu = {
     new: func {
         var m = {parents: [Cdu]};
@@ -1357,17 +1486,48 @@ var Cdu = {
         var g = m.c.createGroup();
         m.title = txt(g, "", 320, 26, 24, WHITE);
         line(g, [[20, 44], [620, 44]], GREY, 2);
+        m.text = g.createChild("group");
         m.lines = [];
-        for (var i = 0; i < 12; i += 1) append(m.lines, txt(g, "", 40, 70 + 30 * i, 22, GREEN, "left-center", MONO));
+        for (var i = 0; i < 12; i += 1) append(m.lines, txt(m.text, "", 40, 70 + 30 * i, 22, GREEN, "left-center", MONO));
+        # the EICAS page, the one the CDU shows unless another is called up: the engines and the drive on the left (as
+        # the ENG format), the alerts on the right, under them the fuel and the configuration, each amber while its
+        # alert stands
+        m.eicas = g.createChild("group");
+        m.gauges = Gauges.new(m.eicas, 80, 260, 170, 48, 150, 0);
+        m.alerts = AlertWindow.new(m.eicas, 336, 52, 284, 11, 24, 20);
+        m.status = [];
+        foreach (var r; ["FUEL", "NAC", "GEAR", "OAT"]) {
+            var y = 344 + 22 * size(m.status);
+            txt(m.eicas, r, 340, y, 16, GREY, "left-center");
+            append(m.status, txt(m.eicas, "", 392, y, 18, GREEN, "left-center", MONO));
+        }
         line(g, [[20, 436], [620, 436]], GREY, 2);
         m.pad = txt(g, "", 30, 458, 24, WHITE, "left-center", MONO);
         m.scratch = "";
         m.page = "EICAS";
+        m.tick = 0;
         return m;
+    },
+    eicas_update: func {
+        me.gauges.update();
+        me.alerts.update();
+        var amber = func(id) num(JSB ~ "alert/" ~ id) > 0.5 ? AMBER : GREEN;
+        var fuel = num("/consumables/fuel/total-fuel-lbs");
+        var ff = num("/engines/engine[0]/fuel-flow-pph") + num("/engines/engine[1]/fuel-flow-pph");
+        me.status[0].setText(sprintf("%5d LB", fuel) ~ (ff > 1 ? sprintf("  %d:%02d", int(fuel / ff), int(math.mod(fuel / ff * 60, 60))) : ""))
+                    .setColor(amber("fuel-low"));
+        me.status[1].setText(sprintf("%4.1f  %d-%d", num(JSB ~ "ctl/nacelle-deg"), num(JSB ~ "ctl/cps-min-deg"),
+                                     math.min(97.5, num(JSB ~ "ctl/cps-max-deg", 97.5)))).setColor(amber("conv-prot"));
+        var gear = num(JSB ~ "gear/gear-pos-norm", 1);
+        me.status[2].setText(sprintf("%-5s  FLAP %d", gear > 0.99 ? "DN" : gear < 0.01 ? "UP" : "TRANS", num(JSB ~ "ctl/flaperon-deg")))
+                    .setColor(amber("gear-down"));
+        me.status[3].setText(sprintf("%d C  GW %d", num("/environment/temperature-degc"), num(JSB ~ "inertia/weight-lbs")));
     },
     key: func(k) {
         if (k == "B4") me.page = "EICAS";
         elsif (k == "B3") me.page = "STAT";
+        elsif (k == "B2") me.page = "C/A";
+        elsif (k == "B5") alerts.acknowledge();
         elsif (k == "B1" or k == "B6") me.page = "CDU";
         me.update();
     },
@@ -1395,12 +1555,28 @@ var Cdu = {
         }
         me.scratch = "";
     },
-    update: func {
-        var rows = [];
-        if (me.page == "EICAS") {
+    # run with the fast units (20 Hz): the EICAS page at 10 Hz, the text pages at 4 Hz; a key's own call at once
+    update: func(now = 0) {
+        me.tick += 1;
+        var eicas = me.page == "EICAS";
+        me.eicas.setVisible(eicas);
+        me.text.setVisible(!eicas);
+        if (eicas) {
             me.title.setText("EICAS");
-            foreach (var c; cautions()) append(rows, c);
-            if (!size(rows)) append(rows, ["NO CAUTIONS", GREY]);
+            if (now or !math.mod(me.tick, 2)) me.eicas_update();
+            return;
+        }
+        if (!now and math.mod(me.tick, 5)) return;
+        var rows = [];
+        if (me.page == "C/A") {
+            # the alerts cleared, the latest first, and how long ago
+            me.title.setText("C/A HISTORY");
+            var t = num("/sim/time/elapsed-sec");
+            foreach (var h; alerts.history) {
+                var ago = int(t - h[3]);
+                append(rows, [sprintf("  %-18s %3d:%02d AGO", h[0], int(ago / 60), math.mod(ago, 60)), ALERT_COLOUR[h[1]]]);
+            }
+            if (!size(rows)) append(rows, ["NONE CLEARED", GREY]);
         } elsif (me.page == "STAT") {
             me.title.setText("STATUS");
             var w = num(JSB ~ "inertia/weight-lbs"); var f = num("/consumables/fuel/total-fuel-lbs");
@@ -1414,7 +1590,7 @@ var Cdu = {
             append(rows, [sprintf("CONV CORRIDOR %3d-%3d DEG", num(JSB ~ "ctl/cps-min-deg"), math.min(97.5, num(JSB ~ "ctl/cps-max-deg", 97.5))), GREEN]);
         } else {
             me.title.setText("CDU");
-            foreach (var t; ["EICAS: CAUTIONS AND ADVISORIES", "STAT: WEIGHT, FUEL, CG", "", "SCRATCHPAD ENTRIES (ENTER):",
+            foreach (var t; ["EICAS: ENGINES, ALERTS, FUEL, CONFIG", "C/A: ALERTS CLEARED", "ACK: ACKNOWLEDGE", "STAT: WEIGHT, FUEL, CG", "", "SCRATCHPAD ENTRIES (ENTER):",
                              " H123  HEADING BUG", " C123  NAV 1 COURSE", " B2992 ALTIMETER, IN HG",
                              " T300  TF CLEARANCE, FT", " R1-3  TF RIDE SOFT, MED, HARD"])
                 append(rows, [t, GREEN]);
@@ -1534,20 +1710,6 @@ var afcs_modes = func {
     return out;
 }
 
-# the hover hold let go (1) or refused (2): shown for HOLD_ALERT_S, the flight model's flag cleared
-var HOLD_ALERT_S = 5;
-var hold_msg = ["", 0];
-var hold_alert = func {
-    foreach (var a; [["hh/dropped", ["HVR CPLD OFF", "HVR CPLD UNAVAIL"]], ["ap/dropped", ["CPLD OFF"]], ["ap/nac-dropped", ["AUTO NAC OFF"]]]) {
-        var d = num(JSB ~ a[0]);
-        if (d) {
-            hold_msg = [a[1][math.min(d, size(a[1])) - 1], systime() + HOLD_ALERT_S];
-            setprop(JSB ~ a[0], 0);
-        }
-    }
-    return systime() < hold_msg[1] ? hold_msg[0] : "";
-}
-
 var Readouts = {
     new: func {
         var m = {parents: [Readouts]};
@@ -1582,6 +1744,31 @@ var Radio = {
     },
     update: func {
         me.t.setText(sprintf("COM%d %7.3f", me.n + 1, num("/instrumentation/comm[" ~ me.n ~ "]/frequencies/selected-mhz")));
+    },
+};
+
+# ---------------------------------------------------------------- the master alert capsules
+# At each end of the glareshield (fdm/cockpit/panel.py), MASTER WARN over MASTER CAUT, each half lit while
+# Nasal/alerts.nas has a new alert of its level, at the photocell's level (MIL-STD-411F: dimmed at night); dark
+# otherwise, the legends not to be seen; pressed, everything standing is acknowledged
+var UNLIT = [0.06, 0.06, 0.06];
+var Master = {
+    new: func(name) {
+        var m = {parents: [Master], name: string.lc(name)};
+        m.c = canvas.new({"name": name, "size": [128, 128], "view": [128, 128], "mipmapping": 1});
+        m.c.addPlacement({"node": name ~ ".screen"});
+        m.c.setColorBackground(0, 0, 0, 1);
+        var g = m.c.createGroup();
+        line(g, [[8, 64], [120, 64]], UNLIT, 3);
+        m.warn = [txt(g, "MASTER", 64, 24, 26, UNLIT), txt(g, "WARN", 64, 48, 30, UNLIT)];
+        m.caut = [txt(g, "MASTER", 64, 84, 26, UNLIT), txt(g, "CAUT", 64, 108, 30, UNLIT)];
+        return m;
+    },
+    update: func {
+        var w = num("/instrumentation/mv22b/alerts/master-warning"); var c = num("/instrumentation/mv22b/alerts/master-caution");
+        foreach (var t; me.warn) t.setColor(w ? RED : UNLIT);
+        foreach (var t; me.caut) t.setColor(c ? AMBER : UNLIT);
+        setprop(BASE ~ me.name ~ "/luminance", (w or c) and powered() ? between(level("night"), level("day"), daylight()) : 0);
     },
 };
 
@@ -1629,6 +1816,7 @@ var luminance = func(u, f) {
 }
 
 var key = func(unit, k) {
+    if (unit == "MASTER") return alerts.acknowledge();
     if (unit == "CDU") {
         if (k == "BRT+" or k == "BRT-") brightness("cdu", k);
         elsif (cdu != nil) cdu.key(k);
@@ -1644,6 +1832,7 @@ var key = func(unit, k) {
         if (k == "APPR") return autopilot.appr();
         if (k == "GA") return autopilot.ga();
         if (k == "TF") return autopilot.tf_key();
+        if (k == "ENGOUT") return setprop(AFCS ~ "eng-out", !num(AFCS ~ "eng-out"));
         if (k == "HVRHOLD" and !num(AFCS ~ "hvr-hold"))
             setprop("/autopilot/settings/target-agl-ft", math.max(0, math.round(num("/position/gear-agl-m") / 0.3048)));
         # the holds take the present heading, altitude or speed onto their knobs, which then change them
@@ -1691,10 +1880,11 @@ var init = func {
     var sfd = Sfd.new(); var esfi = Esfi.new(); var ro = Readouts.new();
     canvases = {MFD1: units["MFD1"].c, MFD2: units["MFD2"].c, MFD3: units["MFD3"].c, MFD4: units["MFD4"].c, CDU: cdu.c, SFD: sfd.c,
                 ESFI: esfi.c};
-    fast = [units["MFD1"], units["MFD2"], units["MFD3"], units["MFD4"], esfi];
-    slow = [cdu, sfd, ro, Radio.new(0), Radio.new(1)];
-    foreach (var u; [esfi] ~ slow) cache_writes(u);
-    # PROFILE/enabled: each unit's update time, ms (a 2 s average), in PROFILE/<n> (fast: 0-4, slow: 5-9)
+    var masters = [Master.new("MASTER1"), Master.new("MASTER2")];
+    fast = [units["MFD1"], units["MFD2"], units["MFD3"], units["MFD4"], esfi, cdu] ~ masters;
+    slow = [sfd, ro, Radio.new(0), Radio.new(1)];
+    foreach (var u; [esfi, cdu] ~ masters ~ slow) cache_writes(u);
+    # PROFILE/enabled: each unit's update time, ms (a 2 s average), in PROFILE/<n> (fast: 0-7, slow: 8-11)
     var prof = props.globals.getNode(PROFILE, 1);
     var timed = func(us, i0) {
         if (!prof.getValue("enabled")) { foreach (var u; us) u.update(); return; }
@@ -1706,7 +1896,7 @@ var init = func {
     }
     var tf = maketimer(0.05, func { timed(fast, 0); });
     var ts = maketimer(0.25, func {
-        timed(slow, 5);
+        timed(slow, 8);
         var f = daylight();
         foreach (var u; ALL) luminance(u, f);
     });

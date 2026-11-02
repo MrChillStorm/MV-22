@@ -122,9 +122,8 @@ running engines, so that near sea level the drive, not the engines, limits the p
 speed ($N_R$) with the rotors' collective: \MNrHelo\,\% in helicopter mode and through the conversion, \MNrApln\,\% in
 airplane mode with the nacelles at 0$^\circ$. A topping governor takes power off above 2\,\% of overspeed.
 
-The ENG format shows each engine's torque, gas generator speed and fuel flow, the rotor speed and the drive's
-torque limit. Cautions: \ann{TORQUE} above 100\,\% torque, \ann{NR} with the rotor speed 3\,\% off its reference,
-\ann{ENG 1 OUT} or \ann{ENG 2 OUT} with one engine stopped.
+The ENG format shows the alerts (Section~\ref{sec:alerts}), each engine's torque, gas generator speed and fuel flow,
+the rotor speed and the drive's torque limit.
 
 \section{Fuel}
 Five tanks, drawn in the transfer sequence's order: the right aft sponson first, then the forward sponsons, the feed
@@ -169,7 +168,7 @@ both share one reference, so the switch is free of transients. A trim schedule k
 through the conversion: hands off, the aircraft holds its attitude through it.
 
 \section{Landing gear, brakes and the wing}
-\key{g}/\key{G} raise and lower the gear; \ann{GEAR DOWN} shows with the gear down above 150\,kt and 50\,ft. \key{B}
+\key{g}/\key{G} raise and lower the gear; \ann{GEAR DOWN} shows with the gear down above \MVle\,KCAS and 50\,ft. \key{B}
 sets the parking brake. The rotor brake holds the stopped rotors (\ann{ROTOR BRAKE}); the start releases it. \key{N}
 folds the blades and swings the wing along the fuselage, \key{n} unfolds it; the rotors shall be stopped.
 
@@ -192,7 +191,7 @@ their labels for a few seconds after a key is pressed.
 \paragraph{Flight (FLT).} One format for every regime (Figure~\ref{fig:flt_airplane}). At its centre the flight path marker, where the aircraft is
 going, with its acceleration chevron; airspeed and altitude tapes with 10\,s trend vectors; the heading; a ground grid
 in perspective. The limits are drawn where the eye already is: the conversion corridor's airspeeds for the present
-nacelle angle on the airspeed tape, the high sink rate boundary for the airspeed on the vertical speed scale (its bar
+nacelle angle on the airspeed tape, \ann{SINK RATE}'s boundary on the vertical speed scale (its bar
 turning amber, then red, as the descent nears it), and the margin to the first power limit as one bar, with the power
 to hover in and out of ground effect marked. A small corridor diagram shows where the aircraft is in the conversion and
 where it is going. The AFCS's mode line runs along its top (Section~\ref{sec:annunciation}).
@@ -204,6 +203,12 @@ to fly the stick towards; the hover hold's point, a magenta box filled once it h
 200\,ft the height tape gives way to a green bar under the readout that drains to its foot as the height goes, at the
 rate the aircraft closes on the ground. Past 60$^\circ$ of bank or 25$^\circ$ of pitch the clutter goes and an arrow
 shows the way to roll level. R7 (HVR MARK) marks the present position as a hover point.
+
+With both engines out (ENG OUT, Section~\ref{sec:engout}) the format flies that mode, coupled or not: the guidance cue
+is its pitch and bank, the speed bug (magenta) its glide speed, the corridor's target its nacelles, \ann{TCL UP} and
+\ann{TCL DN} its lever. The altitude tape marks the flare's height (FLR). In the flare a red line on the pitch ladder
+(TAIL) marks the pitch at which the fuselage meets the ground on the wheels. In place of the configuration line, in
+amber, the glide's reach along the track to the flare (\ann{REACH 6.2 NM}; \ann{CONVERTING} until airplane mode).
 \DispFig{flt_hover}{0.55\textwidth}{The flight format's hover format, the hover hold holding 150\,ft over the sea.}
 
 \paragraph{Navigation (NAV).} A moving map, track up (R3: north up; Figure~\ref{fig:nav}). The terrain is coloured by its clearance below the
@@ -213,17 +218,28 @@ up, so that flat ground around a hover stays quiet. On it: the route and its way
 last point, with its approach into the wind; the conversion planner's points, where to begin slowing down (DECEL) and
 converting (CONV) to arrive in a hover; the path 30 and 60\,s ahead in the turn; an approach line; traffic; the fuel's
 endurance and range. Below it the profile along the track: the terrain, the aircraft's path, the selected altitude.
-R1/R2 change the range, R4 the terrain.
+R1/R2 change the range, R4 the terrain. With ENG OUT on, gliding, an amber dashed circle (GLIDE) is where the glide
+reaches the flare's height: from the energy height (the height and the speed over the glide's) at the model's own glide
+ratio for the weight, the gear coming down from 1000\,ft if it is still up, centred where the wind carries the air over
+the glide's time; the profile shows the glide's line to it. It errs short, by 4--5\,\% at the reference loading and
+8--12\,\% at FlightGear's start loading: the engines' run-down after a cut and the speed's sag as the gear comes are
+left out.
 \DispFig{nav}{0.55\textwidth}{The navigation format with a route over the peninsula's ridge to a landing zone on the coast, at
 120\,kt: the terrain beyond the coast not yet loaded by the scenery.}
 
 \paragraph{Engines (ENG)} and \textbf{fuel (FUEL)}: the engines and drive, the tanks and the flow
 (Figures~\ref{fig:eng} and~\ref{fig:fuel}).
-\DispFig{eng}{0.42\textwidth}{The engines and drive format.}
+\DispFig{eng}{0.42\textwidth}{The engines and drive format, engine 2 shut down in flight: \ann{ENG 2 OUT} not yet
+acknowledged.}
 \DispFig{fuel}{0.42\textwidth}{The fuel format.}
 
 \section{Control display unit}
-Its keys B4, B3 and B1 show the EICAS page (cautions), the STAT page (weights) and the scratchpad's page. The keypads
+The CDU shows the EICAS page unless another is called up (Figure~\ref{fig:cdu_eicas}a): on the left the engines and
+the drive as the ENG format has them, on the right the alerts (Section~\ref{sec:alerts}), under them the fuel with its
+endurance, the nacelle angle with the conversion corridor's range at the present speed, the gear and the flap, the
+outside air temperature and the gross weight, each amber while its alert stands. Its keys B4, B2, B3 and B1 show the
+EICAS page, the C/A page (the alerts cleared, the latest first and how long ago), the STAT page (weights) and the
+scratchpad's page; B5 (ACK) acknowledges the alerts. The keypads
 type into the scratchpad; CLR clears it, DEL deletes a character, ENTER enters it:
 \begin{center}\small
 \begin{tabular}{@{}ll@{}}
@@ -239,9 +255,36 @@ Entry & Sets \\
 \end{tabular}
 \end{center}
 
-\DispPair{cdu_pad}{the scratchpad's page, with its entries}{cdu_stat}{the status page}{The control display unit.}
-\paragraph{Cautions} (EICAS): \ann{ENG 1 OUT}/\ann{ENG 2 OUT} (red), \ann{FUEL LOW}, \ann{NR}, \ann{TORQUE},
-\ann{CONV PROT}, \ann{GEAR DOWN} (amber), \ann{ROTOR BRAKE}, \ann{BATTERY OFF} (green).
+\DispPair{cdu_eicas}{the EICAS page, engine 2 shut down in flight, \ann{ENG 2 OUT} acknowledged}{cdu_stat}{the
+  status page}{The control display unit.}
+
+\section{Alerts}\label{sec:alerts}
+Three levels, as MIL-STD-411F has them for military cockpits: warnings red, cautions amber, advisories green. The
+alerts standing show in the window at the top of the ENG format (C/A under any multifunction display calls it up)
+and in the one on the CDU's EICAS page: warnings first, then cautions, then advisories, the latest first within each,
+one not yet acknowledged in reverse video; a window's last line counts the ones that do not fit.
+
+A new warning lights MASTER WARN on the master alert at each end of the glareshield (the plain square key of the
+pair), sounds the warning tone and says the warning in FlightGear's own voice, both again every 4\,s; a new caution
+lights MASTER CAUT and chimes once. The tone and the voice stop after 10\,s; the master stays lit until the alert
+clears or is acknowledged: press either master or ACK under any multifunction display or on the CDU. On the ground
+with the rotors carrying under half the weight (starting, taxiing, shutting down) the alerts are listed only, without
+the masters or a sound; one still standing at lift-off becomes new then. An autopilot mode that the aircraft lets go
+of (not the pilot) is listed amber with its own warbling tone until acknowledged or engaged again, and shows on the
+flight format for 5\,s. A condition holds for 1\,s before its caution or \ann{OVERSPEED} shows, so that a value on its
+threshold does not chime twice.
+
+Three warnings are time-critical: \ann{SINK RATE}, \ann{PULL UP} and \ann{ROTOR RPM}. Each shows in red in the flight
+format's attitude window, under the aircraft, and says itself every 2.5\,s for as long as it stands; acknowledging puts
+out the master but not the voice. \ann{SINK RATE} is the vortex ring state ahead: either rotor descending past the
+boundary the flight format's vertical speed scale marks, which is the high sink rate limit's 800\,ft/min in vertical
+descent at the reference loading at sea level (Section~\ref{sec:sinklimit}), and moves with the weight, the air's
+density and the edgewise speed as the state's onset does. With the lever drawn back steadily it comes 6--8\,s before
+the onset (at 0.02 of the lever a second), and 12--15\,s at half that rate. \ann{ROTOR RPM}: the rotor speed so low that the rotors at their greatest thrust no longer hold the
+hover. \ann{PULL UP}: with the nacelles down, descending to the ground in less than a reaction and a pull-out; not
+with ENG OUT on, which has no power to climb away and whose own flare closes on the ground quicker than that.
+Both engines out is one warning, \ann{DUAL ENG OUT}, collecting \ann{ENG 1 OUT} and \ann{ENG 2 OUT}.
+\begin{center}\small\Tab{alerts}\end{center}
 
 \section{Standby instruments and lighting}
 The ESFI shows attitude, airspeed and altitude, the SFD the engines and fuel (Figure~\ref{fig:esfi}). The displays need power, the battery or
@@ -282,10 +325,14 @@ the panel's windows.
 The mode line along the top of the flight format shows the modes, green when coupled, white as cues: \ann{CPLD}; the
 lateral mode (\ann{HDG 270}, \ann{WYPT} and the next waypoint, the approach line's name and \ann{ARM} until it captures);
 the vertical (\ann{ALT 2000}, \ann{GP ARM}, \ann{GP 3.0}, \ann{TF 300 MED}); the speed (\ann{SPD 120}); \ann{AUTO NAC};
-the approach's phase (\ann{APPR 4.2}, \ann{APPR HOVER}, \ann{APPR LAND}, \ann{APPR DOWN}); the hover hold
-(\ann{HVR CPLD DECEL}, \ann{HOLD}, \ann{TRC}, \ann{REM}; \ann{RAD ALT 50}). Alerts show for 5\,s: \ann{CPLD OFF},
-\ann{HVR CPLD OFF} (let go), \ann{HVR CPLD UNAVAIL} (refused), \ann{AUTO NAC OFF}, \ann{APPR UNAVAIL},
-\ann{VOR/ILS UNAVAIL}, \ann{TF UNAVAIL}.
+the approach's phase (\ann{APPR 4.2}, \ann{APPR HOVER}, \ann{APPR LAND}, \ann{APPR DOWN}; \ann{APPR HOVER GEAR}: the
+landing armed but the gear up, the hover held until it is down); the hover hold
+(\ann{HVR CPLD DECEL}, \ann{HOLD}, \ann{TRC}, \ann{REM}; \ann{RAD ALT 50}); both engines out, ENG OUT's phase
+(\ann{ENG OUT DIVE}, \ann{ENG OUT GLIDE 200}, \ann{ENG OUT FLARE}, \ann{ENG OUT LAND}, \ann{ENG OUT DOWN};
+\ann{GEAR} after it with the gear up below
+1000\,ft or in the flare). Over it for 5\,s: \ann{CPLD OFF},
+\ann{HVR CPLD OFF} (let go), \ann{HVR CPLD UNAVAIL} (refused), \ann{AUTO NAC OFF} (also alerts,
+Section~\ref{sec:alerts}); in it for 5\,s, a mode refused: \ann{APPR UNAVAIL}, \ann{VOR/ILS UNAVAIL}, \ann{TF UNAVAIL}.
 
 \section{The modes}
 \subsection{Heading hold (HDG HOLD, \key{Ctrl-H})}
@@ -378,6 +425,25 @@ release it stops and holds again.
 \subsection{Hover height hold (HVR HOLD, \key{Y})}
 Holds the HVR ALT knob's radar height, taking the present one when pressed (\ann{RAD ALT 50}).
 
+\subsection{Both engines out (ENG OUT)}\label{sec:engout}
+Comes on when both engines stop in the air; \key{Ctrl-E} cuts both off, to try it. It flies the landing on the wheels
+that the model makes best, found by flying it offline from cruise, from airplane mode, from the conversion and from
+hovers (the procedure, Section~\ref{sec:dualeng}). With CPLD on it flies it; without, its cues are on the flight
+format and the mode line is white. The other modes go off, the hover hold with them; HDG HOLD stays, and the mode
+holds its bug (or, without it, the heading it came on at). Its phases:
+\begin{itemize}
+\item \ann{DIVE}: the lever down, the nacelles commanded to airplane mode (the corridor lets them follow the speed),
+the nose down for the glide's speed; the descent held to what a pull-out can stop by the flare's height.
+\item \ann{GLIDE 200}: the speed held on the pitch.
+\item \ann{FLARE}: from 250\,ft over the ground (higher when sinking fast), the descent eased to a float 10\,ft up, the
+nose no higher than 6$^\circ$, the nacelles commanded up as the corridor lets them as the speed falls.
+\item \ann{LAND}: the nose at its limit and sinking, the aircraft settles at 3\,ft/s, the lever coming up from
+20\,ft.
+\item \ann{DOWN}: on the ground the lever comes down, then the mode goes off.
+\end{itemize}
+The gear is the crew's: \ann{GEAR} on the mode line asks for it below 1000\,ft. The panel has no key for it: the
+name ENGOUT written to the AFCS's \texttt{press} property (from a script or a hardware panel) turns it on and off.
+
 \section{How the modes combine}
 \begin{itemize}
 \item \emph{Lateral}: an approach line once captured, else the route (WYPT), else the heading (HDG HOLD). With none the
@@ -408,21 +474,23 @@ mode's airspeed limits.}\label{fig:corridor}
 \begin{itemize}
 \item Airplane mode, 84\,\% $N_R$: \MVmo\,KCAS or Mach \MMmo, whichever is less.
 \item Airplane mode at 100\,\% $N_R$: \MVmoHundred\,KCAS.
-\item Gear down: 150\,KCAS.
+\item Gear down: \MVle\,KCAS. Assumed: no figure for the V-22's is public.
 \end{itemize}
 
 \section{Rotor speed and power}
 \begin{itemize}
 \item Rotor speed: \MNrHelo\,\% in helicopter mode and through the conversion, \MNrApln\,\% in airplane mode; \ann{NR}
 beyond 3\,\%.
-\item Torque: 100\,\% (\ann{TORQUE}). The drive: \MPxmsn\,hp at 100\,\% $N_R$.
+\item Torque: each engine's limit, its rating or its share of the drive's limit (\MPxmsn\,hp at 100\,\% $N_R$),
+whichever is less, marked on its gauge; the engines' controls hold each there.
 \end{itemize}
 
-\section{High sink rate}
+\section{High sink rate}\label{sec:sinklimit}
 \begin{warning}
 At low airspeed the rotors can enter their own wake, the vortex ring state, and the aircraft sink fast and roll. The rate of descent shall
 stay below \MVrsLoSink\,ft/min up to \MVrsLoKt\,KCAS, rising to \MVrsHiSink\,ft/min at \MVrsHiKt\,KCAS (Figure~\ref{fig:perf}c).
-The flight format's vertical speed bar turns amber and red as the descent nears the limit.
+The flight format's vertical speed bar turns amber and red as the descent nears \ann{SINK RATE}'s boundary, which is
+this limit in vertical descent at the reference loading at sea level and moves with the weight and the air's density.
 \end{warning}
 
 \section{Weight}
@@ -463,8 +531,9 @@ stop and the aircraft sinks.
 \item To hold the hover: HVR CPLD (\key{y}); HVR HOLD (\key{Y}) holds the radar height.
 \end{enumerate}
 \begin{note}
-The flight format's power bar marks the power to hover in and out of ground effect: with the lever's power past the
-out-of-ground-effect mark the aircraft cannot hover clear of the ground.
+The flight format's power bar marks the power to hover in and out of ground effect, the model's own for the weight
+and the air: with the lever's power past the out-of-ground-effect mark the aircraft cannot hover clear of the ground.
+\ann{HOVER PWR} warns of it, slowing with the nacelles up, at the height the aircraft is at.
 \end{note}
 
 \section{Conversion to airplane mode}
@@ -484,7 +553,7 @@ Cruise 240--270\,KCAS. At the slow end of airplane mode the nose is high (\MPitc
 
 \section{Conversion to helicopter mode and landing}
 \begin{enumerate}
-\item Slow down below 200\,KCAS; nacelles up (\key{M}) as the corridor allows; gear down below 150\,KCAS.
+\item Slow down below 200\,KCAS; nacelles up (\key{M}) as the corridor allows; gear down below \MVle\,KCAS.
 \item Approach with the nacelles at 75--85$^\circ$, below the high sink rate limit.
 \item Come to a hover over the point, then lower the lever to land.
 \item After landing: lever down.
@@ -496,7 +565,9 @@ Cruise 240--270\,KCAS. At the slow end of airplane mode the nose is high (\MPitc
 \item CPLD; HDG HOLD or WYPT, ALT HOLD, SPD HOLD, AUTO NAC.
 \item APPR (\key{Ctrl-G}): the line arms and is drawn on the NAV format; it captures within 20\,s of flight of it.
 \item The AFCS descends on the path, slows down and hands over to the hover hold 50\,ft over the point.
-\item APPR again: it lands, and the lever comes down on the ground.
+\item The gear down (\key{G}).
+\item APPR again: it lands, and the lever comes down on the ground. With the gear up it holds the hover
+(\ann{APPR HOVER GEAR}) and lands once the gear is down.
 \end{enumerate}
 With a route flown by WYPT, APPR arms itself.
 
@@ -560,8 +631,42 @@ the ground.
 Below 80\,KCAS and at 120--160\,KCAS, at the reference loading, one engine cannot hold level flight.
 \end{warning}
 
+\section{Both engines out}\label{sec:dualeng}
+\ann{DUAL ENG OUT}; ENG OUT comes on and flies this, coupled, or shows it on the flight format
+(Section~\ref{sec:engout}). It is the landing the model makes best on its wheels (the gear's limit 12\,ft/s), with the
+proprotors and the tail clear of the ground, found by flying it offline (\texttt{fdm/deadland.py}):
+\begin{enumerate}
+\item The lever down, to flat pitch: the governor holds the rotors windmilling.
+\item The nacelles forward to airplane mode, the nose down for 200\,KCAS. The corridor holds the nacelles until the
+speed comes.
+\item Glide at 200\,KCAS: about 8.4 to 1 in still air at the reference loading, 1.4\,NM for every 1000\,ft; lighter,
+less (7.4 to 1 at 38\,700\,lb, 1.2\,NM); with the gear down 7.1 and 6.2 to 1.
+\item The gear down below 1000\,ft.
+\item At 250\,ft flare into a float 10\,ft over the ground, the nose no higher than 6$^\circ$: the fuselage meets the
+ground at 7.3$^\circ$ on the wheels. The nacelles up as far as the corridor lets them as the speed falls: they must
+reach about 36$^\circ$ for the proprotors to clear the ground.
+\item With the nose at 6$^\circ$ and sinking, let it settle; the lever up from 20\,ft.
+\end{enumerate}
+In the model, at the reference loading over flat ground at sea level, it lands intact from cruise, from a glide at
+180--200\,KCAS from 1500\,ft, from the conversion from 4000\,ft and from a hover from about 6000\,ft (5500 at best):
+on the wheels at 7.4--11\,ft/s and about 161\,kt over the ground, the nose at 6$^\circ$, the nacelles at
+43--47$^\circ$ with the proprotors 3.5--4.4\,ft clear, 0.5--0.75\,NM past the flare's height. With less height it
+does not land intact. From a hover below 4000\,ft, from the conversion at 2000\,ft or from 160\,KCAS at 800\,ft it
+strikes at 55--90\,ft/s, past what is survivable (42\,ft/s). From a hover at 4000--5000\,ft it strikes at
+36--70\,ft/s, survivable or not depending on where the dive's pull-out leaves the glide at the flare. Flown in
+FlightGear at its start loading (38\,700\,lb), both engines cut 4.0\,NM short of KSFO's runway 28R at 3000\,ft and
+200\,KCAS, the heading bug steered onto the centreline: on the runway 1160\,ft past the threshold at 5\,ft/s and
+144\,kt, the nacelles at 69$^\circ$, stopped 2450\,ft past it.
+\begin{warning}
+The landing is fast, at about 160\,kt over the ground: it needs a runway, or flat open ground. Slower it cannot be:
+held off at 6$^\circ$ of pitch the wing carries the aircraft only to about 150\,kt, and nose-higher the tail strikes.
+\end{warning}
+
 \section{High sink rate}
-Nacelles forward and the nose down to gain airspeed; do not pull the lever up alone, which deepens the vortex ring state.
+\ann{SINK RATE} (its cue \ann{NAC FWD POWER}): the lever up and the nacelles forward, about 20$^\circ$. In the model's
+entries at the reference loading, from the warning this arrests the descent within about 65\,ft; from the vortex ring
+state's onset within about 175\,ft and 5\,s, where the lever alone takes about 230\,ft and the nose down alone does not
+recover.
 
 \section{Conversion protection}
 \ann{CONV PROT}: the nacelles held off the command by the corridor. Fly the speed into the corridor for the angle

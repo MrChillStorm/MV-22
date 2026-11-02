@@ -53,6 +53,7 @@ def aircraft():
     num('MNrHelo', V.NR_HELO); num('MNrApln', V.NR_APLN)
     num('MNacMin', V.NACELLE_MIN); num('MNacMax', V.NACELLE_MAX, '%.1f'); num('MNacRate', V.NACELLE_RATE)
     num('MVmo', V.VMO_APLN); num('MMmo', V.MMO_APLN, '%.2f'); num('MVmoHundred', V.VMO_APLN_100)
+    num('MVle', V.VLE)
     (kv, sk) = V.VRS_SINK
     num('MVrsLoKt', kv[0]); num('MVrsLoSink', grouped(sk[0])); num('MVrsHiKt', kv[1]); num('MVrsHiSink', grouped(sk[1]))
     rows = ['%s & %d & %.0f' % (n, g, g * V.FUEL_LB_GAL) for n, g, *_ in V.TANKS]
@@ -175,12 +176,22 @@ def level():
     num('MOeiLo', min(ok)); num('MOeiHoverPower', grouped(rows[0]['power_hp']))
 
 
+# ---------------------------------------------------------------- the crew alerts (fdm/alerts.py)
+def alerts():
+    import alerts as AL
+    level = {AL.WARNING: 'warning (red)', AL.CAUTION: 'caution (amber)', AL.ADVISORY: 'advisory (green)',
+             AL.AUTOPILOT: 'autopilot (amber)'}
+    rows = ['\\ann{%s} & %s & %s' % (a['text'], level[a['level']], tex(a['when'])) for a in AL.table(V)]
+    rows += ['\\ann{%s} & %s & %s' % (text, level[lv], tex(when)) for _, _, text, lv, _, when in AL.EVENTS]
+    write('alerts', tabular('llp{0.5\\textwidth}', 'Alert & Level & When', rows))
+
+
 if __name__ == '__main__':
     if sys.argv[1:] == ['--trims']:
         trims()
         sys.exit()
     os.makedirs(TAB, exist_ok=True)
-    for fn in (aircraft, keys, panel, performance, level):
+    for fn in (aircraft, keys, panel, performance, level, alerts):
         fn()
     open(os.path.join(TAB, 'numbers.tex'), 'w').write(''.join('\\newcommand{\\%s}{%s}\n' % kv for kv in sorted(NUM.items())))
     print('%d numbers' % len(NUM))

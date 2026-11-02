@@ -861,8 +861,8 @@ def toggle_xml(name, prop):
 # them, its middle taller round the flight control panel; at the panel's ends sheet-metal cheeks run back toward the
 # crew flush with the radio panels' ends, their crew-side edges angled out from the radio panels' faces, straight for a
 # short stretch, and angled back to the displays at the foot. Each
-# radio panel runs from the flight control panel to just past its outer display: from its outer end two square keys,
-# the CHAN knob, the display, the BRT knob.
+# radio panel runs from the flight control panel to just past its outer display: from its outer end two square keys
+# (one of them the master alert), the CHAN knob, the display, the BRT knob.
 SHELF_D = 0.060                      # the shelf's face, out from the panel's (the displays' bezels at 0.022)
 SHELF_M = 0.0035                     # its margin round the panels in it
 AFCS_W, AFCS_H = 0.410, 0.090
@@ -986,8 +986,18 @@ def glareshield():
         w0, w1, wh = RADIO_WIN
         screen(name + '.screen', (at(w0) + at(w1)) / 2, rz, w1 - w0, wh, dk + 0.0005)
         for k, s_ in enumerate(RADIO_KEYS):                                                 # on the housing's thin part
-            key('%s.K%d' % (name, k + 1), name, 'K%d' % (k + 1), '', at(s_), RADIO_TOP - HOUSING_H[1] / 2, 0.025, 0.025,
-                SHELF_D, 0.008)
+            kz = RADIO_TOP - HOUSING_H[1] / 2
+            if (side < 0) == (k == 0):
+                # the pair's left one, plain (the other is guarded; the photographs show the same order at both ends):
+                # taken for the master alert, MASTER WARN over MASTER CAUT, its face a Canvas (Nasal/displays.nas,
+                # Master), pressed to acknowledge. Its legends can't be read in the photographs; MIL-STD-411F puts the
+                # masters in each pilot's 30 deg forward cone
+                mn = 'MASTER%d' % (1 if side < 0 else 2)
+                key(mn, 'MASTER', 'RESET', '', at(s_), kz, 0.025, 0.025, SHELF_D, 0.008)
+                screen(mn + '.screen', at(s_), kz, 0.021, 0.021, SHELF_D + 0.0083)
+                KEYS.append((mn + '.screen', 'MASTER', 'RESET'))
+            else:
+                key('%s.K%d' % (name, k + 1), name, 'K%d' % (k + 1), '', at(s_), kz, 0.025, 0.025, SHELF_D, 0.008)
 
 
 # ---------------------------------------------------------------- the panel's body and the console

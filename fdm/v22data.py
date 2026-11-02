@@ -57,6 +57,10 @@ CPS = (([0, 35, 70, 93, 107, 125], [75, 75, 60, 40, 20, 0]), ([0, 130, 150, 175,
 # less, at 84 % rotor speed, 220 KCAS at 100 %; the high sink rate warning's boundary (the vortex ring state's), a
 # descent of 800 ft/min up to 30 KCAS, rising to 1600 at 60 and none past it
 VMO_APLN, MMO_APLN, VMO_APLN_100 = 280.0, 0.48, 220.0
+# the gear down, KCAS: ASSUMED. No public V-22 figure (a Naval Safety Command account of a gear malfunction speaks of
+# keeping below the gear's transition limits without a number); fast military jets' are about 250-300. ENG OUT lowers
+# the gear in its 200 KCAS glide
+VLE = 250.0
 VRS_SINK = ([30, 60], [800, 1600])
 # rotor splay: the shafts are splayed 2.5 deg outboard in helicopter mode [RC 6.2]; left out
 
@@ -192,4 +196,7 @@ J_DRIVE = 2 * 60.0          # slug ft^2 at the rotor: the engines' power turbine
 NOSE_GEAR = model_to_station(-7.25, 0.0, -2.95)
 MAIN_GEAR = model_to_station(-0.47, 2.10, -2.95)
 D_GEAR = (3.0 * FUS_SCALE ** 2, 1.0 * FUS_SCALE ** 2)   # ft^2 main, nose, extended: the XV-15's [CR] scaled
+# the pitch at which the fuselage's underside aft of the main wheels meets the ground, the wheels on it and their struts
+# extended: the ramp's lower edge, 3.2 m aft of their contact and 0.41 m above it [3D]
+TAIL_STRIKE_DEG = 7.3
 EYE = model_to_station(-5.85, 0.57, -0.90)   # pilot's eye, right seat [the original aircraft's view]

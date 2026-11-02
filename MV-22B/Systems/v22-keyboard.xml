@@ -326,6 +326,15 @@
       </binding>
     </key>
 
+    <key n="5">
+      <name>Ctrl-E</name>
+      <desc>Test: both engines out (cut off), the battery left on; ENG OUT comes on in the air</desc>
+      <binding>
+        <command>nasal</command>
+        <script>foreach (var e; [0, 1]) setprop("/controls/engines/engine[" ~ e ~ "]/cutoff", 1)</script>
+      </binding>
+    </key>
+
     <key n="21">
       <name>Ctrl-U</name>
       <desc>Autopilot go-around (GA)</desc>

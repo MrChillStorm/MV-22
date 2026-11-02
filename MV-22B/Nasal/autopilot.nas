@@ -10,7 +10,8 @@
 # WYPT flies a route's whole plan, as the NAV format draws it: APPR is armed with the route, to a hover at its last
 # point (the landing zone), its speed and path along the route's distance still to go (turns: ap/route-togo-ft).
 # The keys: VOR/ILS on and off; APPR on (to the hover), again (and land), again (off); GA (go around: the approach and
-# the hover hold off, the heading held, 1000 ft above or the ALT knob's altitude, at least 80 kt, AUTO NAC).
+# the hover hold off, the heading held, 1000 ft above or the ALT knob's altitude, at least 80 kt, AUTO NAC); ENGOUT
+# (AFCS/press only: no key on the panel) ENG OUT on and off, which both engines stopping in the air turn on.
 
 var JSB = "/fdm/jsbsim/";
 var AFCS = "/instrumentation/mv22b/afcs/";
@@ -245,7 +246,17 @@ var ga = func {
 
 # the mode annunciator's lateral, vertical and approach words (displays.nas, afcs_modes)
 var STATES = ["", "", " HOVER", " HOVER", " LAND", " DOWN"];
+# ENG OUT's phases (the flight model's eng_out); the gear asked for while up below the mode's gear height or flaring
+var EO_PHASES = ["", " DIVE", " GLIDE", " FLARE", " LAND", " DOWN"];
 var annunciate = func(s) {
+    if (val(AFCS ~ "eng-out")) {
+        var ph = math.max(0, math.min(5, int(val(JSB ~ "ap/eo-phase"))));
+        var t = "ENG OUT" ~ EO_PHASES[ph] ~ (ph == 2 ? sprintf(" %d", val(JSB ~ "ap/eo-vg-kt")) : "");
+        if (ph < 5 and val(JSB ~ "gear/gear-pos-norm") < 0.99
+            and (ph >= 3 or val("/position/gear-agl-m") * M2FT < val(JSB ~ "ap/eo-gear-ft")))
+            t ~= " GEAR";
+        append(s, t);
+    }
     var line = val(JSB ~ "ap/line"); var want = val(AFCS ~ "vor-ils") or val(AFCS ~ "appr");
     if (want and val(JSB ~ "ap/line-valid") and !val(JSB ~ "hh/on"))
         append(s, label ~ (line ? "" : " ARM"));
@@ -254,7 +265,9 @@ var annunciate = func(s) {
     if (val(AFCS ~ "appr")) {
         var st = math.max(0, math.min(5, int(val(JSB ~ "ap/app-state"))));
         var t = "APPR" ~ STATES[st];
-        if (st < 4 and val(JSB ~ "ap/app-land")) t ~= st < 2 ? " LAND" : " LAND ARM";
+        # the landing armed, but the gear up: the hover held till it is down
+        if (st < 4 and val(JSB ~ "ap/app-land"))
+            t ~= st < 2 ? " LAND" : st == 3 and val(JSB ~ "gear/gear-pos-norm") < 0.99 ? " GEAR" : " LAND ARM";
         if (st == 1) t ~= sprintf(" %.1f", val(JSB ~ "ap/app-dist-ft") / 6076.1);
         append(s, t);
     }

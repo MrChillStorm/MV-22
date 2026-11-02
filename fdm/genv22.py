@@ -33,6 +33,7 @@ from data import gtrs as GTRS
 from data import heyson_ground as HG
 import rotorwake
 import vrs as VRS
+import alerts
 
 U = None                  # the aircraft's data module, set by configure()
 G0 = 32.174
@@ -49,6 +50,7 @@ START_TRIM_TAU_S = 0.25                   # its stick's trim's time constant (sc
 AUTOPILOT_EXECRATE = 8                  # the autopilot's outer loops: 60 Hz
 AIRFRAME_EXECRATE = 8
 SLOW_EXECRATE = 8
+GEAR_S = 10.0             # the landing gear's retraction and extension, s (estimate)
 SLAP_TAU_S = 0.25         # the slap's sound follows the rotors' state through this lag: their 3/rev loads (20 Hz) out
 # Peters-He states (j, r): three axisymmetric (the hover's radial distribution) and the first harmonic
 PH_COS = [(1, 0), (3, 0), (5, 0), (2, 1)]
@@ -75,8 +77,11 @@ KEEP = {'aero/rotor/r/thrust-lbs', 'aero/rotor/l/thrust-lbs', 'aero/rotor/r/torq
         'ap/app-dist-ft', 'ap/app-xte-ft', 'ap/app-path-ft', 'ap/v-sel-kt', 'ap/roll-lag-s', 'ap/app-route',
         'ap/tf-on', 'ap/tf-flyup', 'ap/tf-climb-cap-fps', 'ap/tf-ref-ft', 'ap/tf-model-ft', 'ap/tf-v1-fps',
         'ap/tf-v2-fps', 'ap/tf-w', 'ap/tf-tau1-s', 'ap/tf-tau2-s', 'ap/tf-kh',
+        # ENG OUT's cues (displays.nas) and deadland.py's traces
+        'ap/eo-fly', 'ap/eo-theta-cmd-deg', 'ap/eo-phi-cmd-deg', 'ap/eo-nac-cmd-deg', 'ap/eo-lever-cmd', 'ap/eo-gate-ft',
+        'ap/eo-pull-err-fps', 'ap/eo-hdot-err-fps', 'ap/eo-energy-ft', 'ap/eo-reach-nm', 'ap/eo-reach-s',
         # read by descent.py (the others it reads are read twice in the model)
-        'aero/rotor/r/vrs/nu-base', 'aero/rotor/l/vrs/nu-base', 'aero/rotor/r/vrs/dnu', 'aero/rotor/l/vrs/dnu'}
+        'aero/rotor/r/vrs/nu-base', 'aero/rotor/l/vrs/nu-base', 'aero/rotor/r/vrs/dnu', 'aero/rotor/l/vrs/dnu'} | alerts.KEEP
 INLINE = True
 
 
@@ -181,6 +186,13 @@ def start_trim():
     """the level-flight trims FlightGear's in-air start takes (trimmap.py --start): along AUTO NAC's schedule over the
     calibrated airspeed, the gross weight and the density altitude, the gear up and down; None without them"""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'start_trim_v22.json')
+    return json.load(open(path)) if os.path.exists(path) else None
+
+
+def glide_ld():
+    """the airplane mode's glide ratio with the engines out over the calibrated airspeed and the gross weight, the gear
+    up and down (deadstick.py --table: the model's zero-power trims, 1000 ft); None without it"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'glide_ld_v22.json')
     return json.load(open(path)) if os.path.exists(path) else None
 
 
@@ -479,18 +491,27 @@ class Model:
         # the error is the overspeed: a rotor faster than its reference takes more pitch (more torque), a slower one less
         err = c.fn('gov/err-pct', D(nr, ref))
         lo, hi = B.GOV_LIMITS
+        # (its authority below the lever's collective a property, Bell's by default: deadland.py tries wider ones)
+        c.declare('gov/lo-deg', lo)
+        lo = p('gov/lo-deg')
         # it engages as the rotor comes up to speed (from 19 to 9 % below its reference: 85 to 95 % in helicopter mode),
-        # its integral held at zero below: on a start the blades stay at the lever's flat pitch
-        ga = c.fn('gov/engaged', MAX(v(0), MIN(v(1), Q(S(D(nr, ref), v(19)), v(10)))))
+        # its integral held at zero below: on a start the blades stay at the lever's flat pitch. Once fully engaged it
+        # stays so (gov/latched) until the rotor has run down on the ground (a shutdown): in flight a rotor losing speed,
+        # both engines out, has its collective taken down to hold it (autorotation), not left at the lever's pitch
+        gr = MAX(v(0), MIN(v(1), Q(S(D(nr, ref), v(19)), v(10))))
+        latched = c.declare('gov/latched', 0)
+        c.fn('gov/latched-next', IFTHEN(GT(gr, v(0.999)), v(1), IFTHEN(GT(M(p('gear/wow'), LT(gr, v(0.001))), v(0.5)), v(0), latched)),
+             out='gov/latched')
+        ga = c.fn('gov/engaged', MAX(gr, latched))
         # (starting in the air, the start's collective less the lever's while it holds the airframe: controls())
         held, fixed = p('gov/int-deg'), init
         if s.start_at:
             fixed = MAX(init, GT(p('ctl/start-hold'), v(0.5)))
             held = IFTHEN(GT(p('ctl/start-hold'), v(0.5)), D(p('ctl/start-coll-deg'), p('ctl/coll-ff-deg')), held)
         c.fn('gov/int-next', IFTHEN(fixed, held, IFTHEN(LT(ga, v(0.01)), v(0),
-                                                                MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/ki'), ga, err, p('simulation/channel-dt'))))))),
+                                                                MAX(lo, MIN(v(hi), S(p('gov/int-deg'), M(p('gov/ki'), ga, err, p('simulation/channel-dt'))))))),
              out='gov/int-deg')
-        c.fn('gov/theta-deg', M(ga, MAX(v(lo), MIN(v(hi), S(p('gov/int-deg'), M(p('gov/kp'), err))))))
+        c.fn('gov/theta-deg', M(ga, MAX(lo, MIN(v(hi), S(p('gov/int-deg'), M(p('gov/kp'), err))))))
 
     def scas(s):
         """Stability and control augmentation, for the FlightGear aircraft (the validation runs the bare airframe,
@@ -693,7 +714,7 @@ class Model:
         of its detent or the hover hold takes it off. Gains are properties (ap/*)."""
         c = s.ctl
         KT, AF, ST = 1.6878, '/instrumentation/mv22b/afcs/', '/autopilot/settings/'
-        for n in ('cpld', 'hdg-hold', 'alt-hold', 'spd-hold', 'auto-nac', 'wypt', 'vor-ils', 'appr', 'hvr-hold', 'tf', 'ga'):
+        for n in ('cpld', 'hdg-hold', 'alt-hold', 'spd-hold', 'auto-nac', 'wypt', 'vor-ils', 'appr', 'hvr-hold', 'tf', 'ga', 'eng-out'):
             c.declare(AF + n, 0)
         c.declare(ST + 'target-agl-ft', 0.0)
         for n, x in (('line-valid', 0), ('line-lat-deg', 0.0), ('line-lon-deg', 0.0), ('line-course-deg', 0.0), ('line-gs', 0),
@@ -725,8 +746,9 @@ class Model:
         lim = lambda x, lo, hi: MAX(v(lo), MIN(v(hi), x))
         on = lambda prop: GT(p(prop), v(0.5))
         air, hold = p('scas/airborne'), on('hh/on')
-        # the modes (the flight director) and the coupling
-        free = M(air, NOT(hold))
+        # the modes (the flight director) and the coupling; ENG OUT (eng_out) has the controls while it is on, the
+        # others waiting
+        free = M(air, NOT(hold), NOT(on(AF + 'eng-out')))
         # WYPT: the route manager's route (FlightGear's GPS in its leg mode), in place of the heading while it is active
         nav = c.fn('ap/nav', M(free, on(AF + 'wypt'), on('/autopilot/route-manager/active')))
         # the line (VOR/ILS, APPR): the distance to go to its point along its course, the cross-track error (+ left of it)
@@ -942,10 +964,15 @@ class Model:
         c.fn('ap/theta-int-next', IFTHEN(vrise, th0, IFTHEN(GT(vert, v(0.5)),
              lim(S(p('ap/theta-int-rad'), M(p('ap/kli'), Q(l_err, V), dt)), -15 / R2D, 15 / R2D), th0)), out='ap/theta-int-rad')
         tc = lim(S(p('ap/theta-int-rad'), gff, M(p('ap/klp'), Q(l_err, V))), -10 / R2D, 15 / R2D)
-        tr, tmax = p('ap/theta-ref-rad'), M(p('ap/theta-rate-dps'), v(1 / R2D), dt)
+        # (ENG OUT's in place of the modes' while it flies, at its own rate)
+        eo = s.eng_out(cpl)
+        efly = eo['fly']
+        vfly, vrise = MAX(vert, efly), MAX(vrise, eo['rise'])
+        tc = IFTHEN(GT(efly, v(0.5)), eo['theta'], tc)
+        tr, tmax = p('ap/theta-ref-rad'), M(IFTHEN(GT(efly, v(0.5)), p('ap/eo-theta-rate-dps'), p('ap/theta-rate-dps')), v(1 / R2D), dt)
         # (its rate, rad/s, for the augmentation's damper: the commanded rate isn't damped)
-        c.fn('ap/theta-ref-rate', IFTHEN(GT(M(vert, NOT(vrise)), v(0.5)), Q(MAX(NEG(tmax), MIN(tmax, D(tc, tr))), MAX(dt, v(1e-3))), v(0)))
-        c.fn('ap/theta-ref-next', IFTHEN(GT(vert, v(0.5)), IFTHEN(vrise, p('attitude/theta-rad'), S(tr, MAX(NEG(tmax), MIN(tmax, D(tc, tr))))),
+        c.fn('ap/theta-ref-rate', IFTHEN(GT(M(vfly, NOT(vrise)), v(0.5)), Q(MAX(NEG(tmax), MIN(tmax, D(tc, tr))), MAX(dt, v(1e-3))), v(0)))
+        c.fn('ap/theta-ref-next', IFTHEN(GT(vfly, v(0.5)), IFTHEN(vrise, p('attitude/theta-rad'), S(tr, MAX(NEG(tmax), MIN(tmax, D(tc, tr))))),
              p('attitude/theta-rad')), out='ap/theta-ref-rad', desc='the flight director\'s pitch')
         # the heading: bank to the bug (magnetic) for a turn that closes on it with a time constant (the bank for a
         # heading error growing with the speed), within a limit growing with the speed
@@ -993,13 +1020,14 @@ class Model:
         lerr_ = c.fn('ap/line-err-deg', M(v(R2D), ATAN2(SIN(dl_), COS(dl_))))
         bank = IFTHEN(GT(line, v(0.5)), M(kpsi, lerr_), IFTHEN(GT(nav, v(0.5)), IFTHEN(arc, S(aff, M(kpsi, aerr)), IFTHEN(rolling, v(0), M(kpsi, terr))),
                       M(kpsi, err)))
-        pc = M(v(1 / R2D), MAX(NEG(bmax), MIN(bmax, bank)))
+        pc = IFTHEN(GT(efly, v(0.5)), eo['phi'], M(v(1 / R2D), MAX(NEG(bmax), MIN(bmax, bank))))
+        lfly, lrise = MAX(lat, efly), MAX(lrise, eo['rise'])
         pr, pmax = p('ap/phi-ref-rad'), M(p('ap/phi-rate-dps'), v(1 / R2D), dt)
-        c.fn('ap/phi-ref-rate', IFTHEN(GT(M(lat, NOT(lrise)), v(0.5)), Q(MAX(NEG(pmax), MIN(pmax, D(pc, pr))), MAX(dt, v(1e-3))), v(0)))
-        c.fn('ap/phi-ref-next', IFTHEN(GT(lat, v(0.5)), IFTHEN(lrise, p('attitude/phi-rad'), S(pr, MAX(NEG(pmax), MIN(pmax, D(pc, pr))))),
+        c.fn('ap/phi-ref-rate', IFTHEN(GT(M(lfly, NOT(lrise)), v(0.5)), Q(MAX(NEG(pmax), MIN(pmax, D(pc, pr))), MAX(dt, v(1e-3))), v(0)))
+        c.fn('ap/phi-ref-next', IFTHEN(GT(lfly, v(0.5)), IFTHEN(lrise, p('attitude/phi-rad'), S(pr, MAX(NEG(pmax), MIN(pmax, D(pc, pr))))),
              p('attitude/phi-rad')), out='ap/phi-ref-rad', desc='the flight director\'s bank')
-        c.fn('ap/theta-on-next', M(vert, cpl), out='ap/theta-on')
-        c.fn('ap/phi-on-next', M(lat, cpl), out='ap/phi-on')
+        c.fn('ap/theta-on-next', MAX(M(vert, cpl), efly), out='ap/theta-on')
+        c.fn('ap/phi-on-next', MAX(M(lat, cpl), efly), out='ap/phi-on')
         for n, x in (('vert-was', vert), ('lat-was', lat), ('spd-was', spd)):
             c.fn('ap/%s-next' % n, x, out='ap/' + n)
         # the lever: the energy rate, integral and proportional, driven while coupled with a speed mode; the pilot's
@@ -1016,8 +1044,9 @@ class Model:
              lim(S(p('ap/tcl-int'), M(S(M(D(v(1), wb), p('ap/kei')), M(wb, p('ap/kei-back'))), e_err, dt)), 0, 1), p(thr)), out='ap/tcl-int')
         kep = S(M(D(v(1), wb), p('ap/kep')), M(wb, p('ap/kep-back')))
         tcmd = c.fn('ap/tcl-cmd', lim(S(p('ap/tcl-int'), M(kep, e_err)), 0, 1), desc='the flight director\'s lever')
-        c.fn('ap/lever', IFTHEN(GT(p('ap/app-state'), v(4.5)), MAX(v(0), D(p(thr), M(v(0.3), dt))), IFTHEN(flying, tcmd, p(thr))), out=[thr, 'ap/tcl-w'],
-             desc='the lever, driven while coupled with a speed mode; down after an approach\'s landing')
+        c.fn('ap/lever', IFTHEN(GT(eo['drive'], v(0.5)), eo['lever'], IFTHEN(GT(p('ap/app-state'), v(4.5)), MAX(v(0), D(p(thr), M(v(0.3), dt))),
+                                IFTHEN(flying, tcmd, p(thr)))), out=[thr, 'ap/tcl-w'],
+             desc='the lever, driven while coupled with a speed mode or ENG OUT; down after an approach\'s landing')
         # AUTO NAC: the nacelles for the speed reference, within the corridor; the pilot moving them takes it off
         ncmd = '/controls/flight/nacelle-cmd-deg'
         an = c.fn('ap/auto-nac-on', M(spd, MAX(on(AF + 'auto-nac'), app)))
@@ -1026,11 +1055,12 @@ class Model:
         own = GT(ABS(D(p(ncmd), p('ap/nac-w'))), v(0.5))
         c.fn('ap/nac-dropped-next', IFTHEN(GT(M(an, own), v(0.5)), v(1), p('ap/nac-dropped')), out='ap/nac-dropped')
         c.fn('ap/auto-nac-next', IFTHEN(GT(M(an, own), v(0.5)), v(0), p(AF + 'auto-nac')), out=AF + 'auto-nac')
-        c.fn('ap/nacelle', IFTHEN(GT(M(an, NOT(own)), v(0.5)), MAX(p('ctl/cps-min-deg'), MIN(p('ctl/cps-max-deg'), sched)), p(ncmd)),
-             out=[ncmd, 'ap/nac-w'], desc='the nacelle command, driven by AUTO NAC')
+        c.fn('ap/nacelle', IFTHEN(GT(efly, v(0.5)), eo['nac'], IFTHEN(GT(M(an, NOT(own)), v(0.5)), MAX(p('ctl/cps-min-deg'), MIN(p('ctl/cps-max-deg'), sched)), p(ncmd))),
+             out=[ncmd, 'ap/nac-w'], desc='the nacelle command, driven by AUTO NAC or ENG OUT')
         # the approach: 1 flying the line; 2 handing over to the hover hold below 35 kt over the ground within 2000 ft
         # of the point (its point, 50 ft on the radar height); 3 hovering there (HVR CPLD); 4 landing (the height's
-        # target down at 2 ft/s), after APPR pressed again or on the way (ap/app-land); 5 on the ground (the modes off,
+        # target down at 2 ft/s), after APPR pressed again or on the way (ap/app-land), and the gear down and locked (it
+        # will not land on the gear up: the hover held till it is down); 5 on the ground (the modes off,
         # the lever down, then APPR off). The hold refusing or let go by the pilot ends it (APPR off). APPR off: 0
         st, ak = p('ap/app-state'), on(AF + 'appr')
         wow = GT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5))
@@ -1040,7 +1070,7 @@ class Model:
         nst = c.fn('ap/app-state-new', IFTHEN(NOT(ak), v(0), IFTHEN(GT(M(is_(0), app), v(0.5)), v(1), IFTHEN(GT(M(is_(1), to2), v(0.5)), v(2),
                    IFTHEN(GT(M(is_(2), hold), v(0.5)), v(3), IFTHEN(GT(M(is_(2), GT(p('hh/dropped'), v(1.5))), v(0.5)), v(0),
                    IFTHEN(GT(M(hov, wow), v(0.5)), v(5), IFTHEN(GT(M(hov, NOT(hold)), v(0.5)), v(0),
-                   IFTHEN(GT(M(is_(3), on('ap/app-land'), GT(p('hh/state'), v(1.5))), v(0.5)), v(4),
+                   IFTHEN(GT(M(is_(3), on('ap/app-land'), GT(p('hh/state'), v(1.5)), GT(p('gear/gear-pos-norm'), v(0.99))), v(0.5)), v(4),
                    IFTHEN(GT(M(is_(5), LT(p('/controls/engines/engine[0]/throttle'), v(0.02))), v(0.5)), v(0), st))))))))))
         hand = GT(M(GT(nst, v(1.5)), LT(nst, v(2.5)), is_(1)), v(0.5))
         c.fn('ap/hand-target', IFTHEN(hand, v(1), p('hh/ext')), out='hh/ext')
@@ -1062,6 +1092,178 @@ class Model:
         for prop in (AF + 'appr', 'ap/app-land'):
             c.fn('ap/ended-%s' % prop.split('/')[-1], IFTHEN(ended, v(0), p(prop)), out=prop)
         c.fn('ap/app-state-next', nst, out='ap/app-state')
+
+    def eng_out(s, cpl):
+        """ENG OUT: both engines out, the glide and the landing on the wheels as the model flies them best (deadland.py
+        auto, its settings swept: deadland.py's docstring). A flight director mode: it comes on when both engines that
+        ran stop in the air (or with its key), its commands on the FLT format for the crew to fly; coupled (CPLD) the
+        augmentation flies them, as the other modes' (they wait meanwhile: off, the hover hold with them).
+        The lever at flat pitch (the governor windmilling the rotors), the nacelles to airplane mode (the conversion
+        protection lets them follow the speed). The pitch flies the glide's speed, ap/eo-vg-kt (the most energy for the
+        flare: 180 did worse), the speed's error as an acceleration less the flight path's own (as the autopilot's back
+        side), no lower than ap/eo-dive-deg; the dive's descent limited to what a pull-out at ap/eo-pull-g stops by the
+        flare's height. At ap/eo-flare-ft on the wheels' radar height (higher when sinking fast), the flare: the pitch on a
+        descent rate closing on a float ap/eo-float-ft over the ground in ap/eo-tau-s, never faster than the flare began
+        with, the pitch no higher than ap/eo-tail-deg (the fuselage's underside meets the ground at TAIL_STRIKE_DEG, 7.3
+        deg, on the wheels), its attitude held to that (the attitude's error integrated, the limit led by the pitch
+        rate); the nacelles commanded up, the corridor's upper boundary letting them come as the speed falls (the
+        proprotors clear the ground from 38.5 deg, level). Out of pitch (the attitude at its limit and sinking 2 ft/s
+        past the command for 1 s), the settling at ap/eo-td-fps, the lever up from ap/eo-cushion-ft (the rotors' energy).
+        On the ground the lever down (coupled), then the mode off. The heading held from engaging (the bug's with HDG
+        HOLD), within ap/eo-flare-bank-deg in the flare. The gear is the crew's: the mode line asks for it
+        (autopilot.nas). Its authority the augmentation's own, half the stick: with the whole the dive was steeper and its
+        pull-out came too late. (A nose raised as the rotor speed sagged changed nothing: none.) Phases (ap/eo-phase):
+        1 diving to the glide's speed, 2 gliding, 3 flaring, 4 settling, 5 on the ground."""
+        c = s.ctl
+        KT, AF = 1.6878, '/instrumentation/mv22b/afcs/'
+        for n, x in (('vg-kt', 200.0), ('kv', 0.25), ('kp', 0.8), ('ki', 0.25), ('a-max-g', 0.2), ('dive-deg', -20.0), ('pitch-max-deg', 15.0),
+                     ('flare-ft', 250.0), ('float-ft', 10.0), ('tau-s', 3.0), ('kh', 0.3), ('khi', 0.3),
+                     ('td-fps', 3.0), ('tail-deg', 6.0), ('nac-flare-deg', 90.0), ('cushion-ft', 20.0), ('gear-ft', 1000.0),
+                     ('theta-rate-dps', 4.0), ('flare-bank-deg', 5.0), ('sink-ok-fps', 45.0), ('pull-g', 0.1), ('settle-ft', 300.0), ('kg', 1.0),
+                     ('ka', 1.0), ('att-int-max-deg', 5.0), ('lead-s', 0.5)):
+            c.declare('ap/eo-' + n, x)
+        for n in ('phase', 'was', 'fly-was', 'both-was', 'flown', 'int-deg', 'psi-rad', 'cap-s', 'vf-prev', 'vfdot-fps2', 'att-int-deg'):
+            c.declare('ap/eo-' + n, 0.0)
+        dt = p('simulation/channel-dt')
+        NOT = lambda a: D(v(1), a)
+        on = lambda prop: GT(p(prop), v(0.5))
+        lim = lambda x, lo, hi: MAX(lo, MIN(hi, x))
+        thr = '/controls/engines/engine[0]/throttle'
+        air = p('scas/airborne')
+        wow = GT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5))
+        st = p('ap/eo-phase')
+        is_ = lambda n: GT(M(GT(st, v(n - 0.5)), LT(st, v(n + 0.5))), v(0.5))
+        # on as both engines that ran (the alerts' latches) stop in the air, once: the crew may turn it off; off on
+        # the ground (the lever down after its landing, or never in the air)
+        ran = lambda e: p('alert/eng%d-ran' % e) if U.NAME == 'V-22' else v(0)      # (the XV-15's build has no alerts)
+        both = M(air, ran(0), ran(1), NOT(on('eng[0]/running')), NOT(on('eng[1]/running')))
+        fail = GT(M(both, NOT(p('ap/eo-both-was'))), v(0.5))
+        ended = MAX(GT(M(GT(st, v(4.5)), LT(p(thr), v(0.02))), v(0.5)), GT(M(wow, LT(st, v(0.5))), v(0.5)))
+        c.fn('ap/eo-mode-next', IFTHEN(fail, v(1), IFTHEN(ended, v(0), p(AF + 'eng-out'))), out=AF + 'eng-out')
+        eo = on(AF + 'eng-out')
+        fly = c.fn('ap/eo-fly', M(eo, air, cpl), desc='1: ENG OUT flown (coupled)')
+        eorise = GT(M(eo, NOT(p('ap/eo-was'))), v(0.5))
+        frise = GT(M(fly, NOT(p('ap/eo-fly-was'))), v(0.5))
+        for prop in [AF + n for n in ('alt-hold', 'spd-hold', 'auto-nac', 'appr', 'vor-ils', 'tf', 'hvr-hold', 'ga')] + ['hh/engage-cmd', 'ap/app-land']:
+            c.fn('ap/eo-off-%s' % prop.split('/')[-1], IFTHEN(eorise, v(0), p(prop)), out=prop)
+        # the speed: the forward airspeed (equivalent, scas/ff-kts) and its rate, smoothed over 0.4 s (as the autopilot's
+        # flight path acceleration; the true airspeed's rate counted the fall from a hover as speed, and the nose went up)
+        vc, h, vg = p('scas/ff-kts'), p('hh/h-wheels-ft'), p('ap/eo-vg-kt')
+        vfd = p('ap/eo-vfdot-fps2')
+        c.fn('ap/eo-vfdot-next', S(vfd, M(D(Q(M(D(vc, p('ap/eo-vf-prev')), v(KT)), MAX(dt, v(1e-3))), vfd), MIN(v(1), Q(dt, v(0.4))))),
+             out='ap/eo-vfdot-fps2')
+        c.fn('ap/eo-vf-prev-next', vc, out='ap/eo-vf-prev')
+        # the phase. The flare from its height, or higher the faster the descent: where the flare's path (closing in tau)
+        # meets it, with the time the nose takes to come up to the tail's limit at the pitch's rate
+        th = p('attitude/theta-deg')
+        sink = MAX(v(0), NEG(p('velocities/h-dot-fps')))
+        # (up to twice its height: below it the dive's pull-out limits the descent, the pitch)
+        gate = c.fn('ap/eo-gate-ft', MIN(M(v(2), p('ap/eo-flare-ft')), MAX(p('ap/eo-flare-ft'), S(p('ap/eo-float-ft'), M(sink, S(p('ap/eo-tau-s'),
+                    Q(MAX(v(0), D(p('ap/eo-tail-deg'), th)), p('ap/eo-theta-rate-dps'))))))), desc='the flare\'s height on the wheels, ft')
+        nst = c.fn('ap/eo-phase-new', IFTHEN(NOT(eo), v(0), IFTHEN(GT(M(wow, GT(st, v(0.5))), v(0.5)), v(5), IFTHEN(GT(st, v(4.5)), v(5),
+                   IFTHEN(GT(M(LT(st, v(2.5)), LT(h, gate)), v(0.5)), v(3),
+                   IFTHEN(GT(M(is_(3), GT(p('ap/eo-cap-s'), v(1.0))), v(0.5)), v(4),
+                   IFTHEN(GT(M(LT(st, v(2.5)), GT(vc, D(vg, v(10)))), v(0.5)), v(2), IFTHEN(LT(st, v(0.5)), v(1), st))))))))
+        to3 = GT(M(GT(nst, v(2.5)), LT(st, v(2.5))), v(0.5))
+        flare = GT(st, v(2.5))
+        # the pitch: its integral from the attitude on engaging, coupling and flaring
+        a_max = M(p('ap/eo-a-max-g'), v(G0))
+        ea = D(lim(M(p('ap/eo-kv'), D(vg, vc), v(KT)), NEG(a_max), a_max), vfd)
+        dive, pmax, tail = p('ap/eo-dive-deg'), p('ap/eo-pitch-max-deg'), p('ap/eo-tail-deg')
+        # (the flare's path never asks a faster descent than there is: at its height the path's was 60 ft/s, the
+        # glide's 44, and the nose went down first; held to the descent the flare began with, a descent easing for a
+        # moment out of a dive's pull-out took the nose down to -5 deg at 200 ft. Slower than its path, the attitude held)
+        hc = IFTHEN(GT(st, v(3.5)), NEG(p('ap/eo-td-fps')), NEG(MIN(sink, MAX(v(0), Q(D(h, p('ap/eo-float-ft')), p('ap/eo-tau-s'))))))
+        eh = c.fn('ap/eo-hdot-err-fps', D(hc, p('velocities/h-dot-fps')), desc='the flare\'s descent rate command less the aircraft\'s')
+        # (diving, the descent limited towards the flare: no faster than the rate a pull-out at ap/eo-pull-g brings to the
+        # glide's, ap/eo-sink-ok-fps, ap/eo-settle-ft over the flare's height, the glide settling before it; the nose
+        # raised in proportion to the excess, the speed's integral with it. Flared on the descent's rate alone, a dive at
+        # 150-200 ft/s from a hover started the flare at 1100-3100 ft and settled there; pulled out by the flare's
+        # height, the glide still swung there, 46-54 ft/s)
+        hg = NEG(SQ(S(SQR(p('ap/eo-sink-ok-fps')), M(v(2), p('ap/eo-pull-g'), v(G0),
+                                                      MAX(v(0), D(h, S(p('ap/eo-flare-ft'), p('ap/eo-settle-ft'))))))))
+        eg = c.fn('ap/eo-pull-err-fps', D(hg, p('velocities/h-dot-fps')), desc='the dive\'s descent past its limit, ft/s')
+        # (the pitch that turns the flight path to the limit's at the present angle of attack: the attitude plus the
+        # path's change, rad. Its gain 0.3 deg per ft/s, 1.7 times that, overshot: out of a hover the nose came up to
+        # +14 deg, the aircraft climbed and slowed, and the speed's dive took it to -18 deg again)
+        V_ = MAX(p('velocities/vt-fps'), v(100))
+        guard = IFTHEN(GT(eg, v(0)), MIN(pmax, S(th, M(p('ap/eo-kg'), v(R2D), Q(eg, V_)))), v(-90))
+        ip = p('ap/eo-int-deg')
+        # (its integral, while the limit has the pitch, following it: the speed's law takes the pitch back from where
+        # the limit leaves it)
+        pe = M(p('ap/eo-kp'), Q(ea, v(G0)), v(R2D))
+        gl_i = MAX(lim(D(ip, M(p('ap/eo-ki'), Q(ea, v(G0)), v(R2D), dt)), dive, pmax), S(guard, pe))
+        fl_i = lim(S(ip, M(p('ap/eo-khi'), eh, dt)), v(-20), tail)
+        c.fn('ap/eo-int-next', IFTHEN(GT(MAX(eorise, frise, to3), v(0.5)), th, IFTHEN(flare, fl_i, gl_i)), out='ap/eo-int-deg')
+        ip = p('ap/eo-int-deg')
+        # (the tail's limit led by the pitch rate: the nose coming up to it, the reference's own overshoot took it 1.9 deg
+        # past)
+        top = MIN(tail, D(tail, M(p('ap/eo-lead-s'), v(R2D), p('velocities/q-rad_sec'))))
+        tcd = c.fn('ap/eo-theta-cmd-deg', IFTHEN(flare, lim(S(ip, M(p('ap/eo-kh'), eh)), v(-20), top),
+                                                 MAX(lim(D(ip, pe), dive, pmax), guard)),
+                   desc='ENG OUT\'s pitch, deg (the flight director\'s)')
+        # (flown, the attitude's error integrated into the reference: the attitude, not only the reference, comes to the
+        # command, and so to the tail's limit. In the float the nacelles coming up pitched the nose up and the
+        # augmentation's own integral, slow at that speed, held it 2-2.5 deg over its reference: at touchdown 1.2-1.5 deg
+        # over the limit)
+        am = p('ap/eo-att-int-max-deg')
+        c.fn('ap/eo-att-int-next', IFTHEN(GT(MAX(NOT(fly), frise), v(0.5)), v(0), lim(S(p('ap/eo-att-int-deg'), M(p('ap/eo-ka'), D(tcd, th), dt)),
+             NEG(am), am)), out='ap/eo-att-int-deg')
+        tref = S(tcd, p('ap/eo-att-int-deg'))
+        # (out of pitch: the attitude, not the command, at the limit: the command reached it at once and the settling
+        # began at 100 ft, the nose still coming up)
+        c.fn('ap/eo-cap-next', IFTHEN(GT(M(is_(3), GT(th, D(tail, v(0.5))), GT(eh, v(2))), v(0.5)), S(p('ap/eo-cap-s'), dt), v(0)),
+             out='ap/eo-cap-s')
+        # the bank: the heading from engaging, the bug's with HDG HOLD
+        c.fn('ap/eo-psi-next', IFTHEN(eorise, p('attitude/psi-rad'), p('ap/eo-psi-rad')), out='ap/eo-psi-rad')
+        bug = M(S(p('/autopilot/settings/heading-bug-deg'), p('/environment/magnetic-variation-deg')), v(1 / R2D))
+        dpsi = D(IFTHEN(on(AF + 'hdg-hold'), bug, p('ap/eo-psi-rad')), p('attitude/psi-rad'))
+        kpsi = Q(MAX(p('velocities/vt-fps'), v(60)), M(v(G0), p('ap/hdg-tau-s')))
+        bmax = IFTHEN(flare, p('ap/eo-flare-bank-deg'), T1('velocities/vc-kts', [40, 80, 150], [15, 20, 25]))
+        phc = c.fn('ap/eo-phi-cmd-deg', lim(M(kpsi, ATAN2(SIN(dpsi), COS(dpsi)), v(R2D)), NEG(bmax), bmax), desc='ENG OUT\'s bank, deg')
+        # the glide's reach, for the display: the energy height on the wheels at the glide's speed, over the flare's, at
+        # the glide's ratio for its speed and the weight (the model's own zero-power trims in airplane mode,
+        # deadstick.py --table, 1000 ft), in still air: the gear up down to ap/eo-gear-ft, where the mode asks for it,
+        # then coming down for GEAR_S (its drag, so the descent at the glide's speed, growing with it: the two descents'
+        # mean), then down; and the time it takes (the descent the ratios give). FlightGear's start, 38 700 lb, glided at
+        # 7.47 gear up and 6.10 down (the trims 7.42, 6.18), where the reference loading's 8.44 had put it 5 % too far.
+        # Short of the glide flown offline from 3000 ft at 200 KCAS (reachcheck): 4-5 % at the reference loading, 8-12 %
+        # at 38 700 lb, about 0.1 NM in its last 1000 ft: the engines' run-down after the cut, and the speed's sag as the
+        # gear comes (4-5 kt light), energy the glide's speed leaves out
+        vgt = Q(M(vg, v(KT)), SQ(p('atmosphere/sigma')))
+        en = c.fn('ap/eo-energy-ft', S(h, Q(D(SQR(p('velocities/vt-fps')), SQR(vgt)), v(2 * G0))),
+                  desc='the energy height on the wheels at the glide\'s speed, ft')
+        gl = glide_ld()
+        if gl:
+            ld_up, ld_dn = [T2('inertia/weight-lbs', 'ap/eo-vg-kt', gl['weight_lb'], gl['kcas'], gl['ld_gear_' + k]) for k in ('up', 'down')]
+        else:
+            ld_up = ld_dn = T1('ap/eo-vg-kt', [140, 160, 180, 200, 220], [5.65, 6.77, 7.48, 8.44, 7.89])
+        fl, gh = p('ap/eo-flare-ft'), p('ap/eo-gear-ft')
+        cmd = on('gear/gear-cmd-norm')
+        hs = IFTHEN(cmd, en, MIN(en, gh))                       # where the gear starts (has started) to come down
+        p0 = IFTHEN(cmd, p('gear/gear-pos-norm'), v(0))         # and from where
+        s_up, s_dn = Q(v(1), ld_up), Q(v(1), ld_dn)
+        s_t = M(v(0.5), S(S(s_up, M(p0, D(s_dn, s_up))), s_dn))  # the descent per foot while it comes
+        x_t = M(vgt, v(GEAR_S), D(v(1), p0))                    # the way it comes in
+        a_t = MAX(v(0), D(hs, fl))
+        reach = S(M(MAX(v(0), D(en, MAX(hs, fl))), ld_up), MIN(x_t, Q(a_t, s_t)), M(MAX(v(0), D(a_t, M(x_t, s_t))), ld_dn))
+        c.fn('ap/eo-reach-nm', M(reach, v(1 / 6076.1)), desc='the glide\'s reach to the flare in still air, NM')
+        c.fn('ap/eo-reach-s', Q(reach, vgt), desc='the glide\'s time to the flare, s')
+        # the nacelles (within the corridor) and the lever; on the ground after a coupled landing the lever down
+        # (converting at the corridor's lower boundary, as the speed lets the nacelles come down: on AUTO NAC's schedule,
+        # the level flight's angle for the speed, the nacelles stayed up, the speed never came, and from every hover and
+        # the conversion it struck at 115-200 ft/s)
+        lo_, hi_ = (p('ctl/cps-min-deg'), p('ctl/cps-max-deg')) if U.CPS else (v(U.NACELLE_MIN), v(U.NACELLE_MAX))   # (the XV-15's: none)
+        c.fn('ap/eo-nac-cmd-deg', MAX(lo_, MIN(hi_, IFTHEN(flare, p('ap/eo-nac-flare-deg'), v(0)))),
+             desc='ENG OUT\'s nacelle command, within the corridor')
+        lev = c.fn('ap/eo-lever-cmd', IFTHEN(GT(st, v(4.5)), MAX(v(0), D(p(thr), M(v(0.5), dt))),
+                                             IFTHEN(GT(M(is_(4), LT(h, p('ap/eo-cushion-ft'))), v(0.5)), v(1), v(0))))
+        c.fn('ap/eo-flown-next', IFTHEN(GT(fly, v(0.5)), v(1), IFTHEN(eo, p('ap/eo-flown'), v(0))), out='ap/eo-flown')
+        drive_ = MAX(fly, M(GT(st, v(4.5)), p('ap/eo-flown')))
+        c.fn('ap/eo-phase-next', nst, out='ap/eo-phase')
+        for n, x in (('was', eo), ('fly-was', fly), ('both-was', both)):
+            c.fn('ap/eo-%s-next' % n, x, out='ap/eo-' + n)
+        return dict(fly=fly, rise=frise, theta=M(tref, v(1 / R2D)), phi=M(phc, v(1 / R2D)), nac=p('ap/eo-nac-cmd-deg'), lever=lev, drive=drive_)
 
     def hover_hold(s):
         """Hover hold (HVR CPLD on the flight control panel, or y), after the AH-64D's modern control laws, Bell's
@@ -2100,9 +2302,9 @@ class Model:
             o.fn('out/slap-int', SQ(M(v(0.5), S(*g2['int']))), out='/rotors/main/slap-int',
                  desc='the slap loops\' amplitude in the cockpit, 1 at the bank\'s')
         o.channel('gear', execrate=SLOW_EXECRATE)
-        # the landing gear's retraction and extension, 10 s (estimate)
-        o.raw('<actuator name="gear/gear-actuator"><input>gear/gear-cmd-norm</input><rate_limit>0.1</rate_limit>'
-              '<output>gear/gear-pos-norm</output></actuator>')
+        # the landing gear's retraction and extension in GEAR_S
+        o.raw('<actuator name="gear/gear-actuator"><input>gear/gear-cmd-norm</input><rate_limit>%g</rate_limit>'
+              '<output>gear/gear-pos-norm</output></actuator>' % (1 / GEAR_S))
         # the wheels' height above the ground (YASim's property, which the rotor wash places itself by), level
         o.fn('out/gear-agl', MAX(v(0), M(v(0.3048), D(p('position/h-agl-ft'), Q(D(p('inertia/cg-z-in'), v(U.MAIN_GEAR[2])), v(12))))),
              out='/position/gear-agl-m')
@@ -2124,6 +2326,9 @@ class Model:
         o.fn('out/flaperon', Q(p('ctl/flaperon-deg'), v(67)), out='/surface-positions/flap-pos-norm')
         o.fn('out/aileron-l', Q(S(p('ctl/flaperon-deg'), p('ctl/aileron-deg')), v(67)), out='/surface-positions/left-aileron-pos-norm')
         o.fn('out/aileron-r', Q(D(p('ctl/flaperon-deg'), p('ctl/aileron-deg')), v(67)), out='/surface-positions/right-aileron-pos-norm')
+        if U.NAME == 'V-22':
+            # the crew alerts' conditions (alerts.py), for the cockpit's alert manager (Nasal/alerts.nas)
+            alerts.channel(o, U, SLOW_EXECRATE, (GE_K, GE_EXP))
         return o
 
 
@@ -2293,6 +2498,7 @@ def build(out, fg=False):
         inline_single_use(texts, extra=[fdm_file()], keep=KEEP)
     if fg and U.NAME != 'XV-15':
         texts[pre + '-displays.xml'] = display_data()
+        texts[pre + '-alerts.xml'] = alerts.data(U)
     for name, t in texts.items():
         open(os.path.join(out, 'Systems', name), 'w').write('<?xml version="1.0"?>\n' + t)
     open(os.path.join(out, pre + '.xml'), 'w').write(fdm_file())
@@ -2301,33 +2507,25 @@ def build(out, fg=False):
 
 def display_data():
     """what the cockpit's flight display (Nasal/displays.nas) draws from the model's data: the conversion
-    protection's boundaries, and the power to hover with its ground effect; and AUTO NAC's schedule, for v22.nas's
-    in-air start"""
-    from data import v22_flight as VF
+    protection's boundaries, the airplane mode's limits, the drive's limit, the tail's strike; and AUTO NAC's schedule,
+    for v22.nas's in-air start (the power to hover is the alert channel's, alerts.py)"""
     (lv, ln), (uv, un) = U.CPS
-    w0, h0 = VF.HOVER_CEILING[0]
     sk, sn = autonac_schedule()
     row = lambda tag, xs: ''.join('<%s>%g</%s>' % (tag, x, tag) for x in xs)
     return ('<!-- generated by fdm/genv22.py: the flight display\'s data (Nasal/displays.nas) -->\n<PropertyList>\n'
             '  <!-- conversion protection: equivalent airspeed (kt) and the least, the most nacelle angle (deg) -->\n'
             '  <cps>\n    <lower>%s%s</lower>\n    <upper>%s%s</upper>\n  </cps>\n'
-            '  <!-- airplane mode\'s airspeed limit (KCAS, Mach) at 84 %% rotor speed, and at 100 %%; the high sink rate\n'
-            '       warning\'s boundary: KCAS, ft/min -->\n'
+            '  <!-- airplane mode\'s airspeed limit (KCAS, Mach) at 84 %% rotor speed, and at 100 %% -->\n'
             '  <apln><vmo-kt>%g</vmo-kt><mmo>%g</mmo><vmo-100-kt>%g</vmo-100-kt></apln>\n'
-            '  <vrs>%s%s</vrs>\n'
-            '  <!-- the power to hover out of ground effect at 100 %% rotor speed, standard sea level: the hover ceiling\'s\n'
-            '       weight there, which the drive\'s torque limit is fitted to; the rotor\'s radius and the ground effect on\n'
-            '       its induced velocity, (1 + k (R/Z)^2)^exp with Z the hub\'s height (above the main wheels\' contact\n'
-            '       here, the nacelles up) -->\n'
-            '  <hover>\n    <weight-lb>%g</weight-lb>\n    <power-hp>%g</power-hp>\n    <altitude-ft>%g</altitude-ft>\n'
-            '    <radius-ft>%.3f</radius-ft>\n    <hub-height-ft>%.2f</hub-height-ft>\n    <ge-k>%g</ge-k>\n'
-            '    <ge-exp>%g</ge-exp>\n  </hover>\n'
+            '  <!-- the drive\'s torque limit at 100 %% rotor speed (the power bar\'s while the rotors are stopped) -->\n'
+            '  <hover>\n    <power-hp>%g</power-hp>\n  </hover>\n'
             '  <!-- AUTO NAC\'s schedule: the nacelle angle (deg) for the calibrated airspeed (kt). An in-air start\'s\n'
             '       nacelles from the flight model\'s first step; v22.nas draws the 3-D model\'s at it before that -->\n'
-            '  <autonac>%s%s</autonac>\n</PropertyList>\n'
+            '  <autonac>%s%s</autonac>\n'
+            '  <!-- the pitch at which the fuselage meets the ground on the wheels (ENG OUT\'s flare), deg -->\n'
+            '  <tail-strike-deg>%g</tail-strike-deg>\n</PropertyList>\n'
             % (row('kt', lv), row('nac', ln), row('kt', uv), row('nac', un), U.VMO_APLN, U.MMO_APLN, U.VMO_APLN_100,
-               row('kt', U.VRS_SINK[0]), row('sink-fpm', U.VRS_SINK[1]), w0, U.P_XMSN_100, h0, U.R,
-               (U.WL_PIV + U.DZ_HUB - U.MAIN_GEAR[2]) / 12, GE_K, GE_EXP, row('kt', sk), row('nac', sn)))
+               U.P_XMSN_100, row('kt', sk), row('nac', sn), U.TAIL_STRIKE_DEG))
 
 
 if __name__ == '__main__':

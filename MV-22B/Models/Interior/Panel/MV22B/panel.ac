@@ -2,7 +2,7 @@ AC3Db
 MATERIAL "DefaultWhite" rgb 1 1 1  amb 1 1 1  emis 0 0 0  spec 0.5 0.5 0.5  shi 64  trans 0
 MATERIAL "glass" rgb 0.9 0.9 0.9  amb 0 0 0  emis 0 0 0  spec 0.64 0.64 0.64  shi 50  trans 0.85
 OBJECT world
-kids 354
+kids 356
 OBJECT poly
 name "MFD1.bezel"
 loc 0 0 0
@@ -116292,7 +116292,7 @@ refs 4
 3 0.00000 1.00000
 kids 0
 OBJECT poly
-name "RADIO1.K1"
+name "MASTER1"
 loc 0 0 0
 texture "legends.png"
 texrep 1 1
@@ -116342,6 +116342,26 @@ refs 4
 4 0.19263 0.99756
 0 0.19263 0.99756
 3 0.19263 0.99756
+kids 0
+OBJECT poly
+name "MASTER1.screen"
+loc 0 0 0
+texture "screen.png"
+texrep 1 1
+crease 40
+numvert 4
+0.068300 0.280000 0.599000
+0.068300 0.280000 0.578000
+0.068300 0.301000 0.578000
+0.068300 0.301000 0.599000
+numsurf 1
+SURF 0x10
+mat 0
+refs 4
+0 0.00000 0.00000
+1 1.00000 0.00000
+2 1.00000 1.00000
+3 0.00000 1.00000
 kids 0
 OBJECT poly
 name "RADIO1.K2"
@@ -117922,7 +117942,7 @@ refs 4
 3 0.19263 0.99756
 kids 0
 OBJECT poly
-name "RADIO2.K2"
+name "MASTER2"
 loc 0 0 0
 texture "legends.png"
 texrep 1 1
@@ -117972,4 +117992,24 @@ refs 4
 4 0.19263 0.99756
 0 0.19263 0.99756
 3 0.19263 0.99756
+kids 0
+OBJECT poly
+name "MASTER2.screen"
+loc 0 0 0
+texture "screen.png"
+texrep 1 1
+crease 40
+numvert 4
+0.068300 0.280000 -0.511000
+0.068300 0.280000 -0.532000
+0.068300 0.301000 -0.532000
+0.068300 0.301000 -0.511000
+numsurf 1
+SURF 0x10
+mat 0
+refs 4
+0 0.00000 0.00000
+1 1.00000 0.00000
+2 1.00000 1.00000
+3 0.00000 1.00000
 kids 0

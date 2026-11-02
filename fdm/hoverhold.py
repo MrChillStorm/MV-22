@@ -17,10 +17,12 @@ LOG = [('n', None), ('e', None), ('gs', 'velocities/vg-fps'), ('theta', 'attitud
        ('state', 'hh/state'), ('on', 'hh/on'), ('dist', 'hh/e-ft'), ('nr', 'drive/nr-pct')]
 
 
-def start(V, nacelle, wind_kt=0.0, wind_from=0.0, alt=1000.0):
-    """from a trim at V KCAS heading north, 1000 ft over flat ground far below, the augmentation on, let go"""
+def start(V, nacelle, wind_kt=0.0, wind_from=0.0, alt=1000.0, terrain=H.TERRAIN_FT, gamma=0.0):
+    """from a trim at V KCAS heading north (on the flight path angle gamma, deg), 1000 ft over flat ground far below (or
+    the terrain at that elevation), the augmentation on, let go"""
     f = H.load()
-    x, r, e = H.trim(f, V, alt_ft=alt, nacelle=nacelle, cas=True, extra=('drive/power-required-hp',))
+    x, r, e = H.trim(f, V, alt_ft=alt, nacelle=nacelle, cas=True, extra=('drive/power-required-hp',), terrain=terrain,
+                     gamma=gamma)
     avail = min(f['eng/power-available-hp'], f['eng/xmsn-limit-hp'])
     tcl = min(1.0, max(0.0, (e[0] / 2 / avail - 0.17) / 0.83))
     ff0 = f['ctl/theta75-deg'] - f['gov/int-deg']

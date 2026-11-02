@@ -1,6 +1,36 @@
 <?xml version="1.0"?>
 <system name="V-22 outputs">
 <property value="0">/sim/model/v22/wingfoldincidence</property>
+<property value="1">/controls/electric/battery-switch</property>
+<property value="0">alert/eng0-ran</property>
+<property value="0">alert/eng1-ran</property>
+<property value="0">alert/rotor-flying</property>
+<property value="0">alert/sink-rate/s</property>
+<property value="0">alert/sink-rate</property>
+<property value="0">alert/pull-up/s</property>
+<property value="0">alert/pull-up</property>
+<property value="0">alert/rotor-rpm/s</property>
+<property value="0">alert/rotor-rpm</property>
+<property value="0">alert/overspeed/s</property>
+<property value="0">alert/overspeed</property>
+<property value="0">alert/flapping/s</property>
+<property value="0">alert/flapping</property>
+<property value="0">alert/wheels/s</property>
+<property value="0">alert/wheels</property>
+<property value="0">alert/fuel-low/s</property>
+<property value="0">alert/fuel-low</property>
+<property value="0">alert/nr/s</property>
+<property value="0">alert/nr</property>
+<property value="0">alert/hover-pwr/s</property>
+<property value="0">alert/hover-pwr</property>
+<property value="0">alert/flap-clear/s</property>
+<property value="0">alert/flap-clear</property>
+<property value="0">alert/airspeed-low/s</property>
+<property value="0">alert/airspeed-low</property>
+<property value="0">alert/conv-prot/s</property>
+<property value="0">alert/conv-prot</property>
+<property value="0">alert/gear-down/s</property>
+<property value="0">alert/gear-down</property>
 <channel name="nacelle masses" execrate="8">
 <fcs_function name="mass/pm0-x-in"><function><difference><value>249.60643</value><sum><product><value>12.598432</value><property>ctl/sin-nac</property></product><product><value>67.580485</value><property>ctl/cos-nac</property></product></sum></difference></function><output>inertia/pointmass-location-X-inches[0]</output></fcs_function>
 <fcs_function name="mass/pm0-z-in"><function><sum><value>136.61425</value><sum><product><value>-12.598432</value><property>ctl/cos-nac</property></product><product><value>67.580485</value><property>ctl/sin-nac</property></product></sum></sum></function><output>inertia/pointmass-location-Z-inches[0]</output></fcs_function>
@@ -390,5 +420,198 @@
 <fcs_function name="out/flaperon"><function><quotient><property>ctl/flaperon-deg</property><value>67</value></quotient></function><output>/surface-positions/flap-pos-norm</output></fcs_function>
 <fcs_function name="out/aileron-l"><function><quotient><sum><property>ctl/flaperon-deg</property><property>ctl/aileron-deg</property></sum><value>67</value></quotient></function><output>/surface-positions/left-aileron-pos-norm</output></fcs_function>
 <fcs_function name="out/aileron-r"><function><quotient><difference><property>ctl/flaperon-deg</property><property>ctl/aileron-deg</property></difference><value>67</value></quotient></function><output>/surface-positions/right-aileron-pos-norm</output></fcs_function>
+</channel>
+<channel name="alerts" execrate="8">
+<fcs_function name="alert/eng0-ran-next"><function><ifthen><gt><property>eng[0]/running</property><value>0.5</value></gt><value>1</value><ifthen><gt><product><difference><value>1</value><gt><property>eng[0]/running</property><value>0.5</value></gt></difference><difference><value>1</value><gt><property>eng[1]/running</property><value>0.5</value></gt></difference><gt><property>gear/wow</property><value>0.5</value></gt></product><value>0.5</value></gt><value>0</value><property>alert/eng0-ran</property></ifthen></ifthen></function><output>alert/eng0-ran</output></fcs_function>
+<fcs_function name="alert/eng1-ran-next"><function><ifthen><gt><property>eng[1]/running</property><value>0.5</value></gt><value>1</value><ifthen><gt><product><difference><value>1</value><gt><property>eng[0]/running</property><value>0.5</value></gt></difference><difference><value>1</value><gt><property>eng[1]/running</property><value>0.5</value></gt></difference><gt><property>gear/wow</property><value>0.5</value></gt></product><value>0.5</value></gt><value>0</value><property>alert/eng1-ran</property></ifthen></ifthen></function><output>alert/eng1-ran</output></fcs_function>
+<fcs_function name="alert/ground"><description>on the ground, the rotors carrying under half the weight: alerts listed, no masters or sounds</description><function><product><gt><property>gear/wow</property><value>0.5</value></gt><lt><sum><property>aero/rotor/r/thrust-lbs</property><property>aero/rotor/l/thrust-lbs</property></sum><product><value>0.5</value><property>inertia/weight-lbs</property></product></lt></product></function></fcs_function>
+<fcs_function name="alert/vrs/sink-fpm"><description>the axial descent rate SINK RATE stands at, ft/min (1e5: none)</description><function><min><ifthen><lt><property>aero/rotor/r/vrs/x</property><value>0.95</value></lt><product><value>-23.64</value><table><independentVar lookup="row">aero/rotor/r/vrs/x</independentVar><tableData>
+0 -0.45
+0.0395833 -0.450182
+0.0791667 -0.450731
+0.11875 -0.451651
+0.158333 -0.45295
+0.197917 -0.454639
+0.2375 -0.456733
+0.277083 -0.459253
+0.316667 -0.462223
+0.35625 -0.465674
+0.395833 -0.469645
+0.435417 -0.474185
+0.475 -0.479354
+0.514583 -0.485228
+0.554167 -0.491906
+0.59375 -0.499516
+0.633333 -0.508228
+0.672917 -0.518279
+0.7125 -0.530005
+0.752083 -0.543915
+0.791667 -0.560831
+0.83125 -0.582227
+0.870833 -0.611225
+0.910417 -0.656951
+0.95 -0.974611
+</tableData></table><property>aero/rotor/r/vrs/vh-fps</property></product><value>100000</value></ifthen><ifthen><lt><property>aero/rotor/l/vrs/x</property><value>0.95</value></lt><product><value>-23.64</value><table><independentVar lookup="row">aero/rotor/l/vrs/x</independentVar><tableData>
+0 -0.45
+0.0395833 -0.450182
+0.0791667 -0.450731
+0.11875 -0.451651
+0.158333 -0.45295
+0.197917 -0.454639
+0.2375 -0.456733
+0.277083 -0.459253
+0.316667 -0.462223
+0.35625 -0.465674
+0.395833 -0.469645
+0.435417 -0.474185
+0.475 -0.479354
+0.514583 -0.485228
+0.554167 -0.491906
+0.59375 -0.499516
+0.633333 -0.508228
+0.672917 -0.518279
+0.7125 -0.530005
+0.752083 -0.543915
+0.791667 -0.560831
+0.83125 -0.582227
+0.870833 -0.611225
+0.910417 -0.656951
+0.95 -0.974611
+</tableData></table><property>aero/rotor/l/vrs/vh-fps</property></product><value>100000</value></ifthen></min></function></fcs_function>
+<fcs_function name="alert/sink-fps"><description>the descent rate, ft/s</description><function><max><value>0</value><product><value>-1</value><property>velocities/h-dot-fps</property></product></max></function></fcs_function>
+<fcs_function name="alert/rotor-flying-next"><function><ifthen><gt><property>drive/nr-pct</property><value>80</value></gt><value>1</value><ifthen><gt><property>gear/wow</property><value>0.5</value></gt><product><property>alert/rotor-flying</property><gt><property>drive/nr-pct</property><value>50</value></gt></product><property>alert/rotor-flying</property></ifthen></ifthen></function><output>alert/rotor-flying</output></fcs_function>
+<fcs_function name="alert/flap-deg"><description>the greater gimbal tilt</description><function><product><value>57.29578</value><max><property>rotor/r/tilt-rad</property><property>rotor/l/tilt-rad</property></max></product></function></fcs_function>
+<fcs_function name="alert/hover-oge-hp"><description>the power to hover out of ground effect at 104 % rotor speed, hp</description><function><table><independentVar lookup="row">inertia/weight-lbs</independentVar><independentVar lookup="column">atmosphere/sigma</independentVar><tableData>
+        0.60896 0.693171 0.776325 0.888086 1
+26000 4898.73 4662.58 4536.55 4438.87 4404.42
+28000 5435.48 5123.94 4945.22 4811.32 4741.74
+30000 6012.46 5610.05 5388.25 5202.25 5097.77
+32000 6686.55 6145.4 5854.54 5611.35 5475.77
+34000 7473.08 6709.64 6348.76 6050.91 5868.2
+36000 8569.23 7358.42 6885.89 6510.26 6277.84
+38000 9293.16 8080.2 7446.01 6988.75 6714.34
+40000 10036.4 9010.59 8083.57 7504.94 7168.12
+42000 10798.5 10337.5 8774.33 8049.01 7637.58
+44000 11578.9 11084.6 9613.15 8623.96 8132.37
+46000 12377.3 11848.9 10657.5 9261.61 8659.62
+48000 13193.2 12630 12407.7 9942.99 9208.63
+50000 14026.3 13427.6 13191.2 10748.7 9799.73
+52000 14876.2 14241.2 13990.5 11689.2 10432
+54000 15742.7 15070.7 14805.4 13001.5 11105.6
+56000 16625.3 15915.7 15635.5 13730.4 11884.5
+</tableData></table></function></fcs_function>
+<fcs_function name="alert/hover-ige-hp"><description>... with the wheels 10 ft over the ground</description><function><product><property>alert/hover-oge-hp</property><sum><value>0.25</value><product><value>0.75</value><pow><sum><value>1</value><product><value>108.77552</value><quotient><value>1</value><pow><value>27.066938</value><value>2</value></pow></quotient></product></sum><value>-0.5</value></pow></product></sum></product></function></fcs_function>
+<fcs_function name="alert/hover-hp"><description>... at this height</description><function><product><property>alert/hover-oge-hp</property><sum><value>0.25</value><product><value>0.75</value><pow><sum><value>1</value><product><value>108.77552</value><quotient><value>1</value><pow><sum><value>17.066938</value><max><value>0</value><difference><property>position/h-agl-ft</property><quotient><difference><property>inertia/cg-z-in</property><value>0</value></difference><value>12</value></quotient></difference></max></sum><value>2</value></pow></quotient></product></sum><value>-0.5</value></pow></product></sum></product></function></fcs_function>
+<fcs_function name="alert/hover-power-ratio"><description>the power to hover here over the engines' (HOVER PWR)</description><function><quotient><property>alert/hover-hp</property><max><value>1</value><product><max><value>1</value><sum><property>eng[0]/running</property><property>eng[1]/running</property></sum></max><min><property>eng/power-available-hp</property><property>eng/xmsn-limit-hp</property></min></product></max></quotient></function></fcs_function>
+<fcs_function name="alert/limit-pct"><description>each engine's power limit, % of its rating</description><function><product><value>0.016260163</value><min><property>eng/power-available-hp</property><property>eng/xmsn-limit-hp</property></min></product></function></fcs_function>
+<fcs_function name="alert/sink-rate/c"><description>SINK RATE's condition</description><function><gt><product><max><product><lt><property>aero/rotor/r/vrs/x</property><value>0.95</value></lt><lt><property>aero/rotor/r/vrs/z</property><product><value>0.394</value><table><independentVar lookup="row">aero/rotor/r/vrs/x</independentVar><tableData>
+0 -0.45
+0.0395833 -0.450182
+0.0791667 -0.450731
+0.11875 -0.451651
+0.158333 -0.45295
+0.197917 -0.454639
+0.2375 -0.456733
+0.277083 -0.459253
+0.316667 -0.462223
+0.35625 -0.465674
+0.395833 -0.469645
+0.435417 -0.474185
+0.475 -0.479354
+0.514583 -0.485228
+0.554167 -0.491906
+0.59375 -0.499516
+0.633333 -0.508228
+0.672917 -0.518279
+0.7125 -0.530005
+0.752083 -0.543915
+0.791667 -0.560831
+0.83125 -0.582227
+0.870833 -0.611225
+0.910417 -0.656951
+0.95 -0.974611
+</tableData></table></product></lt></product><product><lt><property>aero/rotor/l/vrs/x</property><value>0.95</value></lt><lt><property>aero/rotor/l/vrs/z</property><product><value>0.394</value><table><independentVar lookup="row">aero/rotor/l/vrs/x</independentVar><tableData>
+0 -0.45
+0.0395833 -0.450182
+0.0791667 -0.450731
+0.11875 -0.451651
+0.158333 -0.45295
+0.197917 -0.454639
+0.2375 -0.456733
+0.277083 -0.459253
+0.316667 -0.462223
+0.35625 -0.465674
+0.395833 -0.469645
+0.435417 -0.474185
+0.475 -0.479354
+0.514583 -0.485228
+0.554167 -0.491906
+0.59375 -0.499516
+0.633333 -0.508228
+0.672917 -0.518279
+0.7125 -0.530005
+0.752083 -0.543915
+0.791667 -0.560831
+0.83125 -0.582227
+0.870833 -0.611225
+0.910417 -0.656951
+0.95 -0.974611
+</tableData></table></product></lt></product></max><difference><value>1</value><gt><property>gear/wow</property><value>0.5</value></gt></difference></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/sink-rate/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/sink-rate/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/sink-rate/c</property><sum><property>alert/sink-rate/s</property><product><property>simulation/channel-dt</property><value>2</value></product></sum><difference><property>alert/sink-rate/s</property><product><property>simulation/channel-dt</property><value>0.5</value></product></difference></ifthen></min></max></ifthen></function><output>alert/sink-rate/s</output></fcs_function>
+<fcs_function name="alert/sink-rate-next"><description>SINK RATE</description><function><ifthen><gt><property>alert/sink-rate/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/sink-rate/s</property><value>0.001</value></lt><value>0</value><property>alert/sink-rate</property></ifthen></ifthen></function><output>alert/sink-rate</output></fcs_function>
+<fcs_function name="alert/pull-up/c"><description>PULL UP's condition</description><function><gt><product><lt><property>ctl/nacelle-deg</property><value>60</value></lt><difference><value>1</value><gt><property>gear/wow</property><value>0.5</value></gt></difference><gt><property>alert/sink-fps</property><value>0</value></gt><difference><value>1</value><gt><property>/instrumentation/mv22b/afcs/eng-out</property><value>0.5</value></gt></difference><lt><property>position/h-agl-ft</property><sum><product><property>alert/sink-fps</property><value>5</value></product><quotient><pow><property>alert/sink-fps</property><value>2</value></pow><value>32.174</value></quotient></sum></lt></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/pull-up/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/pull-up/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/pull-up/c</property><sum><property>alert/pull-up/s</property><product><property>simulation/channel-dt</property><value>2</value></product></sum><difference><property>alert/pull-up/s</property><product><property>simulation/channel-dt</property><value>1</value></product></difference></ifthen></min></max></ifthen></function><output>alert/pull-up/s</output></fcs_function>
+<fcs_function name="alert/pull-up-next"><description>PULL UP</description><function><ifthen><gt><property>alert/pull-up/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/pull-up/s</property><value>0.001</value></lt><value>0</value><property>alert/pull-up</property></ifthen></ifthen></function><output>alert/pull-up</output></fcs_function>
+<fcs_function name="alert/rotor-rpm/c"><description>ROTOR RPM's condition</description><function><gt><product><difference><value>1</value><gt><property>gear/wow</property><value>0.5</value></gt></difference><gt><property>ctl/nacelle-deg</property><value>60</value></gt><property>alert/rotor-flying</property><lt><property>drive/nr-pct</property><difference><property>gov/nr-ref-pct</property><value>3</value></difference></lt><lt><property>drive/nr-pct</property><product><value>0.020271809</value><sqrt><quotient><property>inertia/weight-lbs</property><property>atmosphere/rho-slugs_ft3</property></quotient></sqrt></product></lt></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/rotor-rpm/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/rotor-rpm/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/rotor-rpm/c</property><sum><property>alert/rotor-rpm/s</property><product><property>simulation/channel-dt</property><value>2</value></product></sum><difference><property>alert/rotor-rpm/s</property><product><property>simulation/channel-dt</property><value>1</value></product></difference></ifthen></min></max></ifthen></function><output>alert/rotor-rpm/s</output></fcs_function>
+<fcs_function name="alert/rotor-rpm-next"><description>ROTOR RPM</description><function><ifthen><gt><property>alert/rotor-rpm/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/rotor-rpm/s</property><value>0.001</value></lt><value>0</value><property>alert/rotor-rpm</property></ifthen></ifthen></function><output>alert/rotor-rpm</output></fcs_function>
+<fcs_function name="alert/dual-eng-out"><description>DUAL ENG OUT</description><function><gt><product><product><property>alert/eng0-ran</property><difference><value>1</value><gt><property>eng[0]/running</property><value>0.5</value></gt></difference></product><product><property>alert/eng1-ran</property><difference><value>1</value><gt><property>eng[1]/running</property><value>0.5</value></gt></difference></product></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/eng1-out"><description>ENG 1 OUT</description><function><gt><product><product><property>alert/eng0-ran</property><difference><value>1</value><gt><property>eng[0]/running</property><value>0.5</value></gt></difference></product><difference><value>1</value><product><property>alert/eng1-ran</property><difference><value>1</value><gt><property>eng[1]/running</property><value>0.5</value></gt></difference></product></difference></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/eng2-out"><description>ENG 2 OUT</description><function><gt><product><product><property>alert/eng1-ran</property><difference><value>1</value><gt><property>eng[1]/running</property><value>0.5</value></gt></difference></product><difference><value>1</value><product><property>alert/eng0-ran</property><difference><value>1</value><gt><property>eng[0]/running</property><value>0.5</value></gt></difference></product></difference></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/overspeed/c"><description>OVERSPEED's condition</description><function><gt><ifthen><gt><property>ctl/nacelle-deg</property><value>0.5</value></gt><gt><property>ctl/nacelle-deg</property><sum><table><independentVar lookup="row">velocities/ve-kts</independentVar><tableData>
+0 97.5
+130 97.5
+150 60
+175 30
+200 0
+</tableData></table><value>2</value></sum></gt><max><gt><property>velocities/vc-kts</property><ifthen><gt><property>drive/nr-pct</property><value>94</value></gt><value>220</value><value>280</value></ifthen></gt><gt><property>velocities/mach</property><value>0.48</value></gt></max></ifthen><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/overspeed/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/overspeed/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/overspeed/c</property><sum><property>alert/overspeed/s</property><product><property>simulation/channel-dt</property><value>1</value></product></sum><difference><property>alert/overspeed/s</property><product><property>simulation/channel-dt</property><value>0.5</value></product></difference></ifthen></min></max></ifthen></function><output>alert/overspeed/s</output></fcs_function>
+<fcs_function name="alert/overspeed-next"><description>OVERSPEED</description><function><ifthen><gt><property>alert/overspeed/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/overspeed/s</property><value>0.001</value></lt><value>0</value><property>alert/overspeed</property></ifthen></ifthen></function><output>alert/overspeed</output></fcs_function>
+<fcs_function name="alert/flapping/c"><description>FLAPPING's condition</description><function><gt><gt><property>alert/flap-deg</property><value>11.95</value></gt><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/flapping/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/flapping/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/flapping/c</property><sum><property>alert/flapping/s</property><product><property>simulation/channel-dt</property><value>5</value></product></sum><difference><property>alert/flapping/s</property><product><property>simulation/channel-dt</property><value>1</value></product></difference></ifthen></min></max></ifthen></function><output>alert/flapping/s</output></fcs_function>
+<fcs_function name="alert/flapping-next"><description>FLAPPING</description><function><ifthen><gt><property>alert/flapping/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/flapping/s</property><value>0.001</value></lt><value>0</value><property>alert/flapping</property></ifthen></ifthen></function><output>alert/flapping</output></fcs_function>
+<fcs_function name="alert/wheels/c"><description>WHEELS's condition</description><function><gt><product><difference><value>1</value><gt><property>gear/wow</property><value>0.5</value></gt></difference><lt><property>gear/gear-pos-norm</property><value>0.99</value></lt><gt><property>ctl/nacelle-deg</property><value>60</value></gt><lt><property>position/h-agl-ft</property><value>200</value></lt><lt><property>velocities/h-dot-fps</property><value>-1</value></lt></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/wheels/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/wheels/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/wheels/c</property><sum><property>alert/wheels/s</property><product><property>simulation/channel-dt</property><value>0.33333333</value></product></sum><difference><property>alert/wheels/s</property><product><property>simulation/channel-dt</property><value>1</value></product></difference></ifthen></min></max></ifthen></function><output>alert/wheels/s</output></fcs_function>
+<fcs_function name="alert/wheels-next"><description>WHEELS</description><function><ifthen><gt><property>alert/wheels/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/wheels/s</property><value>0.001</value></lt><value>0</value><property>alert/wheels</property></ifthen></ifthen></function><output>alert/wheels</output></fcs_function>
+<fcs_function name="alert/fuel-low/c"><description>FUEL LOW's condition</description><function><gt><lt><sum><property>propulsion/tank[0]/contents-lbs</property><property>propulsion/tank[1]/contents-lbs</property><property>propulsion/tank[2]/contents-lbs</property><property>propulsion/tank[3]/contents-lbs</property><property>propulsion/tank[4]/contents-lbs</property></sum><value>1000</value></lt><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/fuel-low/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/fuel-low/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/fuel-low/c</property><sum><property>alert/fuel-low/s</property><product><property>simulation/channel-dt</property><value>1</value></product></sum><difference><property>alert/fuel-low/s</property><product><property>simulation/channel-dt</property><value>0.2</value></product></difference></ifthen></min></max></ifthen></function><output>alert/fuel-low/s</output></fcs_function>
+<fcs_function name="alert/fuel-low-next"><description>FUEL LOW</description><function><ifthen><gt><property>alert/fuel-low/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/fuel-low/s</property><value>0.001</value></lt><value>0</value><property>alert/fuel-low</property></ifthen></ifthen></function><output>alert/fuel-low</output></fcs_function>
+<fcs_function name="alert/nr/c"><description>NR's condition</description><function><gt><product><gt><property>drive/nr-pct</property><value>5</value></gt><gt><abs><difference><property>drive/nr-pct</property><property>gov/nr-ref-pct</property></difference></abs><value>3</value></gt><difference><value>1</value><product><gt><property>/instrumentation/mv22b/afcs/eng-out</property><value>0.5</value></gt><gt><property>ap/eo-phase</property><value>3.5</value></gt></product></difference></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/nr/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/nr/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/nr/c</property><sum><property>alert/nr/s</property><product><property>simulation/channel-dt</property><value>1</value></product></sum><difference><property>alert/nr/s</property><product><property>simulation/channel-dt</property><value>0.5</value></product></difference></ifthen></min></max></ifthen></function><output>alert/nr/s</output></fcs_function>
+<fcs_function name="alert/nr-next"><description>NR</description><function><ifthen><gt><property>alert/nr/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/nr/s</property><value>0.001</value></lt><value>0</value><property>alert/nr</property></ifthen></ifthen></function><output>alert/nr</output></fcs_function>
+<fcs_function name="alert/hover-pwr/c"><description>HOVER PWR's condition</description><function><gt><product><difference><value>1</value><gt><property>gear/wow</property><value>0.5</value></gt></difference><gt><property>ctl/nacelle-deg</property><value>60</value></gt><lt><property>velocities/ve-kts</property><value>60</value></lt><property>alert/rotor-flying</property><gt><property>alert/hover-power-ratio</property><value>1</value></gt></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/hover-pwr/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/hover-pwr/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/hover-pwr/c</property><sum><property>alert/hover-pwr/s</property><product><property>simulation/channel-dt</property><value>0.5</value></product></sum><difference><property>alert/hover-pwr/s</property><product><property>simulation/channel-dt</property><value>0.33333333</value></product></difference></ifthen></min></max></ifthen></function><output>alert/hover-pwr/s</output></fcs_function>
+<fcs_function name="alert/hover-pwr-next"><description>HOVER PWR</description><function><ifthen><gt><property>alert/hover-pwr/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/hover-pwr/s</property><value>0.001</value></lt><value>0</value><property>alert/hover-pwr</property></ifthen></ifthen></function><output>alert/hover-pwr</output></fcs_function>
+<fcs_function name="alert/flap-clear/c"><description>FLAPPING HIGH's condition</description><function><gt><gt><property>alert/flap-deg</property><value>10.5</value></gt><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/flap-clear/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/flap-clear/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/flap-clear/c</property><sum><property>alert/flap-clear/s</property><product><property>simulation/channel-dt</property><value>2</value></product></sum><difference><property>alert/flap-clear/s</property><product><property>simulation/channel-dt</property><value>1</value></product></difference></ifthen></min></max></ifthen></function><output>alert/flap-clear/s</output></fcs_function>
+<fcs_function name="alert/flap-clear-next"><description>FLAPPING HIGH</description><function><ifthen><gt><property>alert/flap-clear/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/flap-clear/s</property><value>0.001</value></lt><value>0</value><property>alert/flap-clear</property></ifthen></ifthen></function><output>alert/flap-clear</output></fcs_function>
+<fcs_function name="alert/airspeed-low/c"><description>AIRSPEED LOW's condition</description><function><gt><product><difference><value>1</value><gt><property>gear/wow</property><value>0.5</value></gt></difference><lt><property>ctl/nacelle-deg</property><difference><table><independentVar lookup="row">velocities/ve-kts</independentVar><tableData>
+0 75
+35 75
+70 60
+93 40
+107 20
+125 0
+</tableData></table><value>2</value></difference></lt></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/airspeed-low/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/airspeed-low/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/airspeed-low/c</property><sum><property>alert/airspeed-low/s</property><product><property>simulation/channel-dt</property><value>1</value></product></sum><difference><property>alert/airspeed-low/s</property><product><property>simulation/channel-dt</property><value>0.5</value></product></difference></ifthen></min></max></ifthen></function><output>alert/airspeed-low/s</output></fcs_function>
+<fcs_function name="alert/airspeed-low-next"><description>AIRSPEED LOW</description><function><ifthen><gt><property>alert/airspeed-low/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/airspeed-low/s</property><value>0.001</value></lt><value>0</value><property>alert/airspeed-low</property></ifthen></ifthen></function><output>alert/airspeed-low</output></fcs_function>
+<fcs_function name="alert/conv-prot/c"><description>CONV PROT's condition</description><function><gt><gt><abs><difference><property>/controls/flight/nacelle-cmd-deg</property><property>ctl/nacelle-cmd-limited-deg</property></difference></abs><value>1</value></gt><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/conv-prot/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/conv-prot/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/conv-prot/c</property><sum><property>alert/conv-prot/s</property><product><property>simulation/channel-dt</property><value>1</value></product></sum><difference><property>alert/conv-prot/s</property><product><property>simulation/channel-dt</property><value>1</value></product></difference></ifthen></min></max></ifthen></function><output>alert/conv-prot/s</output></fcs_function>
+<fcs_function name="alert/conv-prot-next"><description>CONV PROT</description><function><ifthen><gt><property>alert/conv-prot/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/conv-prot/s</property><value>0.001</value></lt><value>0</value><property>alert/conv-prot</property></ifthen></ifthen></function><output>alert/conv-prot</output></fcs_function>
+<fcs_function name="alert/gear-down/c"><description>GEAR DOWN's condition</description><function><gt><product><gt><property>position/h-agl-ft</property><value>50</value></gt><gt><property>gear/gear-pos-norm</property><value>0.99</value></gt><gt><property>velocities/vc-kts</property><value>250</value></gt></product><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/gear-down/s-next"><function><ifthen><gt><property>ctl/init-fast</property><value>0.5</value></gt><property>alert/gear-down/c</property><max><value>0</value><min><value>1</value><ifthen><property>alert/gear-down/c</property><sum><property>alert/gear-down/s</property><product><property>simulation/channel-dt</property><value>1</value></product></sum><difference><property>alert/gear-down/s</property><product><property>simulation/channel-dt</property><value>0.5</value></product></difference></ifthen></min></max></ifthen></function><output>alert/gear-down/s</output></fcs_function>
+<fcs_function name="alert/gear-down-next"><description>GEAR DOWN</description><function><ifthen><gt><property>alert/gear-down/s</property><value>0.999</value></gt><value>1</value><ifthen><lt><property>alert/gear-down/s</property><value>0.001</value></lt><value>0</value><property>alert/gear-down</property></ifthen></ifthen></function><output>alert/gear-down</output></fcs_function>
+<fcs_function name="alert/rotor-brake"><description>ROTOR BRAKE</description><function><gt><gt><property>/controls/rotor/brake</property><value>0.05</value></gt><value>0.5</value></gt></function></fcs_function>
+<fcs_function name="alert/battery-off"><description>BATTERY OFF</description><function><gt><lt><property>/controls/electric/battery-switch</property><value>0.5</value></lt><value>0.5</value></gt></function></fcs_function>
 </channel>
 </system>

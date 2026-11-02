@@ -6,24 +6,15 @@
     <lower><kt>0</kt><kt>35</kt><kt>70</kt><kt>93</kt><kt>107</kt><kt>125</kt><nac>75</nac><nac>75</nac><nac>60</nac><nac>40</nac><nac>20</nac><nac>0</nac></lower>
     <upper><kt>0</kt><kt>130</kt><kt>150</kt><kt>175</kt><kt>200</kt><nac>97.5</nac><nac>97.5</nac><nac>60</nac><nac>30</nac><nac>0</nac></upper>
   </cps>
-  <!-- airplane mode's airspeed limit (KCAS, Mach) at 84 % rotor speed, and at 100 %; the high sink rate
-       warning's boundary: KCAS, ft/min -->
+  <!-- airplane mode's airspeed limit (KCAS, Mach) at 84 % rotor speed, and at 100 % -->
   <apln><vmo-kt>280</vmo-kt><mmo>0.48</mmo><vmo-100-kt>220</vmo-100-kt></apln>
-  <vrs><kt>30</kt><kt>60</kt><sink-fpm>800</sink-fpm><sink-fpm>1600</sink-fpm></vrs>
-  <!-- the power to hover out of ground effect at 100 % rotor speed, standard sea level: the hover ceiling's
-       weight there, which the drive's torque limit is fitted to; the rotor's radius and the ground effect on
-       its induced velocity, (1 + k (R/Z)^2)^exp with Z the hub's height (above the main wheels' contact
-       here, the nacelles up) -->
+  <!-- the drive's torque limit at 100 % rotor speed (the power bar's while the rotors are stopped) -->
   <hover>
-    <weight-lb>47700</weight-lb>
     <power-hp>9100</power-hp>
-    <altitude-ft>0</altitude-ft>
-    <radius-ft>19.042</radius-ft>
-    <hub-height-ft>17.07</hub-height-ft>
-    <ge-k>0.3</ge-k>
-    <ge-exp>-0.5</ge-exp>
   </hover>
   <!-- AUTO NAC's schedule: the nacelle angle (deg) for the calibrated airspeed (kt). An in-air start's
        nacelles from the flight model's first step; v22.nas draws the 3-D model's at it before that -->
   <autonac><kt>0</kt><kt>10</kt><kt>20</kt><kt>30</kt><kt>40</kt><kt>50</kt><kt>60</kt><kt>70</kt><kt>80</kt><kt>90</kt><kt>100</kt><kt>110</kt><kt>120</kt><kt>130</kt><kt>140</kt><kt>150</kt><kt>160</kt><kt>170</kt><kt>180</kt><kt>190</kt><kt>200</kt><kt>210</kt><kt>220</kt><nac>85</nac><nac>85</nac><nac>85</nac><nac>85</nac><nac>80</nac><nac>80</nac><nac>80</nac><nac>80</nac><nac>80</nac><nac>80</nac><nac>75</nac><nac>75</nac><nac>70</nac><nac>60</nac><nac>55</nac><nac>50</nac><nac>35</nac><nac>20</nac><nac>0</nac><nac>0</nac><nac>0</nac><nac>0</nac><nac>0</nac></autonac>
+  <!-- the pitch at which the fuselage meets the ground on the wheels (ENG OUT's flare), deg -->
+  <tail-strike-deg>7.3</tail-strike-deg>
 </PropertyList>

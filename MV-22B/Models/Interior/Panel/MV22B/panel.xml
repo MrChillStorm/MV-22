@@ -109,12 +109,34 @@
   <effect>
     <inherits-from>Aircraft/MV-22B/Models/Effects/Lit/lit</inherits-from>
     <parameters>
+      <lit-level><use>/instrumentation/mv22b/displays/master1/luminance</use></lit-level>
+      <lit-reflectance type="float">0.04</lit-reflectance>
+      <pbr-metallic type="float">1</pbr-metallic>
+      <pbr-roughness type="float">0.3</pbr-roughness>
+    </parameters>
+    <object-name>MASTER1.screen</object-name>
+  </effect>
+
+  <effect>
+    <inherits-from>Aircraft/MV-22B/Models/Effects/Lit/lit</inherits-from>
+    <parameters>
       <lit-level><use>/instrumentation/mv22b/displays/radio2/luminance</use></lit-level>
       <lit-reflectance type="float">0.04</lit-reflectance>
       <pbr-metallic type="float">1</pbr-metallic>
       <pbr-roughness type="float">0.3</pbr-roughness>
     </parameters>
     <object-name>RADIO2.screen</object-name>
+  </effect>
+
+  <effect>
+    <inherits-from>Aircraft/MV-22B/Models/Effects/Lit/lit</inherits-from>
+    <parameters>
+      <lit-level><use>/instrumentation/mv22b/displays/master2/luminance</use></lit-level>
+      <lit-reflectance type="float">0.04</lit-reflectance>
+      <pbr-metallic type="float">1</pbr-metallic>
+      <pbr-roughness type="float">0.3</pbr-roughness>
+    </parameters>
+    <object-name>MASTER2.screen</object-name>
   </effect>
 
   <animation>
@@ -3824,13 +3846,26 @@
 
   <animation>
     <type>pick</type>
-    <object-name>RADIO1.K1</object-name>
+    <object-name>MASTER1</object-name>
     <action>
       <button>0</button>
       <repeatable>false</repeatable>
       <binding>
         <command>nasal</command>
-        <script>displays.key("RADIO1", "K1")</script>
+        <script>displays.key("MASTER", "RESET")</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>pick</type>
+    <object-name>MASTER1.screen</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("MASTER", "RESET")</script>
       </binding>
     </action>
   </animation>
@@ -3876,13 +3911,26 @@
 
   <animation>
     <type>pick</type>
-    <object-name>RADIO2.K2</object-name>
+    <object-name>MASTER2</object-name>
     <action>
       <button>0</button>
       <repeatable>false</repeatable>
       <binding>
         <command>nasal</command>
-        <script>displays.key("RADIO2", "K2")</script>
+        <script>displays.key("MASTER", "RESET")</script>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>pick</type>
+    <object-name>MASTER2.screen</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>nasal</command>
+        <script>displays.key("MASTER", "RESET")</script>
       </binding>
     </action>
   </animation>

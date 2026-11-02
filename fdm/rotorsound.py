@@ -65,7 +65,7 @@ SIDES_ENG = (('right', 0, 'engine_right', 7.04), ('left', 1, 'engine_left', -7.0
 # the original aircraft's other sounds (actuators, gear, tyres, doors, flares, rain on the windscreen): no data for their
 # levels, so their author's balance with the original engine loops (volume 0.25) is kept and carried to the banks'
 # scale as those loops' (the engines' factors above against 0.25, geometric means), outside and in the cockpit. The
-# overspeed warning, an aural alert, stays as it is
+# alerts' tones are fdm/alertsound.py's
 OLD_SOUNDS = ('wingrotation', 'bladefold', 'flap', 'enginetilt', 'rumble', 'squeal', 'squeal1', 'squeal2', 'gear',
               'gear-lock', 'intense ground contact', 'open door', 'Door closed', 'Steps door', 'Steps closed', 'Bay door',
               'Bay close', 'Flares', 'rain')

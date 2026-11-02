@@ -10,6 +10,14 @@
 
     <sound>
       <path>Aircraft/MV-22B/Sounds/v22-sound.xml</path>
+      <!-- the crew alerts' voice (Nasal/alerts.nas): FlightGear's own speech, its queue apart from the radio's -->
+      <voices>
+        <voice n="4">
+          <desc>Alerts</desc>
+          <text type="string"/>
+          <htsvoice type="string">cmu_us_arctic_slt.htsvoice</htsvoice>
+        </voice>
+      </voices>
     </sound>
 
     <model>
@@ -267,6 +275,10 @@
       <script>
       </script>
     </turrets>
+    <alerts>
+      <!-- the crew alerts: masters, sounds, acknowledgement (fdm/alerts.py, Systems/mv22b-alerts.xml) -->
+      <file>Aircraft/MV-22B/Nasal/alerts.nas</file>
+    </alerts>
     <displays>
       <!-- the instrument panel's displays (Models/Interior/Panel/MV22B, fdm/cockpit/panel.py) -->
       <file>Aircraft/MV-22B/Nasal/displays.nas</file>

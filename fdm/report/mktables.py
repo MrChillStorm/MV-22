@@ -46,8 +46,8 @@ def model_table():
              ('mv22b-rotors.xml', 'gimbals, rotor azimuth, Peters--He wake states of each rotor with their gains and forcing, the vortex ring state', 'fcs'),
              ('mv22b-airframe.xml', 'ring-vortex wake at the wing, stabiliser and fins; ground effect', 'fcs'),
              ('mv22b-drive.xml', 'engines, torque limit, interconnected drive and rotor speed, rotor brake, fuel', 'fcs'),
-             ('mv22b-controls.xml', 'pilot controls, mixing, nacelles and conversion protection, flaperons, governor, augmentation, hover hold, servos', 'fcs'),
-             ('mv22b-outputs.xml', 'properties for the 3-D model and the instruments', 'fcs')]
+             ('mv22b-controls.xml', 'pilot controls, mixing, nacelles and conversion protection, flaperons, governor, augmentation, hover hold, autopilot, servos', 'fcs'),
+             ('mv22b-outputs.xml', 'properties for the 3-D model and the instruments; the crew alerts\' conditions', 'fcs')]
     rows, nfun, nfcs = [], 0, 0
     for fn, what, kind in files:
         s = open(os.path.join(root, fn)).read()

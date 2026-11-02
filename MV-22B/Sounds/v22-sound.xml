@@ -1474,25 +1474,6 @@
       <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </engine_tilt>
 
-    <overspeed>
-      <name>overspeed</name>
-      <path>Sounds/overspeed.wav</path>
-      <mode>looped</mode>
-      <condition>
-        <greater-than>
-          <property>velocities/airspeed-kt</property>
-          <value>315</value>
-        </greater-than>
-      </condition>
-      <volume>
-        <factor>0.2</factor>
-      </volume>
-      <pitch>
-        <factor>0.1</factor>
-      </pitch>
-      <reference-dist>1.0</reference-dist>
-      <max-dist>2.0</max-dist>
-    </overspeed>
 
     <!-- ************************************************* -->
     <rumble>
@@ -1861,6 +1842,47 @@
       <!-- at the banks' scale (fdm/rotorsound.py) -->
       <volume><expression><sum><value>0.119393</value><product><property>sim/current-view/internal</property><value>-0.0922448</value></product></sum></expression></volume>
     </rain>
+
+
+    <!-- the crew alerts' tones: written by fdm/alertsound.py (Nasal/alerts.nas) -->
+    <warning>
+      <name>alert-warning</name>
+      <type>avionics</type>
+      <mode>once</mode>
+      <path>Sounds/alerts/warning.wav</path>
+      <condition>
+        <property>/instrumentation/mv22b/alerts/aural/warning</property>
+      </condition>
+      <volume>
+        <property>/instrumentation/mv22b/alerts/aural/warning-gain</property>
+        <factor>1</factor>
+      </volume>
+    </warning>
+    <caution>
+      <name>alert-caution</name>
+      <type>avionics</type>
+      <mode>once</mode>
+      <path>Sounds/alerts/caution.wav</path>
+      <condition>
+        <property>/instrumentation/mv22b/alerts/aural/caution</property>
+      </condition>
+      <volume>
+        <factor>1</factor>
+      </volume>
+    </caution>
+    <autopilot>
+      <name>alert-autopilot</name>
+      <type>avionics</type>
+      <mode>looped</mode>
+      <path>Sounds/alerts/autopilot.wav</path>
+      <condition>
+        <property>/instrumentation/mv22b/alerts/aural/autopilot</property>
+      </condition>
+      <volume>
+        <factor>1</factor>
+      </volume>
+    </autopilot>
+    <!-- end of fdm/alertsound.py's tones -->
 
   </fx>
 
