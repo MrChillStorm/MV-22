@@ -4,7 +4,7 @@ Alert & Level & When \\
 \midrule
 \ann{SINK RATE} & warning (red) & either rotor descending past 0.39 of the vortex ring state's onset for its edgewise speed (Johnson's model, in its own hover induced velocity): 800 ft/min in vertical descent at the reference loading at sea level \\
 \ann{PULL UP} & warning (red) & nacelles under 60 deg, descending to the ground in less than 5 s and a 0.5 g pull-out; not with ENG OUT on (no power to climb away: the descent to the ground is the mode's, its flare closing on the ground quicker than 5 s) \\
-\ann{ROTOR RPM} & warning (red) & nacelles past 60 deg: the rotor speed drooping, too low for the rotors' greatest thrust to hold the hover at this weight and density \\
+\ann{ROTOR RPM} & warning (red) & nacelles past 60 deg: the rotor speed drooping, too low for the rotors' greatest thrust to hold the hover at this weight and density; not from ENG OUT's flare on (its lever spends the rotor speed) \\
 \ann{DUAL ENG OUT} & warning (red) & both engines that ran stopped (ENG 1 OUT and ENG 2 OUT collected into it) \\
 \ann{ENG 1 OUT} & warning (red) & an engine that ran stops, the other running (both: DUAL ENG OUT; both shut down on the ground, the alerts clear) \\
 \ann{ENG 2 OUT} & warning (red) & an engine that ran stops, the other running (both: DUAL ENG OUT; both shut down on the ground, the alerts clear) \\
@@ -12,7 +12,7 @@ Alert & Level & When \\
 \ann{FLAPPING} & warning (red) & a gimbal at its flapping stop (12 deg) \\
 \ann{WHEELS} & warning (red) & nacelles past 60 deg under 200 ft, descending, the gear not down \\
 \ann{FUEL LOW} & caution (amber) & under 1000 lb of fuel \\
-\ann{NR} & caution (amber) & the rotor speed more than 3 \% off its reference; not in ENG OUT's settling and after (its lever spends the rotor speed in the last 20 ft) \\
+\ann{NR} & caution (amber) & the rotor speed more than 3 \% off its reference; not from ENG OUT's flare on (the nacelles coming up move its reference), nor on the ground with both engines out \\
 \ann{HOVER PWR} & caution (amber) & slower than 60 KEAS, nacelles past 60 deg: the power to hover at this height more than the engines running have \\
 \ann{FLAPPING HIGH} & caution (amber) & a gimbal past 10.5 deg of flapping, the wing clearance's design value \\
 \ann{AIRSPEED LOW} & caution (amber) & slower than the conversion corridor's least speed for the nacelles' angle \\

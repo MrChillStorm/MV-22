@@ -259,8 +259,14 @@ collective (its slope falling to zero in airplane mode), the lateral stick their
 longitudinal cyclic, the pedals their differential cyclic, each phased with the mast angle, while the elevator, flaperons and rudders
 follow the stick and pedals in all modes. The nacelles move at up to 8$^\circ$/s from 97.5$^\circ$ (7.5$^\circ$ aft of vertical) to 0, their
 command held within the conversion corridor against equivalent airspeed~\cite{pd}. The flaperons' schedule is not public; they are at
-67$^\circ$ in the hover for the least download~\cite{rc}, at 40$^\circ$ through the conversion and in airplane mode below 120\,kt (the
-corridor's lower boundary is the wing's stall at 40$^\circ$ of flap~\cite{pd}) and retract by 200\,kt (an estimate). A collective governor
+67$^\circ$ in the hover for the least download~\cite{rc} and at 40$^\circ$ through the conversion with the nacelles up (the corridor's lower
+boundary is the wing's stall at 40$^\circ$ of flap~\cite{pd}), out by 160\,kt. Elsewhere the V-22's come from the flight state: the
+least deflection that makes the wing's lift, from Bell's wing data~\cite{cr}, with a margin of 1.3\,g to its stall and at no more than
+AUTO NAC's pitch in level flight (Section~\ref{sec:autopilot}), at most 40$^\circ$ (Bell's 67$^\circ$ setting has the 40$^\circ$ one's
+maximum lift), in ENG~OUT's glide too, where at 60\,500\,lb it costs 14\,\% of the reach and its flares land better. At any lift the least flap has the least drag in Bell's data, but by the wing's drag alone the pitch rose
+1.5--2.5$^\circ$ at each nacelle angle, AUTO NAC kept the nacelles up longer, and its schedule took up to 1770\,hp more; with the pitch
+limit the nacelles come down sooner and level flight at 150--160\,kt along it takes about 2000\,hp less than the earlier estimate's.
+The XV-15's build keeps that estimate: 40$^\circ$ in airplane mode below 120\,kt, retracting by 200\,kt. A collective governor
 holds the rotor speed's reference, 104\,\% in helicopter and conversion modes and 84\,\% in airplane mode~\cite{pd}, proportional and
 integral within Bell's collective limits.
 
@@ -271,8 +277,8 @@ attitude command and heading hold below 50\,kt with the nacelles above 60$^\circ
 55\,kt accelerating and 45\,kt slowing, so that a speed held near 50 does not switch back and forth), switched without a
 transient because both share one reference~\cite{patent}; in yaw below 50\,kt rate command, direction hold, the pedals commanding a yaw rate
 (30$^\circ$/s at full travel) held against the wind by an integrator, the hover's response type in ADS-33E~\cite{ads33}; a feed-forward of
-the level-flight trim's stick against nacelle angle and forward airspeed, from the model's own trims, so that the stick's centre is trimmed
-flight through the conversion; and integrators that take up the rest. A hover hold (Section~\ref{sec:hoverhold}) and an autopilot
+the level-flight trim's stick against nacelle angle, forward airspeed and the flaperons, from the model's own trims, so that the stick's
+centre is trimmed flight through the conversion at whatever the flaperons are; and integrators that take up the rest. A hover hold (Section~\ref{sec:hoverhold}) and an autopilot
 (Section~\ref{sec:autopilot}) work through it.
 The comparisons of Section~\ref{sec:results} fly the bare airframe, the augmentation off.
 
@@ -503,7 +509,8 @@ lift, (b) pitch attitude, by nacelle angle (circles: test).}\label{fig:conv}
 \Tab{conversion}
 \end{table}
 The pitch attitude follows the flight test through the conversion within \NCvPitchRms$^\circ$ (rms; Fig.~\ref{fig:conv}, Table~\ref{tab:conv}), the
-model a few degrees nose-up of it at the higher speeds of each nacelle angle. The wing carries \NCvLiftRms\,\% of the weight less than Dunford's chart
+model nose-up of it at the higher speeds of each nacelle angle, by up to \NCvPitchHi$^\circ$: there the flaperon law's least flap (none at
+30$^\circ$ of nacelle and 168\,kt, where the test is 5$^\circ$ nose-down) leaves the nose higher than the test's unpublished flaps did. The wing carries \NCvLiftRms\,\% of the weight less than Dunford's chart
 (rms), most at 30$^\circ$ of nacelle, where the model's wing carries \NCvWingLo--\NCvWingHi\,\% against \NCvTestLo--\NCvTestHi\,\%: at that angle the rotors' slipstream over the wing, which
 the wake model gives, decides the wing's lift, and no test checks it. The charts' weight and flaps are not published (Section~\ref{sec:ref}).
 
@@ -608,17 +615,17 @@ down to it, and the plan never counts on height the aircraft has not got. The cl
 $P = P_\mathrm{level} + b\dot h + c\dot h^2$ ($b$, $c$ from three trims at each speed, the level flight's power from the present power and the
 energy's rate), divided by the share of a climb at constant calibrated airspeed that goes into the true airspeed's rise (5\,\% at 200\,kt).
 These tables are read at the speed AUTO NAC's schedule gives the present nacelle angle: through the conversion the nacelles change the
-climb more than a few knots do, \NTfClimbSixty{} and \NTfClimbSeventy\,ft/min at full power at 160 and 170\,kt. With SPD HOLD the speed is
+climb more than a few knots do, \NTfClimbFifty{} and \NTfClimbSixty\,ft/min at full power at 150 and 160\,kt. With SPD HOLD the speed is
 free within 20\,kt of its reference. Below half the clearance, or without terrain data, it climbs at full power.
 
 Table~\ref{tab:tf} and Fig.~\ref{fig:tf} give TF over level ground, hills 500\,ft high and 2\,nm apart, and a ridge 800\,ft high whose 15$^\circ$
 faces are steeper than any climb of the aircraft's. Over level ground the pitch holds within \NTfFlatRms$^\circ$ (rms), \NTfFlatJitRms$^\circ$
 with the timer's jitter. Over the hills at 120\,kt the clearance stays within \NTfHillsSlowLo--\NTfHillsSlowHi\,ft; at 200\,kt the valleys are
 narrower than the 2000\,ft/min descent and the ride allow the aircraft to follow, and it stays up to \NTfHillsFastHi\,ft over them (mean
-\NTfHillsFastMean). The ridge leaves at least \NTfRidgeLo\,ft at 120 to 200\,kt, its edge flown at the climb's limit. The vertical acceleration
-stays within \NTfG\,$g$, the ride's 0.2\,$g$ with what the height loop adds, and no run flies up. The timer's jitter changes the least clearance by at most \NTfJitter\,ft. At 170\,kt, with the
-nacelles at 20$^\circ$ and the lever near its stop, the climb lags its model and the ridge leaves \NTfRidgeSeventy\,ft. The plan's 45\,s are
-the time to clear 1000\,ft of rise at the conversion's least climb (\NTfClimbLow\,ft/min at 150\,kt) with the pull-up; higher or nearer
+\NTfHillsFastMean). The ridge leaves at least \NTfRidgeLo\,ft at 120 to 200\,kt (\NTfRidgeSeventy\,ft at 170\,kt), its edge flown at the climb's
+limit: at 150\,kt, the nacelles at 30$^\circ$, the lever near its stop. The vertical acceleration
+stays within \NTfG\,$g$, the ride's 0.2\,$g$ with what the height loop adds, and no run flies up. The timer's jitter changes the least clearance by at most \NTfJitter\,ft. The plan's 45\,s cover
+1000\,ft of rise with the pull-up at the least full-power climb TF meets at 120 to 200\,kt (\NTfClimbLow\,ft/min, at \NTfClimbLowKt\,kt); higher or nearer
 terrain, or terrain coming into view round a turn, can be cleared only as the fly-up allows.
 
 \subsection{Descent through the vortex ring state}\label{sec:vrs}
@@ -721,6 +728,11 @@ period of the controls' channels (four frames) before letting go, and the hover 
 magnitude, so that flying backwards it gave the forward stick of forward flight: in FlightGear the aircraft let go in the hover drifted aft,
 pitched nose down and diverged with the augmentation's integrator at its limit. It takes the forward airspeed now (the hover's stick in
 rearward and sideward flight), carried past 90$^\circ$ of nacelle along its slope from 75 to 90.
+\item \emph{The trim feed-forward and the flaperons.} Taken from level trims against the nacelle angle and the airspeed alone, it held the
+stick for the flaperons those trims had. Once the flaperons came from the flight state, the automatic landing with both engines out
+lowered them to 40$^\circ$ where level flight has few: the stick's trim was a quarter of its travel off, the augmentation's half of it
+could not hold the nose as the nacelles came up, and it rose to 12$^\circ$ with 2$^\circ$ down commanded. The trims are now taken with the
+flaperons held at 0, 20, 40 and 67$^\circ$, and the feed-forward is looked up at the flaperons there are.
 \item \emph{Yaw at low speed.} The augmentation only damped the yaw rate, through a washout: a steady yaw moment, a tailwind on the fins,
 turned the aircraft at will, and the pedals, opposed by the damper, were weak (a keyboard step turned it 0.6$^\circ$). Below 50\,kt the pedals
 now command a yaw rate, held by an integrator with the pedals' full travel.
@@ -804,7 +816,7 @@ wakes over the wing there, which no test checks, are the model's weakest part.
 wake's momentum theory without changing any other result: descending vertically at a fixed lever the V-22 runs away between \NVrsLo{}
 and \NVrsHi\,ft/min, and in Johnson's encounter it drops and then rolls off, out of the two rotors' own velocities.
 \item Its autopilot's terrain following plans a reference path over the terrain ahead and holds the aircraft to its measured response:
-over hills and a ridge steeper than its climb it keeps within 4\,\% of a 200\,ft clearance at 120 to 200\,kt, without porpoising over level ground.
+over hills and a ridge steeper than its climb it keeps within \NTfUnderPct\,\% of a 200\,ft clearance at 120 to 200\,kt, without porpoising over level ground.
 \end{itemize}
 
 \begin{thebibliography}{99}\small

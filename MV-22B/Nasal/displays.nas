@@ -169,6 +169,8 @@ var labels = func(g, top, left, right, backed = 0) {
 # Systems/mv22b-displays.xml, written by fdm/genv22.py from the model's data: the conversion protection's boundaries
 # and the power to hover (read into /instrumentation/mv22b/displays/data at the start)
 var DATA = "/instrumentation/mv22b/displays/data/";
+var SITE = "/instrumentation/mv22b/eosite/";      # ENG OUT's landing sites (eosite.nas)
+var SITES_SHOWN = 16;
 var R2D = 180 / math.pi;
 var KT = 0.592484;                   # kt per ft/s
 
@@ -680,7 +682,11 @@ var Flight = {
         if (efd) {
             # the reach along the track: the still air's at the present ground speed over the true airspeed
             var reach = num(JSB ~ "ap/eo-reach-nm") * (tas > 30 ? gs / tas : 1);
-            me.config.setText(sprintf("%s   %s", !eglide ? "FLARE" : nac < 1 ? sprintf("REACH %.1f NM", reach) : "CONVERTING", gtxt));
+            # with a landing site (eosite.nas): its name, the way to it and the energy's margin, NM (+ high)
+            var st = !eglide ? "FLARE" : nac >= 1 ? "CONVERTING" : sprintf("REACH %.1f NM", reach);
+            if (eglide and nac < 1 and num(SITE ~ "on"))
+                st = sprintf("%s %.1f NM %+.1f", getprop(SITE ~ "name"), num(SITE ~ "path-nm"), num(SITE ~ "margin-nm"));
+            me.config.setText(sprintf("%s   %s", st, gtxt));
             me.config.setColor(AMBER);
         } else {
             me.config.setText(sprintf("%s   FLAP %d   %s%s", gtxt, num(JSB ~ "ctl/flaperon-deg"),
@@ -848,6 +854,13 @@ var Nav = {
         m.reach = map.createChild("path").setColor(AMBER).setStrokeLineWidth(2).setStrokeDashArray([10, 6]);
         m.reacht = txt(map, "GLIDE", 0, 0, 12, AMBER);
         m.reacht.hide();
+        # ENG OUT's landing sites (eosite.nas): each a strip, runways white, fields green, out of reach grey, the chosen
+        # one magenta with its planned path dashed
+        m.sites = [];
+        for (var i = 0; i < SITES_SHOWN; i += 1) append(m.sites, map.createChild("path").setStrokeLineWidth(4).hide());
+        m.sitepath = map.createChild("path").setColor(MAGENTA).setStrokeLineWidth(2).setStrokeDashArray([8, 5]);
+        m.sitet = txt(map, "", 0, 0, 12, MAGENTA);
+        m.sitet.hide();
         # the path ahead, the aircraft
         m.path = map.createChild("path").setColor(WHITE).setStrokeLineWidth(2);
         m.pathc = fixed_path(m.path, 1, 21);
@@ -889,6 +902,7 @@ var Nav = {
         elsif (k == "R2") me.range_i = math.max(0, me.range_i - 1);
         elsif (k == "R3") me.north = !me.north;
         elsif (k == "R4") me.terrain = !me.terrain;
+        elsif (k == "R5") eosite.next();
         if (k == "R1" or k == "R2" or k == "R3") {                         # the cells are elsewhere now: a new sweep
             foreach (var set; me.sets) { foreach (var p; set.p) p.reset(); set.g.hide(); }
             me.idx = 0; me.drow = -1;
@@ -1056,6 +1070,32 @@ var Nav = {
             var at = (ce * math.sin(trk * D2R) + cn * math.cos(trk * D2R));
             var ac = -ce * math.cos(trk * D2R) + cn * math.sin(trk * D2R);
             me.eo_r = at + math.sqrt(math.max(0, r * r - ac * ac));
+        }
+        # ---- ENG OUT's landing sites and the planned path to the chosen one
+        var ns = num(AFCS ~ "eng-out") ? math.min(SITES_SHOWN, int(num(SITE ~ "n"))) : 0;
+        forindex (var i; me.sites) {
+            var p = me.sites[i];
+            if (i >= ns) { p.hide(); continue; }
+            var b = SITE ~ "cand[" ~ i ~ "]/";
+            var q0 = of(num(b ~ "lat0"), num(b ~ "lon0")); var q1 = of(num(b ~ "lat1"), num(b ~ "lon1"));
+            var a0 = to_map(q0[0], q0[1]); var a1 = to_map(q1[0], q1[1]);
+            p.reset().moveTo(a0[0], a0[1]).lineTo(a1[0], a1[1]);
+            # (the chosen on top: a runway's two ends are one strip, and 19L's covered 01R's)
+            var ch = num(b ~ "chosen");
+            p.setColor(ch ? MAGENTA : !num(b ~ "reach") ? GREY : getprop(b ~ "kind") == "RWY" ? WHITE : GREEN);
+            p.setInt("z-index", ch ? 1 : 0);
+            p.show();
+        }
+        me.sitepath.reset(); me.sitet.hide();
+        if (ns and num(SITE ~ "on")) {
+            var np = int(num(SITE ~ "path/n"));
+            var last = nil;
+            for (var j = 0; j < np; j += 1) {
+                var q = of(num(SITE ~ "path/pt[" ~ j ~ "]/lat"), num(SITE ~ "path/pt[" ~ j ~ "]/lon"));
+                last = to_map(q[0], q[1]);
+                if (j == 0) me.sitepath.moveTo(last[0], last[1]); else me.sitepath.lineTo(last[0], last[1]);
+            }
+            if (last != nil) me.sitet.setText(getprop(SITE ~ "name")).setTranslation(last[0], last[1] + 14).show();
         }
         # ---- traffic
         var shown = 0;
@@ -1434,7 +1474,7 @@ var Mfd = {
             m.groups[p] = g;
             m.pages[p] = (p == "FLT" ? Flight : p == "NAV" ? Nav : p == "ENG" ? Engines : Fuel).new(g);
             m.labs[p] = labels(g, MFD_PAGES, [], p == "FLT" ? ["", "", "", "", "", "", "HVR MARK"]
-                                                 : p == "NAV" ? ["RNG +", "RNG -", "N/TRK UP", "TERR"] : [], contains(ON_DEMAND, p));
+                                                 : p == "NAV" ? ["RNG +", "RNG -", "N/TRK UP", "TERR", "SITE"] : [], contains(ON_DEMAND, p));
             g.hide();
         }
         m.touched = -100;

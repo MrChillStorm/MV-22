@@ -170,7 +170,10 @@ def level():
                            ['%d & %.0f & %s & %.1f & %s' % (r['kcas'], r['nacelle'], grouped(r['power_hp']), r['pitch_deg'],
                                                             'enough' if r['power_hp'] < one else 'not enough') for r in rows]))
     p = {r['kcas']: r for r in rows}
-    num('MPitchTwoHundred', p[200]['pitch_deg'], '%.0f'); num('MPitchTwoFifty', p[250]['pitch_deg'], '%.0f')
+    apln = [r for r in rows if r['nacelle'] < 0.5]                      # AUTO NAC's schedule in airplane mode
+    hi = max(apln, key=lambda r: r['pitch_deg'])
+    num('MAplnKcas', apln[0]['kcas']); num('MPitchApln', hi['pitch_deg'], '%.0f'); num('MPitchAplnKcas', hi['kcas'])
+    num('MPitchTwoFifty', p[250]['pitch_deg'], '%.0f')
     num('MPitchTwoSeventy', p[270]['pitch_deg'], '%.0f')
     ok = [r['kcas'] for r in rows if r['power_hp'] < one]
     num('MOeiLo', min(ok)); num('MOeiHoverPower', grouped(rows[0]['power_hp']))

@@ -194,7 +194,7 @@ def handling():
     ax = axs[1, 0]
     tm = json.load(open(os.path.join(FDM, 'data', 'trim_ff_v22.json')))
     (lv, ln), (uv, un) = V.CPS
-    for n, row in zip(tm['nacelle'], tm['lon']):
+    for n, row in zip(tm['nacelle'], tm['lon_level']):          # (level flight, at the flaperons' own law)
         if n not in NAC_C and n not in (15, 45):
             continue
         ks = [k for k in tm['kcas'] if np.interp(k, lv, ln) - 0.1 <= n <= np.interp(k, uv, un) + 0.1]

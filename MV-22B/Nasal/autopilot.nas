@@ -367,8 +367,9 @@ var turns = func {
 
 # ---------------------------------------------------------------- TF: terrain following
 # The terrain ahead along the ground track (curving at the present turn rate), every 1.25 s of flight out to 45 s
-# (time to clear 1000 ft of rise at the conversion's least climb, 24 ft/s at 150 kt, with its pull-up; 30 s left a
-# ridge 55 ft short there; at 250 kt, 22 ft/s, about 930 ft), the highest of the track and 150 ft either side of it,
+# (time to clear 1000 ft of rise at the conversion's least climb, 24 ft/s at 150 kt on AUTO NAC's earlier schedule,
+# with its pull-up; 30 s left a ridge 55 ft short there. On the present one the least at 120-200 kt is 32 ft/s, at
+# 120 kt; at 250 kt, 22 ft/s, about 930 ft), the highest of the track and 150 ft either side of it,
 # with the last sweep's points (the 4 plans before, at their time to go now: 0.25 s apart between them, where one
 # sweep's alone missed a ridge's edge by up to 1.25 s): the heights the wheels must clear, the terrain and the set
 # clearance (the HVR ALT knob, at least 100 ft). Planned for the flight model's reference path, which the aircraft

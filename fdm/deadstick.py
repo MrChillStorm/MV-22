@@ -38,9 +38,17 @@ TABLE_W = (36000, 42000, 47500, 54000, 60500)
 
 
 def loaded(W=None, gear=0.0):
-    """harness.load at the reference loading, or at W lb: the cargo, below none of it the tanks' reference fill
-    scaled; the gear up (0) or down (1)"""
-    f = H.load()
+    """harness.load at the reference loading, or at W lb (weigh); the gear up (0) or down (1); ENG OUT's mode on, as
+    with both engines out (its flaperons: genv22.flap_law)"""
+    f = weigh(H.load(), W)
+    f['gear/gear-cmd-norm'] = gear
+    f['gear/gear-pos-norm'] = gear
+    f['/instrumentation/mv22b/afcs/eng-out'] = 1
+    return f
+
+
+def weigh(f, W):
+    """the loading f carries changed to W lb: the cargo, below none of it the tanks' reference fill scaled"""
     if W is not None:
         base = U.W_EMPTY + 3 * U.W_CREW
         fuel = U.FUEL_LB_GAL * sum(t[1] * r for t, r in zip(U.TANKS, U.TANKS_REF))
@@ -48,8 +56,6 @@ def loaded(W=None, gear=0.0):
         k = min(1.0, (W - base) / fuel)
         for i, (t, r) in enumerate(zip(U.TANKS, U.TANKS_REF)):
             f['propulsion/tank[%d]/contents-lbs' % i] = t[1] * U.FUEL_LB_GAL * r * k
-    f['gear/gear-cmd-norm'] = gear
-    f['gear/gear-pos-norm'] = gear
     return f
 
 

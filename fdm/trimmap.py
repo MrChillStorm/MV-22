@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""The level-flight trim's longitudinal stick over the nacelle angle and the calibrated airspeed, at the design gross
-weight and CG, 1000 ft, inside the conversion corridor (v22data.CPS), for the augmentation's trim feed-forward
-(genv22.scas): with it the stick's centre is trimmed level flight through the conversion, and the augmentation's
-integrators only take up the weight's and the CG's differences. Outside the corridor, the nearest trim inside it.
+"""The level-flight trim's longitudinal stick over the nacelle angle, the calibrated airspeed and the flaperons (held
+at each of FLAPERON), at the design gross weight and CG, 1000 ft, inside the conversion corridor (v22data.CPS), for the
+augmentation's trim feed-forward (genv22.scas): with it the stick's centre is trimmed level flight through the
+conversion at whatever the flaperons are (their law's, or ENG OUT's in its flare), and the augmentation's integrators
+only take up the weight's and the CG's differences. Outside the corridor, or where no trim converged, the nearest trim
+along the airspeed, then along the nacelle angle, then the nearest flaperons'.
 
   python3 trimmap.py [--write]      (writes data/trim_ff_v22.json)
 
@@ -19,6 +21,7 @@ import harness as H
 import v22data as V
 
 NACELLE = [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0]
+FLAPERON = [0.0, 20.0, 40.0, 67.0]
 KCAS = [0.0, 20.0, 40.0, 60.0, 80.0, 100.0, 120.0, 140.0, 160.0, 180.0, 200.0, 240.0, 280.0]
 OUT = 'data/trim_ff_v22.json'
 
@@ -28,39 +31,69 @@ def inside(nac, kcas):
     return np.interp(kcas, lv, ln) - 0.1 <= nac <= np.interp(kcas, uv, un) + 0.1
 
 
-def column(nac, kcas_list=KCAS, what=1):
-    """the trims along the airspeed at one nacelle angle, each from the last: the stick (what 1) or the pitch
-    attitude (what 'theta')"""
+def column(nac, kcas_list=KCAS, what=1, flap=None):
+    """the trims along the airspeed at one nacelle angle, each from the last: the stick (what 1), the pitch attitude
+    (what 'theta') or the stick and the flaperons (what 'level'); flap: the flaperons held there, deg (else their
+    law's)"""
     f = H.load()
+    if flap is not None:
+        f['ctl/flaperon-override'], f['ctl/flaperon-set-deg'] = 1, flap
     out, x0 = {}, None
     for kcas in kcas_list:
         if not inside(nac, kcas):
             continue
         x, r, e = H.trim(f, kcas, alt_ft=1000.0, nacelle=nac, cas=True, x0=x0 if x0 is not None else [2.0, 0, 0, 0, 2.0, 0])
         res = float(np.abs(r).max())
+        if res >= 0.05 and x0 is not None:
+            # (again from the default guess: from a converged neighbour far off, with the flaperons held at 67 deg and
+            # the nacelles at 15, every faster trim failed)
+            x, r, e = H.trim(f, kcas, alt_ft=1000.0, nacelle=nac, cas=True, x0=[2.0, 0, 0, 0, 2.0, 0])
+            res = float(np.abs(r).max())
         if res < 0.05:
-            out[kcas] = float(x[1]) if what == 1 else float(f['attitude/theta-deg'])
+            out[kcas] = {1: float(x[1]), 'theta': float(f['attitude/theta-deg']), 'level': (float(x[1]), float(f['ctl/flaperon-deg']))}[what]
             x0 = x
-        print('nacelle %4.1f %5.1f KCAS  lon %6.3f  theta %6.2f  res %.3f' % (nac, kcas, x[1], f['attitude/theta-deg'], res), flush=True)
+        print('nacelle %4.1f %5.1f KCAS flaperons %4.1f  lon %6.3f  theta %6.2f  res %.3f' % (
+            nac, kcas, f['ctl/flaperon-deg'], x[1], f['attitude/theta-deg'], res), flush=True)
     return nac, out
 
 
-def table():
-    with Pool() as pool:
-        cols = dict(pool.map(column, NACELLE))
-    # holes and the outside of the corridor: the nearest trim along the airspeed, then along the nacelle angle
-    tab = np.full((len(NACELLE), len(KCAS)), np.nan)
-    for i, n in enumerate(NACELLE):
-        for j, k in enumerate(KCAS):
-            if k in cols[n]:
-                tab[i, j] = cols[n][k]
-    for i in range(len(NACELLE)):
-        ok = np.where(~np.isnan(tab[i]))[0]
+def flap_column(args):
+    nac, flap = args
+    return (flap, nac), column(nac, what='level' if flap is None else 1, flap=flap)[1]
+
+
+def fill(t):
+    """holes and the outside of the corridor (nan) in a [nacelle][KCAS] table: the nearest trim along the airspeed,
+    then the nearest full row along the nacelle angle"""
+    for i in range(len(t)):
+        ok = np.where(~np.isnan(t[i]))[0]
         if len(ok):
-            for j in range(len(KCAS)):
-                if np.isnan(tab[i, j]):
-                    tab[i, j] = tab[i, ok[np.argmin(np.abs(ok - j))]]
-    return tab
+            for j in range(len(t[i])):
+                if np.isnan(t[i, j]):
+                    t[i, j] = t[i, ok[np.argmin(np.abs(ok - j))]]
+    full = [i for i in range(len(t)) if not np.isnan(t[i]).any()]
+    for i in range(len(t)):
+        if np.isnan(t[i]).any() and full:
+            t[i] = t[min(full, key=lambda m: abs(m - i))]
+    return t
+
+
+def table():
+    """the stick at each of FLAPERON, [flaperons][nacelle][KCAS] (where still none, the nearest flaperons'); and level
+    flight at the flaperons' own law, its stick and flaperons, [nacelle][KCAS]"""
+    with Pool() as pool:
+        cols = dict(pool.map(flap_column, [(n, fl) for fl in FLAPERON + [None] for n in NACELLE]))
+
+    def grid(fl, part=None):
+        """one [nacelle][KCAS] table of the trims at flaperons fl (None: their law's, part 0 the stick, 1 the flaperons)"""
+        at = lambda c, k: (c[k] if part is None else c[k][part]) if k in c else np.nan
+        return fill(np.array([[at(cols[(fl, n)], k) for k in KCAS] for n in NACELLE], float))
+    tab = np.array([grid(fl, None) for fl in FLAPERON])
+    for l in range(len(FLAPERON)):
+        if np.isnan(tab[l]).any():
+            full = [m for m in range(len(FLAPERON)) if not np.isnan(tab[m]).any()]
+            tab[l] = np.where(np.isnan(tab[l]), tab[min(full, key=lambda m: abs(m - l))], tab[l])
+    return tab, grid(None, 0), grid(None, 1)
 
 
 AN_NACELLE = [5.0 * i for i in range(19)]
@@ -217,11 +250,17 @@ elif __name__ == '__main__' and '--autonac' in sys.argv:
                        '1000 ft (trimmap.py --autonac)'}, open(AN_OUT, 'w'), indent=1)
     print('wrote', AN_OUT)
 elif __name__ == '__main__':
-    tab = table()
-    for n, row in zip(NACELLE, tab):
-        print('%4.0f  %s' % (n, ' '.join('%6.3f' % a for a in row)))
+    tab, lev, lev_f = table()
+    for name, layer in [('flaperons %.0f deg' % fl, t) for fl, t in zip(FLAPERON, tab)] + [('their law\'s', lev), ('their law\'s flaperons', lev_f)]:
+        print(name)
+        for n, row in zip(NACELLE, layer):
+            print('%4.0f  %s' % (n, ' '.join('%6.3f' % a for a in row)))
     if '--write' in sys.argv:
-        json.dump({'nacelle': NACELLE, 'kcas': KCAS, 'lon': [[round(a, 4) for a in row] for row in tab],
-                   'note': 'level-flight trim longitudinal stick (-1..1, + forward), design weight and CG, 1000 ft (trimmap.py)'},
+        r2 = lambda t: [[round(a, 4) for a in row] for row in t]
+        json.dump({'flaperon': FLAPERON, 'nacelle': NACELLE, 'kcas': KCAS, 'lon': [r2(t) for t in tab], 'lon_level': r2(lev),
+                   'flaperon_level': r2(lev_f),
+                   'note': 'level-flight trim longitudinal stick (-1..1, + forward), design weight and CG, 1000 ft (trimmap.py): '
+                           'lon [flaperons][nacelle][KCAS] the flaperons held at each; lon_level [nacelle][KCAS] at their '
+                           'law\'s, flaperon_level its flaperons, deg'},
                   open(OUT, 'w'), indent=1)
         print('wrote', OUT)

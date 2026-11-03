@@ -68,9 +68,15 @@ def conversion(nacelle, gw=34000.0):
     f = H.load()
     set_weight(f, gw)
     out, x0 = [], None
+    guess = [0.0, 0, 0, 0, 4.0, 0]
+    trim = lambda kcas, x0: H.trim(f, kcas, alt_ft=0.0, nacelle=float(nacelle), x0=x0, cas=True,
+                                   extra=('aero/wing/lift-lbs', 'aero/airframe/FZ-lbs', 'drive/power-required-hp', 'inertia/weight-lbs'))
     for kcas, test in VF.LIFT_SHARE[nacelle]:
-        x, r, e = H.trim(f, kcas, alt_ft=0.0, nacelle=float(nacelle), x0=x0 if x0 is not None else [0.0, 0, 0, 0, 4.0, 0], cas=True,
-                         extra=('aero/wing/lift-lbs', 'aero/airframe/FZ-lbs', 'drive/power-required-hp', 'inertia/weight-lbs'))
+        x, r, e = trim(kcas, x0 if x0 is not None else guess)
+        if x0 is not None and np.abs(r).max() > 0.02:       # (seeded from a neighbour that failed: from the guess again)
+            x2, r2, e2 = trim(kcas, guess)
+            if np.abs(r2).max() < np.abs(r).max():
+                x, r, e = x2, r2, e2
         x0 = x
         out.append(dict(V=kcas, wing_pct=100 * float(e[0]) / float(e[3]), pitch=f['attitude/theta-deg'], hp=float(e[2]),
                         test_lift=test, test_pitch=float(np.interp(kcas, *zip(*VF.PITCH[nacelle]))) if

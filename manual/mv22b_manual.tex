@@ -151,8 +151,13 @@ them. \ann{CONV PROT} shows while it holds the command off the pilot's.
 rotors' cyclic and differential collective in helicopter mode, phased with the nacelles, and into the elevator,
 flaperons and rudders in every mode.
 
-\paragraph{Flaperons.} Scheduled by the flight model: 67$^\circ$ in the hover (least download), 40$^\circ$ through the
-conversion and in airplane mode below 120\,kt, retracted by 200\,kt. The flap lever on the console does nothing.
+\paragraph{Flaperons.} Set by the flight model: 67$^\circ$ in the hover (least download) and 40$^\circ$ through the
+conversion with the nacelles up, out by 160\,kt. Elsewhere they come from the flight state: the least deflection that
+makes the wing's present lift with a margin of 1.3\,g to its stall, and at no more than AUTO NAC's pitch in level flight
+(4$^\circ$, 7$^\circ$ by 180\,kt), from Bell's wing data, where at any lift the least flap has the least drag. So they stay
+up in cruise and come down at the slow end of airplane mode, to 40$^\circ$ at most, where they let AUTO NAC bring the
+nacelles down sooner at the same pitch, for less power. In ENG~OUT's flare they come down for the landing
+(Section~\ref{sec:engout}). The flap lever on the console does nothing.
 
 \section{Flight control augmentation}
 The augmentation holds the aircraft's attitude in all modes. Its response type changes with speed:
@@ -218,7 +223,8 @@ up, so that flat ground around a hover stays quiet. On it: the route and its way
 last point, with its approach into the wind; the conversion planner's points, where to begin slowing down (DECEL) and
 converting (CONV) to arrive in a hover; the path 30 and 60\,s ahead in the turn; an approach line; traffic; the fuel's
 endurance and range. Below it the profile along the track: the terrain, the aircraft's path, the selected altitude.
-R1/R2 change the range, R4 the terrain. With ENG OUT on, gliding, an amber dashed circle (GLIDE) is where the glide
+R1/R2 change the range, R4 the terrain, R5 steps through ENG OUT's landing sites (Section~\ref{sec:engout}). With
+ENG OUT on, gliding, an amber dashed circle (GLIDE) is where the glide
 reaches the flare's height: from the energy height (the height and the speed over the glide's) at the model's own glide
 ratio for the weight, the gear coming down from 1000\,ft if it is still up, centred where the wind carries the air over
 the glide's time; the profile shows the glide's line to it. It errs short, by 4--5\,\% at the reference loading and
@@ -429,20 +435,63 @@ Holds the HVR ALT knob's radar height, taking the present one when pressed (\ann
 Comes on when both engines stop in the air; \key{Ctrl-E} cuts both off, to try it. It flies the landing on the wheels
 that the model makes best, found by flying it offline from cruise, from airplane mode, from the conversion and from
 hovers (the procedure, Section~\ref{sec:dualeng}). With CPLD on it flies it; without, its cues are on the flight
-format and the mode line is white. The other modes go off, the hover hold with them; HDG HOLD stays, and the mode
-holds its bug (or, without it, the heading it came on at). Its phases:
+format and the mode line is white. The other modes go off, the hover hold with them. It flies to a landing site
+(below); with none, it holds the heading bug with HDG HOLD on (or, without it, the heading it came on at). Its
+phases:
 \begin{itemize}
 \item \ann{DIVE}: the lever down, the nacelles commanded to airplane mode (the corridor lets them follow the speed),
 the nose down for the glide's speed; the descent held to what a pull-out can stop by the flare's height.
 \item \ann{GLIDE 200}: the speed held on the pitch.
-\item \ann{FLARE}: from 250\,ft over the ground (higher when sinking fast), the descent eased to a float 10\,ft up, the
-nose no higher than 6$^\circ$, the nacelles commanded up as the corridor lets them as the speed falls.
-\item \ann{LAND}: the nose at its limit and sinking, the aircraft settles at 3\,ft/s, the lever coming up from
-20\,ft.
-\item \ann{DOWN}: on the ground the lever comes down, then the mode goes off.
+\item \ann{FLARE}: from 250\,ft over the ground (higher when sinking fast), the descent eased from the start, gently,
+to a float 10\,ft up, the nose no higher than 6$^\circ$; the flaperons coming down from its start at 2$^\circ$/s to
+40$^\circ$, for lift and drag; the nacelles commanded up from 100\,ft, to 45$^\circ$, as the corridor lets them as the
+speed falls.
+\item \ann{LAND}: the nose at its limit and sinking, the aircraft settles at 3\,ft/s, the lever still at flat pitch.
+\item \ann{DOWN}: on the ground the lever comes down and the nacelles go on up to 60$^\circ$, as the corridor lets
+them, the proprotors clearing the ground with the nose down; then the mode goes off.
 \end{itemize}
 The gear is the crew's: \ann{GEAR} on the mode line asks for it below 1000\,ft. The panel has no key for it: the
 name ENGOUT written to the AFCS's \texttt{press} property (from a script or a hardware panel) turns it on and off.
+
+\paragraph{Landing sites.} ENG OUT looks for somewhere to land within the glide's reach: the runways of the airports
+there, and open, flat ground from FlightGear's own land cover (arable land, pasture, natural grassland, airport ground,
+dry lakebeds; the scenery's CORINE Land Cover classes in WS3). A site must hold the landing the model makes at this
+weight, from where the wheels come under 50\,ft to a braked stop, with the scatter of where the flare begins; a field
+must be level within the float's 10\,ft of the line fitted along it, falling no more than 2\,\% (the grade FAA
+AC~150/5300-13B allows small aircraft's runways) and rising no more than 0.5\,\%; the landing's way over the ground
+is scaled by the wind along it (the flare's by the ground speed's share, the run by its square) and lengthened by
+10\,\% for each per cent the ground falls. Each is ranked by the energy it leaves: within reach first, then those
+near the energy they take before larger surpluses, runways before grass before crops, into the wind before downwind,
+level or falling before rising. The chosen site's plane (the fitted line; a runway's from the scenery at its ends)
+goes with it: on the final, short of the strip's end, the flare is flown over the plane, not over the ground under
+the aircraft, unless that comes nearer than the float's height, and never more than 15\,ft above that ground (a plane
+wrong by thousands of feet still landed at 4\,ft/s offline); where the plane falls away, the descent follows it down.
+Rising ground cuts the float short and the aircraft touches down faster, the corridor holding the nacelles lower: at
+47\,500\,lb on 1\,\% up at 170--173\,KCAS, the nacelles at 32--36$^\circ$ and the proprotors in the ground in 13 of 27
+flares. Falling ground lengthens the float. Offline, to a site on its plane at 38\,700\,lb in still air at sea level,
+the flare touched down at 7.0--7.7\,ft/s against the ground on level ground, on 1\,\% up and on 1--2\,\% down, at
+9\,ft/s on 2\,\% up; over the uneven ground of two fields in Kansas at 4.2--9.1\,ft/s on the plane and 4.5--9.5\,ft/s
+on the radar height; on bumps of $\pm$10\,ft 1200\,ft apart, at the site's limit, at 18--21\,ft/s, the wheels meeting
+a rising face at 161\,kt (\texttt{fdm/deadland.py terrain}). The best is chosen
+when the mode comes on, and changed while it is out of reach and another is not (no sooner than 10\,s after the last
+change). \key{Ctrl-L} or the navigation format's SITE key (R5) steps through them,
+and to none. On the navigation format the sites are strips (runways white, fields green, out of reach grey), the
+chosen one magenta with the path to it; the flight format's configuration line gives its name, the way to it and the
+margin (NM, + high).
+
+The way there is the Space Shuttle's dead-stick energy management: a straight leg to a turning circle beside the final,
+round it at 44$^\circ$ of bank (near the least height per heading turned, which the model gives at 50--55$^\circ$: a
+180$^\circ$ turn at the glide's speed costs about 1740\,ft there, against 3000--3400 at 25$^\circ$), a final long
+enough to roll out and settle the speed (about 0.9\,NM), the flare from its point. A margin is flown off before the
+circle as S-turns, and one larger than a whole turn of the circle as more turns of it. Offline the model flew this to
+sites ahead, beside and behind it and from 6000\,ft over one 2\,NM ahead, landing intact each time; within 1\,NM of
+the energy a site takes the flare began 800\,ft short to 500\,ft long of its point, from larger surpluses up to
+1.3\,NM long (\texttt{fdm/deadland.py siteguide}).
+\begin{caution}
+The land cover shows no objects: pylons, fences, single buildings and trees in open ground, nor whether the ground is
+soft or ploughed, nor anything smaller than its own resolution. Look at a field before landing on it. Ditching is not
+modelled.
+\end{caution}
 
 \section{How the modes combine}
 \begin{itemize}
@@ -548,7 +597,7 @@ Coupled: SPD HOLD and AUTO NAC, then the SPEED knob to the speed wanted; the AFC
 HOLD.
 
 \section{Airplane mode}
-Cruise 240--270\,KCAS. At the slow end of airplane mode the nose is high (\MPitchTwoHundred$^\circ$ at 200\,KCAS against
+Cruise 240--270\,KCAS. At the slow end of airplane mode the nose is high (\MPitchApln$^\circ$ at \MPitchAplnKcas\,KCAS against
 \MPitchTwoFifty$^\circ$ at 250, Table~\ref{tab:level}): the wing lifts the aircraft alone there.
 
 \section{Conversion to helicopter mode and landing}
@@ -599,7 +648,8 @@ Hands off, the trim schedule holds the attitude through the conversion; the nace
 attitude changes a few degrees at each angle (Table~\ref{tab:level}).
 
 \section{Airplane mode}
-The wing carries the aircraft above about 180\,KCAS; at its slow end the nose is \MPitchTwoHundred$^\circ$ up, at cruise
+AUTO NAC flies airplane mode from \MAplnKcas\,KCAS, the wing carrying the aircraft; the nose is at most \MPitchApln$^\circ$ up, at
+\MPitchAplnKcas\,KCAS (slower, the flaperons hold it to AUTO NAC's pitch), and at cruise
 \MPitchTwoSeventy--\MPitchTwoFifty$^\circ$.
 \begin{table}[H]
 \centering\small
@@ -641,25 +691,47 @@ proprotors and the tail clear of the ground, found by flying it offline (\texttt
 speed comes.
 \item Glide at 200\,KCAS: about 8.4 to 1 in still air at the reference loading, 1.4\,NM for every 1000\,ft; lighter,
 less (7.4 to 1 at 38\,700\,lb, 1.2\,NM); with the gear down 7.1 and 6.2 to 1.
+\item To a landing site within reach, into the wind, level or falling away: ENG OUT finds and flies to one
+(Section~\ref{sec:engout}), \key{Ctrl-L} another; any surplus height flown off before the final, in S-turns or turns
+of the circle.
 \item The gear down below 1000\,ft.
-\item At 250\,ft flare into a float 10\,ft over the ground, the nose no higher than 6$^\circ$: the fuselage meets the
-ground at 7.3$^\circ$ on the wheels. The nacelles up as far as the corridor lets them as the speed falls: they must
-reach about 36$^\circ$ for the proprotors to clear the ground.
-\item With the nose at 6$^\circ$ and sinking, let it settle; the lever up from 20\,ft.
+\item From 250\,ft round out gently into a float 10\,ft over the ground, the nose no higher than 6$^\circ$: the
+fuselage meets the ground at 7.3$^\circ$ on the wheels. The flaperons down from the flare's start, steadily, to
+40$^\circ$ over about 20\,s: their lift lets the wing hold the aircraft slower at that pitch, their drag spends the
+speed. Faster than about 2$^\circ$/s the lift comes ahead of the pitch and the aircraft balloons. The nacelles up from
+100\,ft, as far as the corridor lets them as the speed falls, to 45$^\circ$ (higher up they brake the aircraft and lift
+it too soon, and the flare runs out of speed; further, their moment takes the nose past the tail's limit): they must
+reach about 36$^\circ$ for the proprotors to clear the ground on the wheels, 42$^\circ$ with the nose down.
+\item With the nose at 6$^\circ$ and sinking, let it settle onto the wheels, the lever at flat pitch.
+\item On the wheels, the nacelles on up towards 60$^\circ$ as the nose comes down.
 \end{enumerate}
 In the model, at the reference loading over flat ground at sea level, it lands intact from cruise, from a glide at
-180--200\,KCAS from 1500\,ft, from the conversion from 4000\,ft and from a hover from about 6000\,ft (5500 at best):
-on the wheels at 7.4--11\,ft/s and about 161\,kt over the ground, the nose at 6$^\circ$, the nacelles at
-43--47$^\circ$ with the proprotors 3.5--4.4\,ft clear, 0.5--0.75\,NM past the flare's height. With less height it
-does not land intact. From a hover below 4000\,ft, from the conversion at 2000\,ft or from 160\,KCAS at 800\,ft it
-strikes at 55--90\,ft/s, past what is survivable (42\,ft/s). From a hover at 4000--5000\,ft it strikes at
-36--70\,ft/s, survivable or not depending on where the dive's pull-out leaves the glide at the flare. Flown in
-FlightGear at its start loading (38\,700\,lb), both engines cut 4.0\,NM short of KSFO's runway 28R at 3000\,ft and
-200\,KCAS, the heading bug steered onto the centreline: on the runway 1160\,ft past the threshold at 5\,ft/s and
-144\,kt, the nacelles at 69$^\circ$, stopped 2450\,ft past it.
+180--200\,KCAS from 1500\,ft, from the conversion from 4000\,ft and from a hover from 4500\,ft: on the wheels at
+7.1--7.6\,ft/s and about 159\,kt over the ground (9--12\,ft/s from the hover at 4500--5500\,ft), the nose at
+5--6$^\circ$, the nacelles at 45$^\circ$ with the proprotors 2.7--2.9\,ft clear as the nose comes down and the nacelles
+go on up. From the conversion at 2000\,ft it strikes at 41\,ft/s, the proprotors in the ground, survivable; from
+160\,KCAS at 800\,ft (43\,ft/s), or from a hover below 4500\,ft, where the nose pitches up as the nacelles come down and
+the rotor speed is lost, it strikes past what is survivable (42\,ft/s). Across the weight, the field's air, the wind
+and the slope (\texttt{fdm/deadland.py flare}: 243 flares from 38\,700 to 54\,000\,lb, from sea level to 5000\,ft at
+ISA\,+\,20$^\circ$C, 13\,kt behind to 15\,kt ahead, on 1\,\% up, level and 1\,\% down) it lands intact at 38\,700\,lb
+in every case, at 5.8--9.5\,ft/s; at 47\,500\,lb on level and falling ground, at 6.7--8.6\,ft/s, and in 14 of 27 on
+rising ground; at 54\,000\,lb on level ground, at 7.7--10.3\,ft/s, in 17 of 27 on falling ground, the others touching
+the tail with the nose at 7.3--7.6$^\circ$, and in 17 of 27 on rising ground. None balloons, and none strikes past
+what is survivable. A steady wind changes nothing but the way over the ground; thin air and weight make the
+touchdown harder. On rising ground the float is cut short: at 47\,500 and 54\,000\,lb the rest touch down at
+170--179\,KCAS, where the corridor holds the nacelles at 25--36$^\circ$, and the proprotors strike.
+
+Flown in FlightGear with an earlier flare, at its start loading (38\,700\,lb), both engines cut 4.0\,NM short of KSFO's
+runway 28R at 3000\,ft and 200\,KCAS: on the runway 1160\,ft past the threshold at 5\,ft/s and 144\,kt, stopped 2450\,ft
+past it. Off airport, on fields it chose in Kansas (about 2200\,ft up, $+11$ to $+21\,^\circ$C), four landings touched
+down at 8 to 32\,ft/s, three of them hard: the flare began at the bottom of the dive guard's swing, held the nose low
+until its path met the descent, then pulled late and ballooned. The flare above was made from those landings; it has
+not yet flown in FlightGear.
 \begin{warning}
-The landing is fast, at about 160\,kt over the ground: it needs a runway, or flat open ground. Slower it cannot be:
-held off at 6$^\circ$ of pitch the wing carries the aircraft only to about 150\,kt, and nose-higher the tail strikes.
+The landing is fast, at 150--170\,kt over the ground: it needs a runway, or flat open ground, level or falling away.
+Slower it cannot be: held off at 6$^\circ$ of pitch the wing carries the aircraft only to about 150\,kt, and
+nose-higher the tail strikes. Onto rising ground it touches down faster still, with the nacelles too low for the
+proprotors.
 \end{warning}
 
 \section{High sink rate}

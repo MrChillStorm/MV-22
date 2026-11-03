@@ -255,6 +255,7 @@ def conversion_table():
                                                               f(min(dp)), f(max(dp))))
     write('conversion', tabular('rrrr', 'Nacelle, deg & KCAS & wing lift, \\% of $W$ & pitch, deg', out))
     num('NCvLiftRms', math.sqrt(np.mean(np.square(alll))), '%.0f'); num('NCvPitchRms', math.sqrt(np.mean(np.square(allp))))
+    num('NCvPitchHi', max(allp), '%.0f')
 
 
 def handling_numbers():
@@ -271,7 +272,7 @@ def handling_numbers():
     tc = np.array(c['t']); thc = np.array(c['theta'])
     num('NCthMin', thc.min()); num('NCthMax', thc.max()); num('NCvEnd', c['kcas'][-1], '%.0f')
     tm = json.load(open(os.path.join(FDM, 'data', 'trim_ff_v22.json')))
-    num('NTmAft', -100 * min(min(r) for r in tm['lon']), '%.0f'); num('NTmFwd', 100 * max(max(r) for r in tm['lon']), '%.0f')
+    num('NTmAft', -100 * min(min(r) for r in tm['lon_level']), '%.0f'); num('NTmFwd', 100 * max(max(r) for r in tm['lon_level']), '%.0f')
     s = R('start')
     ts = np.array(s['t']); nr = np.array(s['nr'])
     num('NStNr', ts[np.argmax(nr > 103.5)], '%.0f')
@@ -359,7 +360,10 @@ def tf_table():
     num('NTfFitRms', max(r['res'] for r in rp), '%.2f')
     cp = json.load(open(os.path.join(FDM, 'data', 'climb_power_v22.json')))
     cl = dict(zip(cp['kcas'], cp['climb_full_fps']))
-    num('NTfClimbSixty', 60 * cl[160.0], '%.0f'); num('NTfClimbSeventy', 60 * cl[170.0], '%.0f'); num('NTfClimbLow', 60 * cl[150.0], '%.0f')
+    num('NTfClimbFifty', 60 * cl[150.0], '%.0f'); num('NTfClimbSixty', 60 * cl[160.0], '%.0f')
+    lo = min((k for k in cl if 120 <= k <= 200), key=lambda k: cl[k])     # the least full-power climb at TF's speeds
+    num('NTfClimbLow', 60 * cl[lo], '%.0f'); num('NTfClimbLowKt', lo, '%.0f')
+    num('NTfUnderPct', 100 * (1 - min(cases[c]['hw_min'] for c in main) / 200), '%.0f')
 
 
 def freq_table():

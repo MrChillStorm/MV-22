@@ -24,7 +24,6 @@ import vrs as VRS
 
 WARNING, CAUTION, ADVISORY, AUTOPILOT = 'warning', 'caution', 'advisory', 'autopilot'
 AF = '/instrumentation/mv22b/afcs/'      # the autopilot's modes (ENG OUT: genv22.eng_out)
-EO_CUSHION_FT = 20.0                     # ENG OUT's lever up from this height (genv22 ap/eo-cushion-ft): for the text
 NAC_TOL = 2.0           # deg past the conversion corridor's upper boundary before OVERSPEED: the nacelles' lag behind it
 # SINK RATE: the vortex ring state ahead. Johnson's model (vrs.py) has its onset at the stability boundary z_N(x), where
 # a rotor's total flow stops rising with its descent rate: -0.45 vh in vertical descent (the V-22's flight tests
@@ -82,7 +81,10 @@ def table(U):
     fuel = S(*[p('propulsion/tank[%d]/contents-lbs' % i) for i in range(len(U.TANKS))])
     nr = p('drive/nr-pct')
     out = [M(p('alert/eng%d-ran' % e), NOT(on('eng[%d]/running' % e))) for e in (0, 1)]
-    eo_settle = M(on(AF + 'eng-out'), GT(p('ap/eo-phase'), v(3.5)))      # ENG OUT settling (the lever's cushion) or down
+    # ENG OUT flaring, settling or down: the rotor speed its own (the nacelles coming up move the governor's reference from
+    # airplane mode's, the windmilling rotor lagging it): neither NR's nor ROTOR RPM's lever down is the crew's to act on
+    # there (in FlightGear NR came in the flare, ROTOR RPM's voice a second before touchdown)
+    eo_settle = M(on(AF + 'eng-out'), GT(p('ap/eo-phase'), v(2.5)))
     a = [
         # its cue: the recovery the model's own entries show quickest (vrswarn.py recovery: from the warning, 46-64 ft
         # lost; from the onset 139-175 ft, against 221-232 with the lever alone; the nose alone does not recover)
@@ -103,13 +105,13 @@ def table(U):
                   'on the ground quicker than %.0f s)' % (WHEELS_NAC, PULLUP_S, PULLUP_G, PULLUP_S),
              src='response time: AM-24/23 table 4.2-2; the pull-out: the terrain following\'s fly-up'),
         dict(id='rotor-rpm', level=WARNING, text='ROTOR RPM', voice='rotor r p m', critical=True,
-             cond=M(NOT(on('gear/wow')), GT(p('ctl/nacelle-deg'), v(HOVER_NAC)), p('alert/rotor-flying'),
+             cond=M(NOT(on('gear/wow')), GT(p('ctl/nacelle-deg'), v(HOVER_NAC)), p('alert/rotor-flying'), NOT(eo_settle),
                     LT(p('drive/nr-pct'), D(p('gov/nr-ref-pct'), v(NR_BAND))),
                     LT(p('drive/nr-pct'), M(v(100 * math.sqrt(K_DL * 0.0023769 / T_MAX100)),
                                             SQ(Q(p('inertia/weight-lbs'), p('atmosphere/rho-slugs_ft3')))))),
              on_s=0.5, off_s=1.0,
              when='nacelles past %.0f deg: the rotor speed drooping, too low for the rotors\' greatest thrust to hold '
-                  'the hover at this weight and density' % HOVER_NAC,
+                  'the hover at this weight and density; not from ENG OUT\'s flare on (its lever spends the rotor speed)' % HOVER_NAC,
              src='the model\'s greatest thrust and download in the hover (thrustmax.py)'),
         # an engine that ran and stopped (not one not started yet); both stopped on the ground: shut down, cleared.
         # Both out: DUAL ENG OUT, collecting the two (AC 25.1322-1's collector: the alerts it collects inhibited; the
@@ -150,9 +152,10 @@ def table(U):
         dict(id='fuel-low', level=CAUTION, text='FUEL LOW', cond=LT(fuel, v(1000)), on_s=1.0, off_s=5.0,
              when='under 1000 lb of fuel', src='none'),
         dict(id='nr', level=CAUTION, text='NR',
-             cond=M(GT(nr, v(5)), GT(ABS(D(nr, p('gov/nr-ref-pct'))), v(NR_BAND)), NOT(eo_settle)), on_s=1.0, off_s=2.0,
-             when='the rotor speed more than %g %% off its reference; not in ENG OUT\'s settling and after (its lever '
-                  'spends the rotor speed in the last %.0f ft)' % (NR_BAND, EO_CUSHION_FT),
+             cond=M(GT(nr, v(5)), GT(ABS(D(nr, p('gov/nr-ref-pct'))), v(NR_BAND)), NOT(eo_settle), NOT(M(out[0], out[1], on('gear/wow')))),
+             on_s=1.0, off_s=2.0,
+             when='the rotor speed more than %g %% off its reference; not from ENG OUT\'s flare on (the nacelles coming up '
+                  'move its reference), nor on the ground with both engines out' % NR_BAND,
              src='none; the report\'s flights\' excursions checked against it (alertcheck.py)'),
         dict(id='hover-pwr', level=CAUTION, text='HOVER PWR',
              cond=M(NOT(on('gear/wow')), GT(p('ctl/nacelle-deg'), v(HOVER_NAC)), LT(p('velocities/ve-kts'), v(HOVER_KT)),

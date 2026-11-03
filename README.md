@@ -66,8 +66,12 @@ it, every system, mode and procedure, is in the flight manual:
   in the hover depending on the flaperons, as on the XV-15 in flight. The
   airframe's drag is fitted to Boeing's polar for the V-22.
 - **Flaperons** droop to 67° in the hover, where they take the most wing out
-  of the downwash, and 40° through the conversion and in slow airplane mode,
-  and retract as the speed builds, all automatically.
+  of the downwash, and 40° through the conversion. Elsewhere they follow the
+  flight state: the least deflection that makes the wing's lift with a
+  margin of 1.3 g to its stall and at no more than AUTO NAC's pitch, from
+  Bell's wing data (at any lift the least flap has the least drag). So they
+  stay up in cruise and come down at the slow end of airplane mode, letting
+  the nacelles come down sooner. All of it is automatic.
 - **Engines and drive.** Two engines of 6150 shp, geared together through the
   interconnect shaft: one rotor speed, so either engine drives both rotors.
   The drive's torque limit is fitted to Boeing's hover ceiling. The collective
@@ -209,7 +213,13 @@ pointing at it), and pick **Bell Boeing MV-22B Osprey (JSBSim)**.
     data, it climbs at full power (FLY UP, TF FAIL on the mode line, else
     TF 300 MED). Pressed again it ends, the ALT knob set to the present
     altitude. Engaging it turns APPR off; an approach's glide path, once
-    captured, takes the vertical over from it.
+    captured, takes the vertical over from it;
+  - ENG OUT: on by itself when both engines stop in the air (`Ctrl-E` cuts
+    both, to try it). It glides at 200 KCAS to a landing site within reach,
+    a runway or open ground from FlightGear's land cover (`Ctrl-L` picks
+    another), and lands on the wheels: the flare eases the descent into a
+    float 10 ft up while the flaperons come down and the nacelles up for the
+    landing. Coupled it flies it; uncoupled its cues are on the FLT format.
 
   The approach line arms until the aircraft is within 20 s of flight of it
   (HDG or WYPT flying meanwhile) and is drawn on the NAV format; the flight
@@ -309,13 +319,14 @@ Every number comes from the scripted test programme in the report.
   strays 6 ft in 20 kt of wind and 9 ft in 35 kt, about twice the circle's
   radius; its integrators follow the wind's loads turning with the aircraft
   too slowly.
-- **Terrain following** sees 45 s ahead: enough to climb 1000 ft at the
-  conversion's weakest climb (24 ft/s at 150 kt). Terrain rising higher than
-  the engines can climb in that time, or coming into view round a turn,
-  can't be cleared by the set height, and the fly-up takes over below half
-  of it. Climbing at full power at about 170 kt the aircraft lags its model
-  a little, and a ridge steeper than its climb leaves it 20 % under the
-  clearance.
+- **Terrain following** sees 45 s ahead: enough to climb 1000 ft at its
+  weakest climb between 120 and 200 kt (32 ft/s at 120 kt). Terrain rising
+  higher than the engines can climb in that time, or coming into view round
+  a turn, can't be cleared by the set height, and the fly-up takes over
+  below half of it. A ridge steeper than its climb leaves it 10 % under the
+  clearance at 150 and 200 kt, the lever near its stop. Over hills at
+  150 kt its descent overshoots the 2000 ft/min limit a little and PULL UP
+  sounds for about 2 s.
 - **Vortex ring state.** Johnson's model is an isolated rotor's mean
   inflow. It is scaled here by each rotor's own wake, which carries the
   wing's download and the wake's induced losses: on the weight's scale,
@@ -393,6 +404,14 @@ python3 genv22.py root-polar/aircraft/mv22b --no-inline
   writes AUTO NAC's schedule (`data/autonac_v22.json`), and `--start` the
   in-air start's level-flight trims along it (`data/start_trim_v22.json`;
   `aptest.py instart` flies the starts).
+  `deadland.py` flies ENG OUT offline: `auto` from cruise, the conversion
+  and hovers, `flare` across the weight, the field's air, the wind and the
+  slope, `terrain` over uneven fields, and `site` and `siteguide` measure
+  what its landing sites must give (`data/eo_site_v22.json`);
+  `deadstick.py --table` writes the glide ratios its reach works from
+  (`data/glide_ld_v22.json`). `alerts.py` is the crew alerts' table,
+  `alertscenarios.py` raises each alert and `alertcheck.py` flies the
+  report's programme looking for nuisance alerts.
 - `../manual` builds the flight manual (`manual/build.sh`, into
   `MV22B-flight-manual.pdf` beside the report) the same way: `mkmanual.py`
   writes its numbers and tables from the aircraft's data, key bindings and

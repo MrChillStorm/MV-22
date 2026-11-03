@@ -287,6 +287,10 @@
       <!-- the autopilot's approach line from the ILS, VOR or route; VOR/ILS, APPR and GA (fdm/genv22.py, autopilot) -->
       <file>Aircraft/MV-22B/Nasal/autopilot.nas</file>
     </autopilot>
+    <eosite>
+      <!-- ENG OUT's landing sites: the runways and open ground within the glide's reach (fdm/genv22.py, eng_out_site) -->
+      <file>Aircraft/MV-22B/Nasal/eosite.nas</file>
+    </eosite>
 
     aircraft.data.add(
 

@@ -335,6 +335,15 @@
       </binding>
     </key>
 
+    <key n="12">
+      <name>Ctrl-L</name>
+      <desc>ENG OUT: the next landing site (and none)</desc>
+      <binding>
+        <command>nasal</command>
+        <script>eosite.next()</script>
+      </binding>
+    </key>
+
     <key n="21">
       <name>Ctrl-U</name>
       <desc>Autopilot go-around (GA)</desc>
