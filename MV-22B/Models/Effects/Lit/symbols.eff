@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- A Canvas drawn over a painted instrument face, the radar warning receiver's symbols, in the HDR pipeline: what the
+     Canvas draws emits, and where it is black there is nothing, the paint below seen and shaded as any other surface
+     (Shaders/HDR/lit_symbols.frag). In the other pipelines model-default shows the whole Canvas, which then draws the
+     paint itself (Nasal/displays.nas). -->
+
+<PropertyList>
+
+  <name>symbols</name>
+  <inherits-from>Aircraft/MV-22B/Models/Effects/Lit/lit</inherits-from>
+
+  <technique n="109">
+    <pass>
+      <program>
+        <fragment-shader n="0">Aircraft/MV-22B/Shaders/HDR/lit_symbols.frag</fragment-shader>
+      </program>
+    </pass>
+  </technique>
+
+</PropertyList>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- Contacts for the radar warning receiver (Nasal/rwr.nas), to fly against from KSFO: start with
+     ai-scenario=rwr-test. Bearings and ranges are from the airport. On the indicator: 15 and 21, acquiring, outside the
+     ring, and the E-2C's strobe at the edge. Not on it: the F-18, flying away with its radar cone off us, and the Cessna,
+     which has no radar. -->
+
+<PropertyList>
+
+  <scenario>
+
+    <name>RWR test contacts</name>
+    <description>Five aircraft round KSFO for the radar warning receiver: three it hears, two it must not.</description>
+
+    <entry><!-- 045 deg, 12 NM, nose on: inside its lethal range -->
+      <type>aircraft</type>
+      <class>jet_fighter</class>
+      <callsign>HOT15</callsign>
+      <model>AI/Aircraft/F-15/Models/F-15.xml</model>
+      <latitude type="double">37.7534</latitude>
+      <longitude type="double">-122.179</longitude>
+      <altitude type="double">10000</altitude>
+      <heading type="double">225</heading>
+      <speed type="double">200</speed>
+    </entry>
+
+    <entry><!-- 200 deg, 20 NM, nose on -->
+      <type>aircraft</type>
+      <class>jet_fighter</class>
+      <callsign>HOT21</callsign>
+      <model>AI/Aircraft/MiG-21bis/Models/MiG-21bis.xml</model>
+      <latitude type="double">37.2988</latitude>
+      <longitude type="double">-122.502</longitude>
+      <altitude type="double">10000</altitude>
+      <heading type="double">20</heading>
+      <speed type="double">200</speed>
+    </entry>
+
+    <entry><!-- 090 deg, 80 NM: a search radar, all round, no weapon -->
+      <type>aircraft</type>
+      <class>jet_transport</class>
+      <callsign>WATCH</callsign>
+      <model>AI/Aircraft/E-2C/Models/E-2C-model.xml</model>
+      <latitude type="double">37.612</latitude>
+      <longitude type="double">-120.675</longitude>
+      <altitude type="double">25000</altitude>
+      <heading type="double">0</heading>
+      <speed type="double">250</speed>
+    </entry>
+
+    <entry><!-- 120 deg, 15 NM, flying away -->
+      <type>aircraft</type>
+      <class>jet_fighter</class>
+      <callsign>COLD18</callsign>
+      <model>AI/Aircraft/F-18/Models/F-18.xml</model>
+      <latitude type="double">37.487</latitude>
+      <longitude type="double">-122.085</longitude>
+      <altitude type="double">10000</altitude>
+      <heading type="double">120</heading>
+      <speed type="double">200</speed>
+    </entry>
+
+    <entry><!-- 330 deg, 5 NM, nose on: no radar -->
+      <type>aircraft</type>
+      <class>ga</class>
+      <callsign>CIVIL</callsign>
+      <model>AI/Aircraft/c172/csna.xml</model>
+      <latitude type="double">37.684</latitude>
+      <longitude type="double">-122.411</longitude>
+      <altitude type="double">3000</altitude>
+      <heading type="double">150</heading>
+      <speed type="double">100</speed>
+    </entry>
+
+  </scenario>
+
+</PropertyList>

@@ -186,8 +186,8 @@ Table~\ref{tab:keys}.
 \section{Layout}
 Four multifunction displays (MFD~1 to 4 from the left) across the instrument panel; the control display unit (CDU)
 and its two keypads on the centre console with the standby engine and fuel display (SFD) above it; the electronic
-standby flight instrument (ESFI); the flight control panel (the AFCS's keys and knobs) and the radio panels on the
-glareshield; a thrust control lever beside each seat.
+standby flight instrument (ESFI), and under it the radar warning receiver's azimuth indicator; the flight control panel
+(the AFCS's keys and knobs) and the radio panels on the glareshield; a thrust control lever beside each seat.
 
 \section{Multifunction displays}
 The keys along each display's top pick its format: FLT, NAV, ENG, FUEL. A format's own keys, down its right side, show
@@ -291,6 +291,59 @@ hover. \ann{PULL UP}: with the nacelles down, descending to the ground in less t
 with ENG OUT on, which has no power to climb away and whose own flare closes on the ground quicker than that.
 Both engines out is one warning, \ann{DUAL ENG OUT}, collecting \ann{ENG 1 OUT} and \ann{ENG 2 OUT}.
 \begin{center}\small\Tab{alerts}\end{center}
+
+\section{Radar warning receiver}\label{sec:rwr}
+The round azimuth indicator on the console, under the ESFI, shows the radars that can see the aircraft and the missiles
+near it, and says them in FlightGear's own voice, as the AN/APR-39 the V-22 carries does (the Army's operators' manuals
+TM~1-1520-240-10 and TM~1-1520-238-10 describe its indicator). The aircraft is at the centre with its nose up; the twelve
+marks round the edge are clock positions. A threat shows at its relative bearing, at most 15\textdegree\ off it when
+symbols would overlap. The \ann{+} in the small circle says the set is on: it needs power, as the displays do. It has no
+switches. The BRIL knob at the upper right sets the brightness of what it draws, which otherwise follows the light outside
+as the standby instrument does. The face itself is paint, and only the symbols are lit.
+
+The distance from the centre shows the emitter's mode, not its range:
+\begin{center}\small\begin{tabular}{@{}lll@{}}
+\toprule
+Where & Shown as & What it is \\
+\midrule
+At the edge & A strobe & A search radar, or a fire control radar searching \\
+Outside the dashed ring & Its code & An AI contact's weapon radar within its weapon's lethal range \\
+Inside the dashed ring & Its code in a circle & A radar tracking this aircraft: a lock \\
+Nearest the centre & \ann{M} & A missile \\
+\bottomrule
+\end{tabular}\end{center}
+The dashed circle is the lethality ring. AI contacts report no mode, so a weapon's radar among them is taken as acquiring
+the aircraft while inside its lethal range. Multiplayer contacts report a lock, and without one they are searching,
+however close. \ann{M} is a missile whose motor is burning within 2.25\,NM, or one with its own radar on this aircraft at
+any range, in a circle then; it shows first. A semi-active missile cannot be seen, but its launcher's illuminator can: the
+launcher's symbol flashes a circle, as it does for 3\,s after any launch.
+
+A code is an aircraft's number or letters (\ann{15}, \ann{29}, \ann{EF}), or for what is on the surface \ann{2}, \ann{3},
+\ann{5}, \ann{6}, \ann{17}, \ann{20} (the SA- series), \ann{P} (Patriot), \ann{AA} (ZSU-23-4) or \ann{SH} (a ship).
+\ann{U} is one not identified, shown only when it locks the aircraft. A hat over a code means airborne. A new threat is in
+boldface for 5\,s. One that drops out, or whose lock breaks, is ghosted for 10\,s, as though drawn with a dotted line. At
+most the seven highest priority threats show. With more than ten signals the set is degraded: the \ann{+} flashes and it
+says \ann{THREAT DETECTION DEGRADED}, then \ann{THREAT DETECTION RESTORED} when the signals thin out.
+\DispFig{rwr}{0.5\textwidth}{The radar warning receiver's azimuth indicator.}
+
+Each call gives the class, the type, the clock position and the mode, once for a new threat and again whenever it gets
+worse, 3\,s apart: \ann{FIGHTER, 16, TWELVE O'CLOCK TRACKING}, \ann{RADAR, FIVE O'CLOCK SEARCHING}. A time-critical
+alert (Section~\ref{sec:alerts}) holds these calls back until it clears. A missile is time-critical itself:
+\ann{MISSILE, SIX O'CLOCK LAUNCH} for one seen burning, \ann{MISSILE, NINE O'CLOCK INBOUND} for one with its radar on the
+aircraft. These are said as soon as the receiver hears of them, whatever else stands, in a voice of their own apart from
+the alerts', and again every 2.5\,s while the missile flies. At power on it says \ann{APR 39 POWER UP}.
+
+A radar is heard while it is on, within 150\,NM, with the aircraft in its field (60\textdegree\ each side of a fighter's
+or helicopter's nose, all round for the rest), inside the radar horizon, and with no ground between; flying low behind
+terrain hides the aircraft from it. A lock is heard whatever the geometry. In multiplayer this works with the OPRF
+aircraft, such as the F-16: their radars, standby, locks and missile launches all show. The receiver only listens.
+\begin{note}
+The real symbols are classified, so the codes, the hat and the circle are this model's own. It knows an
+emitter by its FlightGear model, from a list, so a radar not on the list goes unheard unless it locks the aircraft; its
+bearings are exact, where the real set's are within 15\textdegree. A missile cannot damage this aircraft, and it has no
+flares or chaff. To try it, start at KSFO with \key{--ai-scenario=rwr-test}: \ann{15} and \ann{21} outside the ring, a
+strobe from the E-2C, and neither the F-18 flying away nor the Cessna.
+\end{note}
 
 \section{Standby instruments and lighting}
 The ESFI shows attitude, airspeed and altitude, the SFD the engines and fuel (Figure~\ref{fig:esfi}). The displays need power, the battery or

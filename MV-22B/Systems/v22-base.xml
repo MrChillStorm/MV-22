@@ -17,6 +17,12 @@
           <text type="string"/>
           <htsvoice type="string">cmu_us_arctic_slt.htsvoice</htsvoice>
         </voice>
+        <!-- the radar warning receiver's (Nasal/rwr.nas): another voice, so as not to be taken for the crew alerts -->
+        <voice n="5">
+          <desc>RWR</desc>
+          <text type="string"/>
+          <htsvoice type="string">cstr_uk_female-1.0.htsvoice</htsvoice>
+        </voice>
       </voices>
     </sound>
 
@@ -279,6 +285,10 @@
       <!-- the crew alerts: masters, sounds, acknowledgement (fdm/alerts.py, Systems/mv22b-alerts.xml) -->
       <file>Aircraft/MV-22B/Nasal/alerts.nas</file>
     </alerts>
+    <rwr>
+      <!-- the radar warning receiver: what its azimuth indicator on the console shows (displays.nas draws it) -->
+      <file>Aircraft/MV-22B/Nasal/rwr.nas</file>
+    </rwr>
     <displays>
       <!-- the instrument panel's displays (Models/Interior/Panel/MV22B, fdm/cockpit/panel.py) -->
       <file>Aircraft/MV-22B/Nasal/displays.nas</file>

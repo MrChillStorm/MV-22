@@ -1,6 +1,7 @@
 # MV-22B displays: the Canvas pages of the four multifunction displays (MFD 1-4 from the left), the control display
 # unit (CDU), the backup engine and fuel display (SFD), the electronic standby flight instrument (ESFI), the automatic
-# flight control panel's readouts and the glareshield's radio panels, on the screens of the panel's 3-D model
+# flight control panel's readouts, the glareshield's radio panels and the radar warning receiver's azimuth indicator,
+# on the screens of the panel's 3-D model
 # (Models/Interior/Panel/MV22B, written by fdm/cockpit/panel.py), whose keys call key(unit, key).
 #
 # The V-22's display formats are not public in detail; these follow its published layout (four 6 in square
@@ -1812,6 +1813,103 @@ var Master = {
     },
 };
 
+# ---------------------------------------------------------------- the radar warning receiver's azimuth indicator
+# The round indicator on the console (fdm/cockpit/panel.py), with what Nasal/rwr.nas hears, as the AN/APR-39's manuals have
+# it (see rwr.nas): the distance from the centre is the emitter's mode. A search radar, or a fire control radar searching,
+# is a strobe at the edge; one acquiring a symbol outside the lethality ring (the dashed one); one tracking a symbol inside
+# it, and a missile, M, nearest the centre. A new threat is in boldface; a ghost, one dropped out or whose lock broke,
+# looks dotted: a black mesh over it, the paint seen through. The + in the small circle says the set is on, and flashes
+# when it is degraded. The hat on what is airborne and the circle on a lock, flashing on a launcher or illuminator, are
+# this model's own: the real symbols are classified. The bearing is kept true, so the symbols turn with the aircraft at
+# this unit's rate. The face itself is the model's paint, not touched here: this Canvas is on a disc just over it, of
+# which only what it draws is there (Models/Effects/Lit/symbols). Outside the HDR pipeline the whole disc shows, so there
+# the Canvas draws the paint too.
+var RWR_MID = 256;                                 # the face's centre, px
+var RWR_FACE = 256 * 0.025 / 0.029;                # its radius, px (panel.py's RWR_R: the texture is the ring's width across)
+var RWR_FONT = 40;
+var RWR_THIN = "LiberationFonts/LiberationMono-Regular.ttf";      # an established threat's: a new one is in MONO's bold
+var RWR_EDGE = 0.84 * RWR_FACE;                    # a strobe's middle, px from the centre
+var RWR_GAP = 52;                                  # px between symbols' centres
+var RWR_SHIFT = 15 * D2R;                          # a symbol may leave its bearing by the set's own accuracy, no more
+var RWR_SPOTS = [[0, 0], [0, 1], [0, -1], [1, 0], [1, 1], [1, -1], [2, 0], [2, 1], [2, -1], [3, 0]];   # gaps out, shifts round
+var RWR_GHOST = [0.10, 0.36, 0.14];
+
+var Rwr = {
+    new: func {
+        var m = {parents: [Rwr], slots: []};
+        m.c = canvas.new({"name": "RWR", "size": [512, 512], "view": [512, 512], "mipmapping": 1});
+        m.c.addPlacement({"node": "RWR.symbols"});
+        m.c.setColorBackground(0, 0, 0, 1);
+        var g = m.c.createGroup();
+        if (getprop("/sim/rendering/default-compositor") != "Compositor/HDR/hdr")
+            g.createChild("image").setFile("Aircraft/MV-22B/Models/Interior/Panel/MV22B/rwr.png").setSize(512, 512);
+        m.plus = g.createChild("path").moveTo(RWR_MID - 8, RWR_MID).lineTo(RWR_MID + 8, RWR_MID)
+            .moveTo(RWR_MID, RWR_MID - 8).lineTo(RWR_MID, RWR_MID + 8).setColor(GREEN).setStrokeLineWidth(4);
+        for (var i = 0; i < rwr.SHOWN; i += 1) {
+            var s = g.createChild("group");
+            var slot = {g: s, bold: 0, text: txt(s, "", 0, 0, RWR_FONT, GREEN, "center-center", RWR_THIN),
+                        strobe: line(s, [[0, -28], [0, 28]], GREEN, 6),
+                        hat: line(s, [[-18, -20], [0, -34], [18, -20]], GREEN, 4),
+                        lock: s.createChild("path").circle(31, 0, 0).setColor(GREEN).setStrokeLineWidth(4)};
+            slot.mesh = s.createChild("path").setColor(BLACK).setStrokeLineWidth(3);      # last: over what it dots
+            for (var k = -42; k <= 42; k += 7) slot.mesh.moveTo(k, -44).lineTo(k, 44).moveTo(-44, k).lineTo(44, k);
+            append(m.slots, slot);
+        }
+        return m;
+    },
+    # where a symbol goes: its own spot if free, else as near as stays on its bearing. Its direction is what it is for, so
+    # it gives up its distance from the centre first; with nowhere free it stays on its bearing, over the others
+    place: func(r, a, taken) {
+        foreach (var s; RWR_SPOTS) {
+            var d = r + s[0] * RWR_GAP; var b = a + s[1] * RWR_SHIFT;
+            var p = [RWR_MID + d * math.sin(b), RWR_MID - d * math.cos(b)];
+            var free = 1;
+            foreach (var q; taken)
+                if (math.pow(p[0] - q[0], 2) + math.pow(p[1] - q[1], 2) < RWR_GAP * RWR_GAP) free = 0;
+            if (free) return p;
+        }
+        return [RWR_MID + r * math.sin(a), RWR_MID - r * math.cos(a)];
+    },
+    update: func {
+        var on = powered();
+        var now = num("/sim/time/elapsed-sec");
+        var hdg = num("/orientation/heading-deg");
+        var blink = now - int(now) < 0.5;
+        me.plus.setVisible(on and (!rwr.degraded or blink));
+        var taken = [];
+        var i = 0;
+        if (on) foreach (var t; rwr.shown) {
+            var s = me.slots[i];
+            var tier = t.tier(now);
+            var a = (t.bearing - hdg) * D2R;
+            var ghost = t.ghost(now);
+            var c = ghost ? RWR_GHOST : GREEN;
+            var p = [RWR_MID + RWR_EDGE * math.sin(a), RWR_MID - RWR_EDGE * math.cos(a)];
+            if (tier > 1) {
+                p = me.place((tier > 2 ? 0.40 - 0.18 * t.p : 0.66 - 0.14 * t.p) * RWR_FACE, a, taken);
+                append(taken, p);
+            }
+            s.g.setTranslation(p[0], p[1]);
+            s.g.setVisible(1);
+            s.strobe.setVisible(tier == 1);
+            s.strobe.setRotation(a);
+            s.strobe.setColor(c);
+            s.text.setVisible(tier > 1);
+            s.text.setText(t.code);
+            s.text.setColor(c);
+            var bold = now - t.first < rwr.NEW;
+            if (bold != s.bold) { s.bold = bold; s.text.setFont(bold ? MONO : RWR_THIN); }
+            s.hat.setColor(c);
+            s.hat.setVisible(tier > 1 and t.airborne);
+            s.lock.setColor(c);
+            s.lock.setVisible(t.lock or (now - t.alarm < rwr.ALARM and blink));
+            s.mesh.setVisible(ghost);
+            i += 1;
+        }
+        for (; i < size(me.slots); i += 1) me.slots[i].g.setVisible(0);
+    },
+};
+
 # ---------------------------------------------------------------- the units, their keys, brightness and updates
 var units = {};
 var cdu = nil;
@@ -1844,7 +1942,7 @@ var daylight = func { math.max(0, math.min(1, (96 - num("/sim/time/sun-angle-rad
 var level = func(k) { num(BASE ~ "levels/" ~ k, LEVELS[k]); };
 var between = func(lo, hi, f) { lo * math.pow(hi / lo, f); };
 
-var AUTO = {esfi: 1, afcs: 1, radio1: 1, radio2: 1};      # no mode knob: the photocell over night and day
+var AUTO = {esfi: 1, afcs: 1, radio1: 1, radio2: 1, rwr: 1};      # no mode knob: the photocell over night and day
 
 var luminance = func(u, f) {
     var mode = contains(AUTO, u) ? -1 : int(num(BASE ~ u ~ "/mode", 2));
@@ -1896,7 +1994,7 @@ var brightness = func(u, k) {
     setprop(BASE ~ u ~ "/brightness", math.max(0.1, math.min(1, b)));
 }
 
-var ALL = ["mfd1", "mfd2", "mfd3", "mfd4", "cdu", "sfd", "esfi", "afcs", "radio1", "radio2"];
+var ALL = ["mfd1", "mfd2", "mfd3", "mfd4", "cdu", "sfd", "esfi", "afcs", "radio1", "radio2", "rwr"];
 var fast = [];
 var slow = [];
 var PROFILE = "/instrumentation/mv22b/displays/profile/";
@@ -1917,14 +2015,14 @@ var init = func {
     foreach (var s; [["MFD1", "FLT"], ["MFD2", "ENG"], ["MFD3", "NAV"], ["MFD4", "FLT"]])
         units[s[0]] = Mfd.new(s[0], s[1]);
     cdu = Cdu.new();
-    var sfd = Sfd.new(); var esfi = Esfi.new(); var ro = Readouts.new();
+    var sfd = Sfd.new(); var esfi = Esfi.new(); var ro = Readouts.new(); var warner = Rwr.new();
     canvases = {MFD1: units["MFD1"].c, MFD2: units["MFD2"].c, MFD3: units["MFD3"].c, MFD4: units["MFD4"].c, CDU: cdu.c, SFD: sfd.c,
-                ESFI: esfi.c};
+                ESFI: esfi.c, RWR: warner.c};
     var masters = [Master.new("MASTER1"), Master.new("MASTER2")];
     fast = [units["MFD1"], units["MFD2"], units["MFD3"], units["MFD4"], esfi, cdu] ~ masters;
-    slow = [sfd, ro, Radio.new(0), Radio.new(1)];
+    slow = [sfd, ro, Radio.new(0), Radio.new(1), warner];
     foreach (var u; [esfi, cdu] ~ masters ~ slow) cache_writes(u);
-    # PROFILE/enabled: each unit's update time, ms (a 2 s average), in PROFILE/<n> (fast: 0-7, slow: 8-11)
+    # PROFILE/enabled: each unit's update time, ms (a 2 s average), in PROFILE/<n> (fast: 0-7, slow: 8-12)
     var prof = props.globals.getNode(PROFILE, 1);
     var timed = func(us, i0) {
         if (!prof.getValue("enabled")) { foreach (var u; us) u.update(); return; }

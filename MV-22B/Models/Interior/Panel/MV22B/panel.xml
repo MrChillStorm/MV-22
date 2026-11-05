@@ -139,6 +139,18 @@
     <object-name>MASTER2.screen</object-name>
   </effect>
 
+  <effect>
+    <inherits-from>Aircraft/MV-22B/Models/Effects/Lit/symbols</inherits-from>
+    <parameters>
+      <lit-level><use>/instrumentation/mv22b/displays/rwr/luminance</use></lit-level>
+    </parameters>
+    <object-name>RWR.symbols</object-name>
+  </effect>
+  <animation>
+    <type>noshadow</type>
+    <object-name>RWR.symbols</object-name>
+  </animation>
+
   <animation>
     <type>pick</type>
     <object-name>MFD1.L1</object-name>
@@ -4153,6 +4165,34 @@
         <factor>1</factor>
         <min>0</min>
         <max>2</max>
+        <wrap>false</wrap>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>knob</type>
+    <object-name>RWR.BRIL</object-name>
+    <property>/instrumentation/mv22b/displays/rwr/brightness</property>
+    <factor>270</factor>
+    <offset-deg>0</offset-deg>
+    <center>
+      <x-m>0.0234</x-m>
+      <y-m>0.1715</y-m>
+      <z-m>0.1001</z-m>
+    </center>
+    <axis>
+      <x>-0.9659</x>
+      <y>0</y>
+      <z>-0.2588</z>
+    </axis>
+    <action>
+      <binding>
+        <command>property-adjust</command>
+        <property>/instrumentation/mv22b/displays/rwr/brightness</property>
+        <factor>0.1</factor>
+        <min>0.1</min>
+        <max>1</max>
         <wrap>false</wrap>
       </binding>
     </action>

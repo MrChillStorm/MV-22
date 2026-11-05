@@ -125,6 +125,13 @@ CALLOUTS = {
              (256, 160, 'attitude'),
              (480, 200, 'altitude'),
              (400, 440, 'altimeter setting')],
+    # (not from capture.py, which works on the flat screens: FlightGear's own screenshot, square to the indicator's face)
+    'rwr': [(118, 92, 'a strobe: a radar searching, at its bearing'),
+            (355, 200, 'a threat tracking the aircraft: its code, airborne, the circle its lock'),
+            (200, 203, 'a ghost, here a missile: gone from the receiver, and dotted for 10\\,s'),
+            (256, 286, 'the set is on'),
+            (177, 352, 'the lethality ring'),
+            (428, 40, 'BRIL')],
 }
 
 

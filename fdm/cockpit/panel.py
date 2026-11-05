@@ -469,7 +469,9 @@ def call_panel(top):
     A.walls(f, A.circle(R, ry, rz, 48), 0.019, 0.025, A.const(0.0, 0.0))
     A.walls(f, A.circle(r, ry, rz, 48), 0.0215, 0.025, A.const(0.0, 0.0), outward=False)
     A.flat(f, A.circle(r, ry, rz, 48), 0.0215, uv)
+    A.flat(obj('RWR.symbols', RWR_TEX), A.circle(r, ry, rz, 48), 0.0218, uv)      # the Canvas just over the face
     knob('RWR.BRIL', ry + 0.0225, rz + 0.0225, 0.0048, 0.019, 0.010)
+    XML.append(knob_xml('RWR.BRIL', '/instrumentation/mv22b/displays/rwr/brightness', 270, 0.1, 0.1, 1))
     A.box(o, cy + 0.012, cy + 0.028, cz - 0.034, cz - 0.024, 0.016, 0.021, solid(KEY), solid(KEY))
 
 
@@ -1091,6 +1093,12 @@ def model_xml():
                  '      <pbr-metallic type="float">1</pbr-metallic>\n      <pbr-roughness type="float">0.3</pbr-roughness>\n'
                  '    </parameters>\n'
                  '    <object-name>%s</object-name>\n  </effect>\n' % (unit, s))
+    # the azimuth indicator's face is paint, left as it is: its symbols are a Canvas over it, nothing where they aren't
+    x.append('  <effect>\n    <inherits-from>Aircraft/MV-22B/Models/Effects/Lit/symbols</inherits-from>\n    <parameters>\n'
+             '      <lit-level><use>/instrumentation/mv22b/displays/rwr/luminance</use></lit-level>\n'
+             '    </parameters>\n'
+             '    <object-name>RWR.symbols</object-name>\n  </effect>\n'
+             '  <animation>\n    <type>noshadow</type>\n    <object-name>RWR.symbols</object-name>\n  </animation>\n')
     # the keys
     for name, unit, kid in KEYS:
         x.append('  <animation>\n    <type>pick</type>\n    <object-name>%s</object-name>\n    <action>\n      <button>0</button>\n'
