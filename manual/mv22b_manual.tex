@@ -453,8 +453,9 @@ the vertical over from it once its glide path is captured.
 
 It plans a path \MTfHorizon\,s ahead along the track, the lowest that clears the terrain by the clearance, on the track and
 150\,ft either side, descending into valleys and pulling up as late as its ride allows, within the climb the engines
-can make and 2000\,ft/min of descent. The ride sets its vertical acceleration (\key{R1}, \key{R2}, \key{R3} on the CDU:
-soft, medium, hard, 0.1, 0.2 and 0.3\,$g$; medium at the start). It flies the vertical: with SPD HOLD the speed is free
+can make. It descends no faster than keeps it clear of PULL UP's envelope at the clearance, by as much as its descent
+overshoots: 1850--1950\,ft/min at 200\,ft, about 1050 at 100\,ft. The ride sets its vertical acceleration (\key{R1},
+\key{R2}, \key{R3} on the CDU: soft, medium, hard, 0.1, 0.2 and 0.3\,$g$; medium at the start). It flies the vertical: with SPD HOLD the speed is free
 within 20\,kt of the SPEED knob's, so that climbs and descents trade it against height, and held at the band's edges.
 The mode line shows \ann{TF 300 MED}.
 
@@ -741,7 +742,9 @@ proprotors and the tail clear of the ground, found by flying it offline (\texttt
 \begin{enumerate}
 \item The lever down, to flat pitch: the governor holds the rotors windmilling.
 \item The nacelles forward to airplane mode, the nose down for 200\,KCAS. The corridor holds the nacelles until the
-speed comes.
+speed comes. From a hover or slow flight keep the nose down while the aircraft falls: until the speed comes the wing
+is stalled, raising the nose only stalls it more, and the rotors in the up-flow pitch the nose up past what the stick
+holds.
 \item Glide at 200\,KCAS: about 8.4 to 1 in still air at the reference loading, 1.4\,NM for every 1000\,ft; lighter,
 less (7.4 to 1 at 38\,700\,lb, 1.2\,NM); with the gear down 7.1 and 6.2 to 1.
 \item To a landing site within reach, into the wind, level or falling away: ENG OUT finds and flies to one
@@ -759,16 +762,16 @@ reach about 36$^\circ$ for the proprotors to clear the ground on the wheels, 42$
 \item On the wheels, the nacelles on up towards 60$^\circ$ as the nose comes down.
 \end{enumerate}
 In the model, at the reference loading over flat ground at sea level, it lands intact from cruise, from a glide at
-180--200\,KCAS from 1500\,ft, from the conversion from 4000\,ft and from a hover from 4500\,ft: on the wheels at
-7.1--7.6\,ft/s and about 159\,kt over the ground (9--12\,ft/s from the hover at 4500--5500\,ft), the nose at
-5--6$^\circ$, the nacelles at 45$^\circ$ with the proprotors 2.7--2.9\,ft clear as the nose comes down and the nacelles
-go on up. From the conversion at 2000\,ft it strikes at 41\,ft/s, the proprotors in the ground, survivable; from
-160\,KCAS at 800\,ft (43\,ft/s), or from a hover below 4500\,ft, where the nose pitches up as the nacelles come down and
-the rotor speed is lost, it strikes past what is survivable (42\,ft/s). Across the weight, the field's air, the wind
+180--200\,KCAS from 1500\,ft, from the conversion from 4000\,ft and from a hover from 4000\,ft: on the wheels at
+7.1--7.7\,ft/s and about 159\,kt over the ground (11.7\,ft/s from the hover at 4000\,ft), the nose at 5--6$^\circ$, the
+nacelles at 45$^\circ$ with the proprotors 2.6--2.9\,ft clear as the nose comes down and the nacelles go on up. From
+the conversion at 2000\,ft it lands at 17\,ft/s, the proprotors' tips 0.3\,ft into the ground, survivable; from
+160\,KCAS at 800\,ft (43\,ft/s), or from a hover at 3000\,ft, where the pull-out from the dive comes too late (148\,ft/s,
+the gear still coming down), it strikes past what is survivable (42\,ft/s). Across the weight, the field's air, the wind
 and the slope (\texttt{fdm/deadland.py flare}: 243 flares from 38\,700 to 54\,000\,lb, from sea level to 5000\,ft at
 ISA\,+\,20$^\circ$C, 13\,kt behind to 15\,kt ahead, on 1\,\% up, level and 1\,\% down) it lands intact at 38\,700\,lb
 in every case, at 5.8--9.5\,ft/s; at 47\,500\,lb on level and falling ground, at 6.7--8.6\,ft/s, and in 14 of 27 on
-rising ground; at 54\,000\,lb on level ground, at 7.7--10.3\,ft/s, in 17 of 27 on falling ground, the others touching
+rising ground; at 54\,000\,lb on level ground, at 7.7--10.4\,ft/s, in 18 of 27 on falling ground, the others touching
 the tail with the nose at 7.3--7.6$^\circ$, and in 17 of 27 on rising ground. None balloons, and none strikes past
 what is survivable. A steady wind changes nothing but the way over the ground; thin air and weight make the
 touchdown harder. On rising ground the float is cut short: at 47\,500 and 54\,000\,lb the rest touch down at

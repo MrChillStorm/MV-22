@@ -324,9 +324,11 @@ Every number comes from the scripted test programme in the report.
   higher than the engines can climb in that time, or coming into view round
   a turn, can't be cleared by the set height, and the fly-up takes over
   below half of it. A ridge steeper than its climb leaves it 10 % under the
-  clearance at 150 and 200 kt, the lever near its stop. Over hills at
-  150 kt its descent overshoots the 2000 ft/min limit a little and PULL UP
-  sounds for about 2 s.
+  clearance at 150 and 200 kt, the lever near its stop. It descends no
+  faster than keeps the aircraft out of PULL UP's envelope at the set
+  clearance, by as much as its measured descent overshoots: 31–32 ft/s
+  at 200 ft, 17–18 at 100 ft. Valleys whose sides fall faster than that it
+  follows from above the clearance.
 - **Vortex ring state.** Johnson's model is an isolated rotor's mean
   inflow. It is scaled here by each rotor's own wake, which carries the
   wing's download and the wake's induced losses: on the weight's scale,

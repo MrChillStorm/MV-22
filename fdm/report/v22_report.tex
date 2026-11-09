@@ -608,7 +608,9 @@ rms within \NTfFitRms). The aircraft is held to the model's height with a gain s
 \NTfKLo--\NTfKHi/s. For a vertical speed commanded now, reached at the ride's acceleration and held to the next plan, the plan has the
 model's height at each point in closed form, with the most a pull-up at half the ride's acceleration then adds up to the climb the power
 makes, and commands the least vertical speed that clears every point. It descends into a valley and pulls up as late as half the ride
-allows. A point too near to clear in time, nearer than the height loop's time constant, is a height error, closed over that time with the
+allows, no faster than keeps the aircraft out of PULL UP's envelope at the clearance (the height a response of 5\,s and a 0.5\,$g$ pull-out
+take), its descent overshooting as its measured step down does (by 6--12\,\% at 120 to 200\,kt): 31--32\,ft/s at 200\,ft. With
+2000\,ft/min, that envelope's own at 200\,ft, the descent over the hills at 150\,kt overshot it and PULL UP sounded. A point too near to clear in time, nearer than the height loop's time constant, is a height error, closed over that time with the
 command not eased meanwhile: FlightGear's timer, up to a frame late, otherwise left the model a fraction of a foot under the clearance and
 the plan climbing at full power for it. Where the lever reaches its stop and the aircraft still falls behind, the model and the reference come
 down to it, and the plan never counts on height the aircraft has not got. The climb the power makes comes from the power a climb takes,
@@ -621,7 +623,7 @@ free within 20\,kt of its reference. Below half the clearance, or without terrai
 Table~\ref{tab:tf} and Fig.~\ref{fig:tf} give TF over level ground, hills 500\,ft high and 2\,nm apart, and a ridge 800\,ft high whose 15$^\circ$
 faces are steeper than any climb of the aircraft's. Over level ground the pitch holds within \NTfFlatRms$^\circ$ (rms), \NTfFlatJitRms$^\circ$
 with the timer's jitter. Over the hills at 120\,kt the clearance stays within \NTfHillsSlowLo--\NTfHillsSlowHi\,ft; at 200\,kt the valleys are
-narrower than the 2000\,ft/min descent and the ride allow the aircraft to follow, and it stays up to \NTfHillsFastHi\,ft over them (mean
+narrower than the descent's limit and the ride allow the aircraft to follow, and it stays up to \NTfHillsFastHi\,ft over them (mean
 \NTfHillsFastMean). The ridge leaves at least \NTfRidgeLo\,ft at 120 to 200\,kt (\NTfRidgeSeventy\,ft at 170\,kt), its edge flown at the climb's
 limit: at 150\,kt, the nacelles at 30$^\circ$, the lever near its stop. The vertical acceleration
 stays within \NTfG\,$g$, the ride's 0.2\,$g$ with what the height loop adds, and no run flies up. The timer's jitter changes the least clearance by at most \NTfJitter\,ft. The plan's 45\,s cover
