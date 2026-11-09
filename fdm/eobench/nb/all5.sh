@@ -1,0 +1,3 @@
+tag=$1; export SETS="${2:-{\}}"
+while read s la lo h k a; do (EO_SCRIPT=${SCR:-$HOME/git/V-22/MV-22B/Nasal/eosite.nas} python3 tr7.py $la $lo $h $k $a 2>&1 | grep -E " st |rror|DOWN|stopped| for |chosen|LEFT" | cut -c1-175 > ${tag}_$s.txt) & done < starts.txt; wait
+for s in 1 2 3 4 5; do echo "$s: $(grep -m1 chosen ${tag}_$s.txt | sed -E 's/.*chosen (.{0,20}).*margin ([-0-9]+).*path ([0-9.]+) NM.*/\1 margin \2 path \3/') | $(grep -c ' for ' ${tag}_$s.txt) changes | $(grep -E 'DOWN' ${tag}_$s.txt | sed -E 's/DOWN at ([0-9.]+) s: ([0-9.]+) ft.s, ([0-9]+) KCAS.*ground ([0-9]+) ft \(([A-Za-z]+).*/\1 s, \2 ft.s, \3 KCAS, \5/') | $(grep -E 'stopped' ${tag}_$s.txt | sed -E 's/.*, ([-+][0-9]+) ft past.*/\1 past/')"; done

@@ -1,0 +1,43 @@
+{
+ "weight_lb": [
+  36000,
+  38722,
+  42000,
+  47500,
+  54000,
+  60500
+ ],
+ "kcas": [
+  143,
+  143,
+  149,
+  159,
+  165,
+  165
+ ],
+ "beta_full_deg": [
+  4.8,
+  4.7,
+  4.7,
+  4.7,
+  5.0,
+  4.8
+ ],
+ "bank_deg": [
+  2.3,
+  2.1,
+  2.1,
+  2.2,
+  2.1,
+  2.8
+ ],
+ "limit_kt": [
+  11.9,
+  11.8,
+  12.2,
+  13.0,
+  14.4,
+  13.8
+ ],
+ "note": "full pedal at the touchdown speed, nacelles 45, flaperons 40, gear down; limit V sin(beta)"
+}

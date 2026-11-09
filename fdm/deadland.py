@@ -23,6 +23,9 @@ augmentation under it; the lever at flat pitch from the failure (the governor ho
                                                        settings ap/eo-* (or a property path) changed
     python3 deadland.py site                           what ENG OUT's landing site must give (SITE_W, SURFACES):
                                                        -> data/eo_site_v22.json
+    python3 deadland.py turns                          the turn's height per 180 deg by the bank, the most bank held
+                                                       -> eo_site_v22.json
+    python3 deadland.py finals [wind] [setting=value ...]  the flare after a shorter final, from circles on energy
     python3 deadland.py siteguide                      ENG OUT flown to sites set by hand (SITE_CASES): where the
                                                        flare began against the planned point -> eo_site_v22.json
     python3 deadland.py terrain                        ENG OUT's straight-in to a site over uneven ground
@@ -89,7 +92,20 @@ longer at 60 500 lb (9.43 against 8.06 at 200 KCAS) and 4 % at 54 000: 186, the 
 fitted to it floating 1.5 s less, 4-5 kt faster on the wheels. With the flare's flaperons from the glide's few degrees
 instead of 0: 198, the lift there without the pitch and its drag (1 % up at 54 000 lb 1 intact of 27). At the
 reference loading (auto) 7.1-7.6 ft/s at 159 kt, the tips 2.9 ft clear rolling; from a hover intact from 4500 ft;
-lower, the nose pitches up to 50 deg against the command's -20 as the nacelles come down, and the rotor speed is lost."""
+lower, the nose pitches up to 50 deg against the command's -20 as the nacelles come down, and the rotor speed is lost.
+From a hover (auto, 2026-11-03, later): the pitch no higher than the wing's stall (genv22.eng_out), no lower than the
+dive's. Falling at 100-150 ft/s the wing is at 40-90 deg, the forward airspeed the fall seen through the attitude: the
+speed's law drove the pitch between its limits every 4-5 s, the guard asked a pull-out the wing could not make, and the
+rotors in the up-flow pitched the nose up to their masts' line with the flow, past what the stick holds; from 3000 and
+4000 ft it fell flat at 160-170 ft/s. Now the nose stays down until the wing flies (past the command, to 46 deg, as
+the nacelles come down: the augmentation's half of the stick at its stop), and from 4000 ft it lands intact at 11.7
+ft/s, from 4500-8000 at 7.1-7.7 (7.1-12 before); from the conversion at 2000 ft at 17 ft/s, the tips 0.3 ft into
+the ground (41 before); from 3000 ft the dive's pull-out comes too late, 148 ft/s, the gear still coming down. Every start
+where the wing flies lands as before to the digit; of the 243 flares 11 differ, all at 54 000 lb in thin air with the
+wind behind, by up to 0.9 ft/s: 211 intact against 210 (1 % down 18 of 27); a site's turns at 44-55 deg of bank, the
+wing at 11-12 deg, meet the limit for a few seconds (the flare 2-8 ft further on). Those touchdowns are now the gear's contact with the ground
+(down()), where the gear up or coming down has none in JSBSim: from a hover's dive the gear, lowered at the mode's
+1000 ft, was still in transit, and the touchdown read after it locked, the aircraft 260 ft through the ground."""
 import sys, os, math, json, itertools
 from multiprocessing import Pool
 import harness as H
@@ -121,6 +137,35 @@ def start(nac, V, gamma, lo, alt, terrain):
         f['/controls/engines/engine[%d]/cutoff' % e] = 1
     f[LEVER] = 0.0
     return f
+
+
+def contact_ft(f):
+    """the gear's lowest contact point's height over the ground at the present attitude, ft, the gear down or not"""
+    th, ph = f['attitude/theta-rad'], f['attitude/phi-rad']
+    cx, cy, cz = f['inertia/cg-x-in'], f['inertia/cg-y-in'], f['inertia/cg-z-in']
+    fs, bl, wl = DS.U.MAIN_GEAR
+    low = 1e9
+    for x, y, z in (DS.U.NOSE_GEAR, (fs, bl, wl), (fs, -bl, wl)):
+        dx, dy, dz = (cx - x) / 12, (y - cy) / 12, (cz - z) / 12        # body axes: forward, right, down
+        low = min(low, f['position/h-agl-ft'] + dx * math.sin(th) - (dy * math.sin(ph) + dz * math.cos(ph)) * math.cos(th))
+    return low
+
+
+NR0 = (999.0, 0.0)
+
+
+def rotor_range(f, nr):
+    """the rotor speed's lowest and highest so far, %. Reported, not judged: no limit is published for what the controls
+    need, and the model's controls don't depend on it (docs/FLIGHT-LAWS.md, section 10)"""
+    x = f['drive/nr-pct']
+    return min(nr[0], x), max(nr[1], x)
+
+
+def down(f):
+    """on the ground: a wheel's weight on it, or the gear's contact at or under it (the gear up or in transit, JSBSim
+    gives it none, and the airframe went on through the ground: from a hover's dive the gear, lowered at ENG OUT's
+    1000 ft, was still coming, and the touchdown read once it locked, 260 ft under the ground)"""
+    return sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0 or contact_ft(f) <= 0.0
 
 
 def stick(f, ref_deg):
@@ -164,7 +209,7 @@ def land(args):
         if cushion_ft and wheels <= cushion_ft:
             f[LEVER] = 1.0
         f.run()
-        if sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0:
+        if down(f):
             pitch = f['attitude/theta-deg']
             return dict(args=args, sink=-f['velocities/h-dot-fps'], gs=f['velocities/vg-fps'] / 1.6878, pitch=pitch,
                         clear=DS.clearance(f['ctl/nacelle-deg'], pitch), nr=f['drive/nr-pct'], t=i * dt)
@@ -213,7 +258,7 @@ def from_hover(args):
                 h_apln = wheels
             nr_min = min(nr_min, f['drive/nr-pct'])
         f.run()
-        if t > 3 and sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0:
+        if t > 3 and down(f):
             pitch = f['attitude/theta-deg']
             return dict(args=args, sink=-f['velocities/h-dot-fps'], gs=f['velocities/vg-fps'] / 1.6878, pitch=pitch,
                         clear=DS.clearance(f['ctl/nacelle-deg'], pitch), nr=f['drive/nr-pct'], nac=f['ctl/nacelle-deg'],
@@ -238,6 +283,7 @@ TAIL_DEG = DS.U.TAIL_STRIKE_DEG      # the fuselage's underside on the ground, t
 SITE_W = DS.TABLE_W
 SURFACES = {'pavement': (1.0, 1.0, 0.0), 'grass': (0.7, 0.1 / 0.02, 0.1), 'crop': (0.9, 0.1 / 0.02, 0.7)}
 HAC_FRAC = 0.8
+TURN_BANKS = (15, 20, 25, 30, 35, 40, 44, 50, 55)
 # ENG OUT's site guidance (siteguide, genv22.eng_out_site): from a trimmed 200 KCAS start heading north at FlightGear's
 # start loading, 38 730 lb (no cargo, the tanks half full), both engines cut at 1 s, the site set at 3 s: start height
 # (ft), the site's point (where the flare is to begin) north and east of the start (NM), its course (deg true), the
@@ -249,6 +295,12 @@ SITE_CASES = {'straight 3 NM': (3000, 3.0, 0.0, 0, 0), 'base 180': (5000, 2.0, 1
               'straight 4000': (4000, 3.0, 0.0, 0, 0), 'side 30': (4000, 3.0, 1.5, 330, 0)}
 SITE_W_FG = 38730.0
 SITE_NEAR_FT = 6076.1
+# circles onto a final, the site's point (NM north, east of the start) and its course: the aircraft heading north
+FINAL_CASES = {'base 180': (2.0, 1.0, 180), 'cross base': (2.0, -1.0, 90), 'side 30': (3.0, 1.5, 330)}
+FINAL_FT = (0, 4500, 3500, 2500, 1800, 1200)      # the final's lengths tried, 0 the full one
+FINAL_FT_WIND = (1200, 800, 400)                  # and the shortest in wind, from off the landing's course
+FINAL_WINDS = ((15, 0), (15, 180), (15, 90), (15, 270))
+FINAL_LD = 6.0                                    # (the margin's height, for the start's: the search's step only)
 # ground profiles under the landing (terrain): elevation (ft) against the way along the site's line from the flare's
 # point (ft, + on), level before it; Kansas's from FlightGear's flights there (2026-11-03: the wheels' radar height and
 # the integrated descent), the first rising as the flare began, the third falling away under it
@@ -293,7 +345,7 @@ def auto(args):
         if ph >= 3:
             run_ft += f['velocities/vg-fps'] * dt
         f.run()
-        wow = t > 3 and sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0
+        wow = t > 3 and down(f)
         if wow and td is None:
             pitch = f['attitude/theta-deg']
             td = dict(args=args, sink=-f['velocities/h-dot-fps'], gs=f['velocities/vg-fps'] / 1.6878, pitch=pitch,
@@ -318,9 +370,9 @@ def roll_on(f, r, t, wow):
 H_LOAD = H.load
 
 
-def site_start(W):
+def site_start(W, elev=0.0):
     H.load = lambda *a, **k: DS.weigh(H_LOAD(*a, **k), W)          # (HH.start's trim at this weight)
-    f = HH.start(200.0, 0.0, alt=3000.0, terrain=0.0)
+    f = HH.start(200.0, 0.0, alt=3000.0 + elev, terrain=elev)
     f['/instrumentation/mv22b/afcs/cpld'] = 1
     return f
 
@@ -349,7 +401,7 @@ def site_landing(args):
                 reach.append((x, f['ap/eo-reach-nm'] * 6076.1))
         elif 'h50' not in ev and h < 50:
             ev['h50'] = x
-        wow = sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0
+        wow = down(f)
         if 'gate' in ev and 'td' not in ev and wow:
             ev['td'], ev['t_td'], ev['kt'] = x, t, f['velocities/vg-fps'] / 1.6878
         if 'td' in ev and t > ev['t_td'] + 2:
@@ -366,12 +418,13 @@ def site_landing(args):
                 err=(min(err), max(err)))
 
 
-def site_turn(W):
-    """the height per 180 deg of heading in the planned turn at the glide's speed"""
+def site_turn(W, bank=None):
+    """the height per 180 deg of heading in a steady turn at the glide's speed: in the planned circle's (HAC_FRAC of
+    ENG OUT's bank limit), or at ENG OUT's bank limit set to bank; the bank flown, its mean"""
     f = site_start(W)
-    f['ap/eo-bank-deg'] = HAC_FRAC * f['ap/eo-bank-deg']
+    f['ap/eo-bank-deg'] = HAC_FRAC * f['ap/eo-bank-deg'] if bank is None else bank
     dt = f['simulation/dt']
-    turned, last, h0 = 0.0, None, None
+    turned, last, h0, phi = 0.0, None, None, []
     for i in range(int(56 / dt)):
         t = i * dt
         if abs(t - 1.0) < dt / 2:
@@ -384,10 +437,200 @@ def site_turn(W):
             if h0 is None:
                 h0, t0 = f['/position/gear-agl-m'] / 0.3048, t
             turned += abs((f['attitude/psi-deg'] - last + 540) % 360 - 180)
+            phi.append(abs(f['attitude/phi-deg']))
         last = f['attitude/psi-deg']
         f.run()
     dh = h0 - f['/position/gear-agl-m'] / 0.3048
-    return dict(W=W, bank=f['ap/eo-bank-deg'], ft180=dh / turned * 180, kcas=f['velocities/vc-kts'], rate=turned / (t - t0))
+    return dict(W=W, bank=f['ap/eo-bank-deg'], ft180=dh / turned * 180, kcas=f['velocities/vc-kts'], rate=turned / (t - t0),
+                flown=sum(phi) / len(phi))
+
+
+def turns():
+    """the turn's height per 180 deg by the bank (TURN_BANKS) and the weight, the bank flown, and the most bank the glide
+    held at each weight -> eo_site_v22.json (the guidance's turns at their own bank: the circle's, wider to spend a
+    surplus; the turn onto the leg at the bank limit)"""
+    jobs = [(W, b) for W in SITE_W for b in TURN_BANKS]
+    with Pool(8) as pool:
+        res = pool.map(turn_job, jobs)
+    at = {(r['W'], r['bank']): r for r in res}
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eo_site_v22.json')
+    d = json.load(open(path))
+    d['turn_bank_deg'] = list(TURN_BANKS)
+    d['turn_ft_per_180_bank'] = [[round(at[(W, b)]['ft180']) for b in TURN_BANKS] for W in SITE_W]
+    d['turn_flown_deg'] = [[round(at[(W, b)]['flown'], 1) for b in TURN_BANKS] for W in SITE_W]
+    d['bank_held_deg'] = [max(at[(W, b)]['flown'] for b in TURN_BANKS) for W in SITE_W]
+    d['bank_held_deg'] = [round(x, 1) for x in d['bank_held_deg']]
+    json.dump(d, open(path, 'w'), indent=1)
+    for k, W in enumerate(SITE_W):
+        print('%6.0f lb: %s; held up to %.1f deg' % (W, ', '.join('%2d deg (%4.1f flown) %4d ft' % (b, at[(W, b)]['flown'], at[(W, b)]['ft180'])
+                                                           for b in TURN_BANKS), d['bank_held_deg'][k]), flush=True)
+    print('wrote', path)
+
+
+def turn_job(j):
+    return site_turn(*j)
+
+
+# ENG OUT's turns by what it flies (capturns): the energy height per 180 deg and the radius by the gross weight, the speed, the
+# nacelles and the bank. A trim says nothing of a turn; a turn's cost hardly moves with the speed but its radius goes with its
+# square, and with the nacelles out both move: eosite.nas and the guidance read this with the glide's table
+CAP_TURN_W = (36000, 42000, 47500, 54000, 60500)
+CAP_TURN_KT = (150, 170, 200)
+CAP_TURN_NAC = (0.0, 30.0, 45.0)
+CAP_TURN_BANK = (25.0, 35.0, 45.0, 52.0)
+
+
+def cap_turn(j):
+    W, kt, nac, bank = j
+    try:
+        H.load = lambda *a, **k: DS.weigh(H_LOAD(*a, **k), W)
+        f = HH.start(200.0, 0.0, alt=9000.0, terrain=0.0)
+        f['/instrumentation/mv22b/afcs/cpld'] = 1
+        f['ap/eo-vg-set-kt'] = kt
+        f['ap/eo-nb-test-deg'] = nac; f['ap/eo-bank-deg'] = bank
+        dt = f['simulation/dt']
+        turned, last, e0, phi, sp, t0 = 0.0, None, None, [], [], 0.0
+        for i in range(int(60 / dt)):
+            t = i * dt
+            if abs(t - 1.0) < dt / 2:
+                for e in (0, 1):
+                    f['/controls/engines/engine[%d]/cutoff' % e] = 1
+            if t > 18:
+                f['/instrumentation/mv22b/afcs/hdg-hold'] = 1
+                f['/autopilot/settings/heading-bug-deg'] = (f['attitude/psi-deg'] + 90 - f['/environment/magnetic-variation-deg']) % 360
+            if t > 32:
+                if e0 is None:
+                    e0, t0 = f['position/h-sl-ft'] + f['velocities/vt-fps'] ** 2 / (2 * 32.174), t
+                turned += abs((f['attitude/psi-deg'] - last + 540) % 360 - 180)
+                phi.append(abs(f['attitude/phi-deg'])); sp.append(f['velocities/vt-fps'])
+            last = f['attitude/psi-deg']
+            f.run()
+        de = e0 - (f['position/h-sl-ft'] + f['velocities/vt-fps'] ** 2 / (2 * 32.174))
+        rate = math.radians(turned / (t - t0))
+        return dict(j=j, ft180=de / turned * 180, flown=sum(phi) / len(phi), kcas=f['velocities/vc-kts'], nac=f['ctl/nacelle-deg'],
+                    radius=sum(sp) / len(sp) / rate, fps=de / (t - t0))
+    except Exception as e:
+        return dict(j=j, err=str(e)[:80])
+
+
+# ENG OUT's way into the glide from wherever it starts (capentry): both engines out at this speed and these nacelles, the mode flying,
+# the height, the way along the heading and the time until it glides at its speed, the nacelles down. From a hover that is most of
+# what there is to know: the speed's energy alone reads 1800 ft, and the dive, the rotors' drag and the conversion cost more
+CAP_ENTRY_W = (36000, 42000, 47500, 54000, 60500)
+CAP_ENTRY = ((0.0, 90.0), (40.0, 90.0), (40.0, 75.0), (80.0, 75.0), (80.0, 60.0), (110.0, 60.0), (110.0, 30.0), (140.0, 30.0), (140.0, 0.0), (170.0, 0.0))
+
+
+def cap_entry(j):
+    W, V, nac = j
+    try:
+        H.load = lambda *a, **k: DS.weigh(H_LOAD(*a, **k), W)
+        f = HH.start(V, nac, alt=9000.0, terrain=0.0)
+        f['/instrumentation/mv22b/afcs/cpld'] = 1
+        dt = f['simulation/dt']
+        h0, x, hmin = None, 0.0, None
+        for i in range(int(120 / dt)):
+            t = i * dt
+            if abs(t - 1.0) < dt / 2:
+                for e in (0, 1):
+                    f['/controls/engines/engine[%d]/cutoff' % e] = 1
+                h0, t0 = f['position/h-sl-ft'], t
+            if h0 is not None:
+                x += f['velocities/vg-fps'] * dt
+                if f['velocities/vc-kts'] > f['ap/eo-vg-kt'] - 5 and f['ctl/nacelle-deg'] < 2:
+                    return dict(j=j, dh=h0 - f['position/h-sl-ft'], x=x, t=t - t0, nr=f['drive/nr-pct'], sink=-f['velocities/h-dot-fps'])
+            f.run()
+        return dict(j=j, err='no glide in 120 s: %.0f KCAS, nacelles %.0f, %.0f ft down' % (f['velocities/vc-kts'], f['ctl/nacelle-deg'], h0 - f['position/h-sl-ft']))
+    except Exception as e:
+        return dict(j=j, err=str(e)[:80])
+
+
+def cap_entries():
+    jobs = [(W, v, n) for W in CAP_ENTRY_W for v, n in CAP_ENTRY]
+    print(len(jobs), 'entries', flush=True)
+    rows = {}
+    with Pool(4, maxtasksperchild=4) as pool:
+        for n, r in enumerate(pool.imap(cap_entry, jobs)):
+            rows[r['j']] = r
+            print('%3d/%d %s' % (n + 1, len(jobs), {k: (round(v, 1) if isinstance(v, float) else v) for k, v in r.items()}), flush=True)
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eo_capability_entry_v22.json')
+    g = lambda r: None if r is None or 'err' in r else [round(r['dh']), round(r['x']), round(r['t'], 1)]
+    json.dump({'weight_lb': list(CAP_ENTRY_W), 'start_kcas_nacelles': [list(e) for e in CAP_ENTRY], 'axes': 'weight, start; each [height lost, way along, s]',
+               'entry': [[g(rows.get((W, v, n))) for v, n in CAP_ENTRY] for W in CAP_ENTRY_W]}, open(path, 'w'), indent=1)
+    print('wrote', path)
+
+
+# The flare by the speed it starts from and the flaperons it goes to (capflare): a glide held at V to the gate, the mode flaring, over ground at
+# CAP_FLARE_ELEV: the touchdown's descent, speed and tips, the way from the gate to the wheels. What the aircraft can flare from at this
+# weight is measured here, not assumed: the flaperons' whole 40 deg pitch the nose up past what the stick holds when heavy, at 54 000 lb
+# the nose at 8-9 deg against the command's 3, the float ballooning; at 30 deg it touched at 7 ft/s, 165 KCAS, the nose at 6
+CAP_FLARE_W = (36000, 42000, 47500, 54000, 60500)
+CAP_FLARE_KT = (170, 180, 190, 200, 210)
+CAP_FLARE_FLAP = (15.0, 20.0, 25.0, 30.0, 35.0, 40.0)
+CAP_FLARE_ELEV = 2000.0
+CAP_FLARE_GATE_FLAP = 20.0      # the flaperons at the gate: the brake's nominal; 10-35 as flown
+
+
+def cap_flare(j):
+    W, V, flap = j
+    try:
+        f = site_start(W, CAP_FLARE_ELEV)
+        f['ap/eo-vg-set-kt'] = V
+        f['ap/eo-flap-max-test-deg'] = flap
+        f['ap/eo-flap-test-deg'] = min(CAP_FLARE_GATE_FLAP, flap)
+        dt = f['simulation/dt']
+        x, g, sink = 0.0, None, 0.0
+        for i in range(int(200 / dt)):
+            t = i * dt
+            if abs(t - 1.0) < dt / 2:
+                for e in (0, 1):
+                    f['/controls/engines/engine[%d]/cutoff' % e] = 1
+            h = f['/position/gear-agl-m'] / 0.3048
+            if h < f['ap/eo-gear-ft'] and f['gear/gear-cmd-norm'] < 0.5:
+                f['gear/gear-cmd-norm'] = 1.0
+            if g is None and f['ap/eo-phase'] > 2.5:
+                g, gkt, gs = x, f['velocities/vc-kts'], -f['velocities/h-dot-fps']
+            sink = -f['velocities/h-dot-fps']
+            if g is not None and down(f):
+                return dict(j=j, sink=sink, kt=f['velocities/vc-kts'], tips=DS.clearance(f['ctl/nacelle-deg'], f['attitude/theta-deg']), td=x - g,
+                            pitch=f['attitude/theta-deg'], gate_kt=gkt, gate_sink=gs)
+            x += f['velocities/vg-fps'] * dt
+            f.run()
+        return dict(j=j, err='no touchdown')
+    except Exception as e:
+        return dict(j=j, err=str(e)[:80])
+
+
+def cap_flares():
+    jobs = [(W, v, fl) for W in CAP_FLARE_W for v in CAP_FLARE_KT for fl in CAP_FLARE_FLAP]
+    print(len(jobs), 'flares', flush=True)
+    rows = {}
+    with Pool(4, maxtasksperchild=4) as pool:
+        for n, r in enumerate(pool.imap_unordered(cap_flare, jobs)):
+            rows[r['j']] = r
+            print('%3d/%d %s' % (n + 1, len(jobs), {k: (round(v, 1) if isinstance(v, float) else v) for k, v in r.items()}), flush=True)
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eo_capability_flare_v22.json')
+    g = lambda r: None if r is None or 'err' in r else [round(r['sink'], 1), round(r['kt'], 1), round(r['tips'], 1), round(r['td']), round(r['pitch'], 1)]
+    json.dump({'weight_lb': list(CAP_FLARE_W), 'kcas': list(CAP_FLARE_KT), 'flap_deg': list(CAP_FLARE_FLAP), 'elevation_ft': CAP_FLARE_ELEV,
+               'axes': 'weight, glide speed, flaperons at most; each [sink ft/s, KCAS, tips ft, gate to wheels ft, pitch]',
+               'flare': [[[g(rows.get((W, v, fl))) for fl in CAP_FLARE_FLAP] for v in CAP_FLARE_KT] for W in CAP_FLARE_W]}, open(path, 'w'), indent=1)
+    print('wrote', path)
+
+
+def cap_turns():
+    jobs = [(W, k, n, b) for W in CAP_TURN_W for k in CAP_TURN_KT for n in CAP_TURN_NAC for b in CAP_TURN_BANK if DS.in_corridor(n, k)]
+    print(len(jobs), 'turns', flush=True)
+    rows = {}
+    with Pool(8, maxtasksperchild=4) as pool:
+        for n, r in enumerate(pool.imap_unordered(cap_turn, jobs)):
+            rows[r['j']] = r
+            print('%3d/%d %s' % (n + 1, len(jobs), r), flush=True)
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eo_capability_turns_v22.json')
+    out = {'weight_lb': list(CAP_TURN_W), 'kcas': list(CAP_TURN_KT), 'nacelle_deg': list(CAP_TURN_NAC), 'bank_deg': list(CAP_TURN_BANK),
+           'axes': 'weight, kcas, nacelles, bank; each [energy ft per 180 deg, radius ft, bank flown, KCAS flown]'}
+    g = lambda r: None if r is None or 'err' in r else [round(r['ft180']), round(r['radius']), round(r['flown'], 1), round(r['kcas'], 1)]
+    out['turn'] = [[[[g(rows.get((W, k, n, b))) for b in CAP_TURN_BANK] for n in CAP_TURN_NAC] for k in CAP_TURN_KT] for W in CAP_TURN_W]
+    json.dump(out, open(path, 'w'), indent=1)
+    print('wrote', path)
 
 
 def site():
@@ -410,7 +653,9 @@ def site():
                   W, t['bank'], t['ft180'], t['rate'], r['h50'], r['td'], r['kt'], r['stop'],
                   ', '.join('%s %4.0f ft' % (s, land_[(W, s)]['stop'] - land_[(W, s)]['td']) for s in SURFACES), *r['err']), flush=True)
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eo_site_v22.json')
-    json.dump(out, open(path, 'w'), indent=1)
+    d = json.load(open(path)) if os.path.exists(path) else {}
+    d.update(out)                                           # (the others' measures kept: siteguide's, turns')
+    json.dump(d, open(path, 'w'), indent=1)
     print('wrote', path)
 
 
@@ -442,10 +687,94 @@ def site_guide(name):
         if 'gate' not in r and f['ap/eo-phase'] > 2.5:
             r['gate'] = (f['ap/eo-site-x-ft'], f['ap/eo-site-y-ft'], f['attitude/phi-deg'])
         f.run()
-        if t > 3 and sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0:
+        if t > 3 and down(f):
             r['td'] = (f['ap/eo-site-x-ft'], f['ap/eo-site-y-ft'], -f['velocities/h-dot-fps'], f['velocities/vg-fps'] / 1.6878)
             break
     return r
+
+
+def final_fly(W, Lf, case, h0, sets={}, wind=None):
+    """one approach round the circle to a final of Lf (0 the full one) from h0, in wind (kt, from degrees off the
+    landing's course): the margin at the site's choice, the final's start and the flare's, the touchdown, rolled on"""
+    n_nm, e_nm, crs = FINAL_CASES[case]
+    H.load = lambda *a, **k: DS.weigh(H_LOAD(*a, **k), W)
+    f = HH.start(200.0, 0.0, alt=float(h0), terrain=0.0, **({} if wind is None else dict(wind_kt=wind[0], wind_from=(crs + wind[1]) % 360)))
+    f['/instrumentation/mv22b/afcs/cpld'] = 1
+    f['ap/eo-site-final-cmd-ft'] = Lf
+    for k, x in sets.items():
+        f[k if '/' in k else 'ap/eo-' + k] = x
+    lat0, lon0 = f['position/lat-geod-deg'], f['position/long-gc-deg']
+    f['ap/eo-site-lat-deg'] = lat0 + n_nm / 60.0
+    f['ap/eo-site-lon-deg'] = lon0 + e_nm / 60.0 / math.cos(math.radians(lat0))
+    f['ap/eo-site-course-deg'] = crs
+    dt = f['simulation/dt']
+    r, td = dict(W=W, Lf=Lf, case=case, h0=h0, sink=None, wind=wind, nr=NR0), None
+    for i in range(int(300 / dt)):
+        t = i * dt
+        if abs(t - 1.0) < dt / 2:
+            for e in (0, 1):
+                f['/controls/engines/engine[%d]/cutoff' % e] = 1
+        if abs(t - 3.0) < dt / 2:
+            f['ap/eo-site-on'] = 1
+        if 'margin' not in r and t > 3.1:
+            r['margin'] = f['ap/eo-site-margin-ft']
+        h = f['/position/gear-agl-m'] / 0.3048
+        if h < f['ap/eo-gear-ft'] and f['gear/gear-cmd-norm'] < 0.5:
+            f['gear/gear-cmd-norm'] = 1.0
+        if t > 1 and td is None:
+            r['nr'] = rotor_range(f, r['nr'])
+        if 'final' not in r and f['ap/eo-site-state'] > 2.5:
+            r['final'] = dict(x=f['ap/eo-site-x-ft'], y=f['ap/eo-site-y-ft'], bank=f['attitude/phi-deg'], margin=f['ap/eo-site-margin-ft'], h=h)
+        if 'flare' not in r and f['ap/eo-phase'] > 2.5:
+            r['flare'] = dict(x=f['ap/eo-site-x-ft'], y=f['ap/eo-site-y-ft'], bank=f['attitude/phi-deg'], sink=-f['velocities/h-dot-fps'],
+                              kcas=f['velocities/vc-kts'], flap=f['ap/eo-flap-deg'], margin=f['ap/eo-site-margin-ft'], h=h)
+        f.run()
+        wow = t > 3 and down(f)
+        if wow and td is None:
+            pitch = f['attitude/theta-deg']
+            r.update(sink=-f['velocities/h-dot-fps'], kcas=f['velocities/vc-kts'], pitch=pitch, clear=DS.clearance(f['ctl/nacelle-deg'], pitch),
+                     x=f['ap/eo-site-x-ft'], y=f['ap/eo-site-y-ft'], bank=f['attitude/phi-deg'], t=t, roll_clear=99.0, gear=f['gear/gear-pos-norm'])
+            td = r
+        if td is not None:
+            roll_on(f, r, t, wow)
+            if t - r['t'] > ROLL_S:
+                break
+    return r
+
+
+def final_run(args):
+    """final_fly from the height that puts the margin at the site's choice at none (the glide's ratio at the brake's
+    nominal from the margin read), so that the final's length is what is measured"""
+    W, Lf, case, sets, wind = args
+    h0 = 3500.0
+    for k in range(3):
+        r = final_fly(W, Lf, case, h0, sets, wind)
+        if abs(r.get('margin', 0.0)) < 300:
+            break
+        h0 = max(1500.0, h0 - r['margin'] / FINAL_LD)
+    return r
+
+
+def finals(sets={}, windy=False):
+    """the flare after a shorter final, by the weight, from circles of FINAL_CASES on energy; windy: the shortest, the
+    lightest and heaviest, in FINAL_WINDS"""
+    jobs = ([(W, Lf, c, sets, w) for W in (FLARE_W[0], FLARE_W[-1]) for Lf in FINAL_FT_WIND for c in ('base 180', 'side 30') for w in FINAL_WINDS] if windy
+            else [(W, Lf, c, sets, None) for W in FLARE_W for Lf in FINAL_FT for c in FINAL_CASES])
+    with Pool(8) as pool:
+        res = pool.map(final_run, jobs)
+    print('the final    weight  case        from   margin | final begins: x, y, bank | flare: x, y, bank, ft/s, KCAS, flaperons | down: ft/s KCAS along across')
+    for r in res:
+        fi, fl = r.get('final', {}), r.get('flare', {})
+        print('%5.0f ft %6.0f lb %-11s %-9s %5.0f ft %+6.0f | %s | %s | %s' % (
+            r['Lf'], r['W'], r['case'], 'still' if r['wind'] is None else '%d kt %03d' % tuple(r['wind']), r['h0'], r.get('margin', 0), 'no final' if not fi else '%+6.0f %+5.0f %+5.1f' % (fi['x'], fi['y'], fi['bank']),
+            'no flare' if not fl else '%+6.0f %+5.0f %+5.1f %4.1f %3.0f %4.1f' % (fl['x'], fl['y'], fl['bank'], fl['sink'], fl['kcas'], fl['flap']),
+            'not down' if r['sink'] is None else '%5.1f %3.0f %+6.0f %+5.0f %s, rotor %.0f-%.0f %%' % (r['sink'], r['kcas'], r['x'], r['y'], verdict(r), *r['nr'])), flush=True)
+    for Lf in (FINAL_FT_WIND if windy else FINAL_FT):
+        rs = [r for r in res if r['Lf'] == Lf and r['sink'] is not None]
+        print('final %5.0f ft: %2d of %2d intact, worst %.1f ft/s, flare %+.0f..%+.0f ft from the point, up to %.0f ft off the line and %.1f deg banked there' % (
+            Lf, sum(verdict(r) == 'intact' for r in rs), len([r for r in res if r['Lf'] == Lf]), max(r['sink'] for r in rs),
+            min(r['flare']['x'] for r in rs if 'flare' in r), max(r['flare']['x'] for r in rs if 'flare' in r),
+            max(abs(r['flare']['y']) for r in rs if 'flare' in r), max(abs(r['flare']['bank']) for r in rs if 'flare' in r)))
 
 
 def terrain_run(args):
@@ -471,12 +800,14 @@ def terrain_run(args):
         f['ap/eo-site-plane'], f['ap/eo-site-elev-ft'], f['ap/eo-site-slope'] = 1, my - sl * mx, sl
         f['ap/eo-site-end-ft'] = STRIP_FT[1]
     dt = f['simulation/dt']
-    pmax, td, flare = -99.0, None, None
+    pmax, td, flare, nr = -99.0, None, None, NR0
     for i in range(int(300 / dt)):
         t = i * dt
         if abs(t - 1.0) < dt / 2:
             for e in (0, 1):
                 f['/controls/engines/engine[%d]/cutoff' % e] = 1
+        if t > 1:
+            nr = rotor_range(f, nr)
         if t > 2:
             f['position/terrain-elevation-asl-ft'] = g(f['ap/eo-site-x-ft'])
         if f['/position/gear-agl-m'] / 0.3048 < f['ap/eo-gear-ft'] and f['gear/gear-cmd-norm'] < 0.5:
@@ -490,19 +821,19 @@ def terrain_run(args):
         rise = (g(x_ + 1.0) - g(x_ - 1.0)) / 2.0 * f['velocities/v-north-fps'] if t > 2 else 0.0
         last = (-f['velocities/h-dot-fps'] + rise, f['attitude/theta-deg'], f['velocities/vg-fps'] / 1.6878, x_)
         f.run()
-        if t > 3 and sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0:
+        if t > 3 and down(f):
             td = last
             break
-    return name, plane, flare, pmax, td
+    return name, plane, flare, pmax, td, nr
 
 
 def terrain_runs(sets={}):
     jobs = [(n, p, sets) for n in TERRAIN for p in (False, True)]
     with Pool(8) as pool:
         res = pool.map(terrain_run, jobs)
-    for name, plane, flare, pmax, td in res:
-        print('%-12s %-6s the flare from %+6.0f ft, its pitch up to %4.1f; down %s' % (
-            name, 'plane' if plane else 'radar', flare if flare is not None else float('nan'), pmax,
+    for name, plane, flare, pmax, td, nr in res:
+        print('%-12s %-6s the flare from %+6.0f ft, its pitch up to %4.1f; rotor %.0f-%.0f %%; down %s' % (
+            name, 'plane' if plane else 'radar', flare if flare is not None else float('nan'), pmax, *nr,
             '%5.1f ft/s, pitch %4.1f, %3.0f kt over the ground, %+5.0f ft' % td if td else 'not'), flush=True)
 
 
@@ -554,13 +885,15 @@ def flare_run(args):
     f['/instrumentation/mv22b/afcs/cpld'] = 1
     dt = f['simulation/dt']
     d, d_f, r, td = 0.0, None, dict(args=args, sink=None), None
-    hmin, bal, pk, nz = 1e9, 0.0, (-99.0, 0.0), 0.0
+    hmin, bal, pk, nz, nr = 1e9, 0.0, (-99.0, 0.0), 0.0, NR0
     for i in range(int(300 / dt)):
         t = i * dt
         if abs(t - 1.0) < dt / 2:
             for e in (0, 1):
                 f['/controls/engines/engine[%d]/cutoff' % e] = 1
         d += f['velocities/v-north-fps'] * dt
+        if t > 1 and td is None:
+            nr = rotor_range(f, nr)
         if t > 2:
             f['position/terrain-elevation-asl-ft'] = elev + (slope * max(0.0, d - d_f) if d_f is not None else 0.0)
         hw = f['/position/gear-agl-m'] / 0.3048
@@ -576,7 +909,7 @@ def flare_run(args):
             bal = max(bal, hw - hmin)
             nz = max(nz, f['accelerations/Nz'])
         f.run()
-        wow = t > 3 and sum(f['gear/unit[%d]/WOW' % j] for j in range(3)) > 0
+        wow = t > 3 and down(f)
         if wow and td is None:
             pitch = f['attitude/theta-deg']
             # (the descent against the ground, what the gear meets: the ground's own rate, its slope at the speed along it,
@@ -591,7 +924,7 @@ def flare_run(args):
             roll_on(f, r, t, wow)
             if t - r['t'] > ROLL_S:
                 break
-    r.update(peak=pk, balloon=bal, nz=nz)
+    r.update(peak=pk, balloon=bal, nz=nz, nr=nr)
     return r
 
 
@@ -609,16 +942,16 @@ def flare_runs(quick, sets):
             s = '%5.1fk lb %4.0f ft ISA%+3.0f %+4.0f kt %+3.0f %% %4.0f ft' % (W / 1000, elev, dT, wind, slope * 100, h0)
             if r.get('flare'):
                 s += ': the flare at %3.0f ft %4.1f ft/s %3.0f KCAS' % r['flare']
-            s += ', its pitch up to %4.1f at %3.0f ft, balloon %4.1f ft, %.2f g' % (*r['peak'], r['balloon'], r['nz'])
+            s += ', its pitch up to %4.1f at %3.0f ft, balloon %4.1f ft, %.2f g, rotor %.0f-%.0f %%' % (*r['peak'], r['balloon'], r['nz'], *r['nr'])
             if r['sink'] is not None:
                 s += '; down %5.1f ft/s %3.0f KCAS, pitch %4.1f, nacelles %4.1f (tips %+5.1f ft, rolling %+5.1f), %5.0f ft, %4.1f s: %s' % (
                     r['sink'], r['kcas'], r['pitch'], r['nac'], r['clear'], r['roll_clear'], r['run'], r['t_fl'], verdict(r))
             print(s, flush=True)
             res.append(r)
     sinks = sorted(r['sink'] for r in res if r['sink'] is not None)
-    print('%d flares: %d intact; down at %.1f ft/s median, %.1f at worst; balloons over 5 ft %d; up to %.2f g; tips rolling down to %+.1f ft' % (
+    print('%d flares: %d intact; down at %.1f ft/s median, %.1f at worst; balloons over 5 ft %d; up to %.2f g; tips rolling down to %+.1f ft; rotor %.0f-%.0f %%' % (
         len(res), sum(verdict(r) == 'intact' for r in res), sinks[len(sinks) // 2], sinks[-1], sum(r['balloon'] > 5 for r in res),
-        max(r['nz'] for r in res), min(r.get('roll_clear', 99.0) for r in res)))
+        max(r['nz'] for r in res), min(r.get('roll_clear', 99.0) for r in res), min(r['nr'][0] for r in res), max(r['nr'][1] for r in res)))
     for W in FLARE_W:
         rs = [r for r in res if r['args'][0] == W]
         print('  %5.1fk lb: %d of %d intact' % (W / 1000, sum(verdict(r) == 'intact' for r in rs), len(rs)))
@@ -627,7 +960,7 @@ def flare_runs(quick, sets):
 def verdict(r):
     if r['sink'] is None:
         return 'not down'
-    if r['sink'] < DS.GEAR_FPS and r['clear'] > CLEAR_FT and r['pitch'] < TAIL_DEG and r.get('roll_clear', 99.0) > 0:
+    if r['sink'] < DS.GEAR_FPS and r['clear'] > CLEAR_FT and r['pitch'] < TAIL_DEG and r.get('roll_clear', 99.0) > 0 and r.get('gear', 1.0) > 0.99:
         return 'intact'
     return 'survivable' if r['sink'] < SURVIVE_FPS else 'not survivable'
 
@@ -638,8 +971,9 @@ def report(r):
     if r['sink'] is None:
         return '%-12s not down in 400 s; phases %s' % (name, ph)
     return ('%-12s %-14s sink %5.1f ft/s, %3.0f kt, pitch %5.1f, nacelles %4.1f (tips %+5.1f ft, rolling %+5.1f), Nr %5.1f '
-            '(least %5.1f), %5.1f s, the flare %.2f NM; phases %s' % (name, verdict(r), r['sink'], r['gs'], r['pitch'], r['nac'], r['clear'],
-                                                                    r['roll_clear'], r['nr'], r['nr_min'], r['t'], r['run_nm'], ph))
+            '(least %5.1f), %5.1f s, the flare %.2f NM%s; phases %s' % (
+                name, verdict(r), r['sink'], r['gs'], r['pitch'], r['nac'], r['clear'], r['roll_clear'], r['nr'], r['nr_min'], r['t'],
+                r['run_nm'], '' if r['gear'] > 0.99 else ', the gear %.0f %% down' % (100 * r['gear']), ph))
 
 
 def intact(r):
@@ -681,6 +1015,16 @@ if __name__ == '__main__':
             print(report(r), flush=True)
     elif sys.argv[1:2] == ['site']:
         site()
+    elif sys.argv[1:2] == ['capturns']:
+        cap_turns()
+    elif sys.argv[1:2] == ['capentry']:
+        cap_entries()
+    elif sys.argv[1:2] == ['capflare']:
+        cap_flares()
+    elif sys.argv[1:2] == ['turns']:
+        turns()
+    elif sys.argv[1:2] == ['finals']:
+        finals(dict((kv.split('=')[0], float(kv.split('=')[1])) for kv in sys.argv[2:] if '=' in kv), 'wind' in sys.argv[2:])
     elif sys.argv[1:2] == ['siteguide']:
         site_guides()
     elif sys.argv[1:2] == ['terrain']:

@@ -1,0 +1,2 @@
+while read s la lo h k a; do (PATH=/opt/homebrew/bin:$PATH python3 startat.py $la $lo $h $k $a 2>&1 | grep -E "DOWN|LEFT|stopped|NASAL|called from|chosen| for " | cut -c1-170 > $1_$s.txt) & done < starts.txt; wait
+for s in 1 2 3 4 5; do echo "--- start $s: $(grep -c ' for ' $1_$s.txt) changes $(grep -c NASAL $1_$s.txt) errors"; grep -E "DOWN|LEFT|stopped" $1_$s.txt | sed -E 's/, pitch [^,]*, bank [^,]*//; s/; tips rolling.*//' | cut -c1-135; done

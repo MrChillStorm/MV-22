@@ -77,5 +77,31 @@
   2.026,
   1.935
  ],
- "note": "aptest.py tflag: the climb's response to TF's command, two first order lags in parallel (the quick one's share w, tau1, tau2 s), the height's tracking gain, 1/s, and the delay behind a ramp, s (genv22.tf_lag)"
+ "peak_up": [
+  1.0625,
+  1.0046,
+  0.9998,
+  1.0469,
+  1.0813,
+  1.0426,
+  1.0329,
+  1.0355,
+  1.0233,
+  1.0155,
+  1.1059
+ ],
+ "peak_down": [
+  0.9942,
+  0.9974,
+  1.0312,
+  1.062,
+  1.0785,
+  1.1153,
+  1.0806,
+  1.0656,
+  1.0973,
+  1.0725,
+  1.1915
+ ],
+ "note": "aptest.py tflag: the climb's response to TF's command, two first order lags in parallel (the quick one's share w, tau1, tau2 s), the height's tracking gain, 1/s, the delay behind a ramp, s, and the peaks of its steps up and down, over the step (genv22.tf_lag)"
 }

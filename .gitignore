@@ -14,3 +14,6 @@ fdm/report/v22_report.pdf
 manual/mv22b_manual.pdf
 fdm/report/**/*.log
 fdm/report/**/*.err
+# the ENG OUT bench's build products and run logs
+fdm/eobench/**/*.dylib
+fdm/eobench/nb/ldmap.txt

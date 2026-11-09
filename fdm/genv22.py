@@ -68,6 +68,15 @@ GE_K, GE_EXP, GE_ZR_MIN = 0.3, -0.5, 0.3
 # strips' coefficients from 40 deg towards normal incidence, per flap setting, FITTED to the XV-15's flight data
 # (download.py); the V-22's large-scale test (9.2 % at 67 deg) checks it.
 DL_K = {'F4': 2.9, 'F1': 2.9, 'F2': 2.3, 'F3': 1.85}
+EO_SURPLUS_FT = 1000.0                  # ENG OUT's path: the margin left at the entry point (the flare's scatter short)
+EO_FALL_KT = 140.0                         # (the fall to flying speed is over by here: capability.py's entries; under it the first turn is the speed's)
+EO_STEER_FPS, EO_STEER_DEG = (25.0, 50.0, 100.0, 170.0, 270.0), (70.0, 30.0, 12.0, 6.0, 3.0)
+from capability import EO_VG_W, EO_VG_KT, EO_TIP_FT, eo_tip_deg      # matrix of 192 flights each: 170 at 36 000 lb 155 intact against 133, 175 at 38 722 lb 140 against 139, 180 at 42 000 lb 125 against 137
+EO_STOP_FPS = 3.0                       # stopped
+EO_PED_TOP_FT = 300.0                   # the pedals take part under this, on the final
+EO_TIP_SPAN_FT = 42.0                   # the rotor tip from the centreline: the hub's 23 ft and the 19 ft blade
+EO_NB_SPAN_FT = 1500.0                  # the height to spare, in reach, it is fully out over
+EO_TOUCH_FT = 300.0                     # ENG OUT's path: its two circles overlapping by this still a path, of no leg
 KEEP = {'aero/rotor/r/thrust-lbs', 'aero/rotor/l/thrust-lbs', 'aero/rotor/r/torque-ftlb', 'aero/rotor/l/torque-ftlb',
         'aero/rotor/r/power-hp', 'aero/rotor/l/power-hp', 'aero/wing/download-lbs', 'aero/wing/lift-lbs',
         # read by Nasal/v22.nas and the gauges
@@ -76,16 +85,17 @@ KEEP = {'aero/rotor/r/thrust-lbs', 'aero/rotor/l/thrust-lbs', 'aero/rotor/r/torq
         'ap/tcl-cmd', 'ap/nacelle-sched-deg', 'ap/auto-nac-on', 'ap/lat', 'ap/vert', 'ap/spd', 'ap/coupled', 'ap/nav', 'ap/line', 'ap/app',
         'ap/app-dist-ft', 'ap/app-xte-ft', 'ap/app-path-ft', 'ap/v-sel-kt', 'ap/roll-lag-s', 'ap/app-route',
         'ap/tf-on', 'ap/tf-flyup', 'ap/tf-climb-cap-fps', 'ap/tf-ref-ft', 'ap/tf-model-ft', 'ap/tf-v1-fps',
-        'ap/tf-v2-fps', 'ap/tf-w', 'ap/tf-tau1-s', 'ap/tf-tau2-s', 'ap/tf-kh',
+        'ap/tf-v2-fps', 'ap/tf-w', 'ap/tf-tau1-s', 'ap/tf-tau2-s', 'ap/tf-kh', 'ap/tf-desc-max-fps',
         # ENG OUT's cues (displays.nas) and deadland.py's traces
         'ap/eo-fly', 'ctl/flap-law-deg', 'ap/eo-theta-cmd-deg', 'ap/eo-phi-cmd-deg', 'ap/eo-nac-cmd-deg', 'ap/eo-lever-cmd', 'ap/eo-gate-ft',
         'ap/eo-pull-err-fps', 'ap/eo-hdot-err-fps', 'ap/eo-energy-ft', 'ap/eo-reach-nm', 'ap/eo-reach-s',
         # ENG OUT's landing site (eosite.nas, the displays, deadland.py site tests)
-        'ap/eo-site-x-ft', 'ap/eo-site-y-ft', 'ap/eo-site-r-ft', 'ap/eo-site-final-ft', 'ap/eo-site-arc-rad', 'ap/eo-site-margin-ft',
-        'ap/eo-site-path-ft', 'ap/eo-site-sturn-rad', 'ap/eo-site-trk-deg', 'ap/eo-phi-cmd-deg', 'ap/eo-site-turn-ft-rad', 'ap/eo-h-ft', 'ap/eo-tau-eff-s', 'ap/eo-gnd-rate-fps',
+        'ap/eo-site-x-ft', 'ap/eo-site-y-ft', 'ap/eo-site-r-ft', 'ap/eo-site-final-ft', 'ap/eo-site-final-full-ft', 'ap/eo-site-arc-rad', 'ap/eo-site-margin-ft',
+        'ap/eo-site-path-ft', 'ap/eo-site-mid-ft', 'ap/eo-nb-deg', 'ap/eo-plan-spend-ft', 'ap/eo-plan-hold-ft', 'ap/eo-glide-plan', 'ap/eo-plan-theta-deg', 'ap/eo-nb-ceil-deg', 'ap/eo-nb-floor-ft', 'ap/eo-nb-used', 'ap/eo-nb-after-kt', 'ap/eo-nb-ld', 'ap/eo-nb-lag-s', 'ap/eo-entry-ft', 'ap/eo-entry-loss-ft', 'ap/eo-entry-way-ft', 'ap/eo-site-fall', 'ap/eo-gear-ft', 'ap/eo-ld-req', 'ap/eo-xw-limit-kt', 'ap/eo-tgo-flare-s', 'ap/eo-decrab-w', 'ap/eo-tgo-s', 'ap/eo-ped-err-rad', 'ap/eo-ped-active', 'ctl/steer-deg', 'ap/eo-zone-short-ft', 'ap/eo-zone-past-ft', 'ap/eo-zone-side-ft', 'ap/eo-zone-rise', 'ap/eo-site-a1-now-rad', 'ap/eo-site-arc-left-rad', 'ap/eo-site-sturn-rad', 'ap/eo-site-trk-deg', 'ap/eo-phi-cmd-deg', 'ap/eo-site-turn-ft-rad', 'ap/eo-site-turn0-ft-rad', 'ap/eo-site-r0-ft', 'ap/eo-site-hac-bank-deg', 'ap/eo-bank-lim-deg', 'ap/eo-brake-nom-ratio', 'ap/eo-h-ft', 'ap/eo-tau-eff-s', 'ap/eo-gnd-rate-fps', 'ap/eo-ld-up',
         # read by descent.py (the others it reads are read twice in the model)
         'aero/rotor/r/vrs/nu-base', 'aero/rotor/l/vrs/nu-base', 'aero/rotor/r/vrs/dnu', 'aero/rotor/l/vrs/dnu'} | alerts.KEEP
 INLINE = True
+
 
 
 def prefix():
@@ -182,12 +192,13 @@ def climb_power():
 def tf_lag():
     """the climb's response to TF's command against the calibrated airspeed, along AUTO NAC's schedule (aptest.py
     tflag): two first order lags in parallel fitted to its step, the quick one's share and the two time constants, s;
-    and the height's tracking gain, 1/s. Without it a 1 s lag and 0.2 (a loop 5 s slow)"""
+    the height's tracking gain, 1/s; and the peak of a step down, over the step. Without it a 1 s lag and 0.2 (a loop 5
+    s slow), no overshoot"""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tf_lag_v22.json')
     if not os.path.exists(path):
-        return [0.0, 300.0], [1.0, 1.0], [1.0, 1.0], [2.0, 2.0], [0.2, 0.2]
+        return [0.0, 300.0], [1.0, 1.0], [1.0, 1.0], [2.0, 2.0], [0.2, 0.2], [1.0, 1.0]
     d = json.load(open(path))
-    return d['kcas'], d['w'], d['tau1_s'], d['tau2_s'], d['k_h']
+    return d['kcas'], d['w'], d['tau1_s'], d['tau2_s'], d['k_h'], d.get('peak_down', [1.0] * len(d['kcas']))
 
 
 def start_trim():
@@ -201,6 +212,19 @@ def glide_ld():
     """the airplane mode's glide ratio with the engines out over the calibrated airspeed and the gross weight, the gear
     up and down (deadstick.py --table: the model's zero-power trims, 1000 ft); None without it"""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'glide_ld_v22.json')
+    return json.load(open(path)) if os.path.exists(path) else None
+
+
+def glide_ld_flap():
+    """the glide ratio at the glide's 200 KCAS by the gross weight and the flaperons held, the gear up and down
+    (deadstick.py --flaptable); None without it"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'glide_ld_flap_v22.json')
+    return json.load(open(path)) if os.path.exists(path) else None
+
+
+def eo_schedule():
+    """ENG OUT's speeds and nacelle brake by the gross weight, from what the model does (capability.py); None without it"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eo_capability_schedule_v22.json')
     return json.load(open(path)) if os.path.exists(path) else None
 
 
@@ -405,10 +429,17 @@ class Model:
         c.declare('scas/stick-ff', 1.0)
         c.declare('scas/lon-trim-in', 0.0)
         ff = S(v(1), M(sc, D(p('scas/stick-ff'), v(1))))      # the stick's direct path (scas())
-        c.fn('ctl/lon-in', S(M(lon, v(B.X_LON), ff), M(sc, S(p('scas/lon-in'), p('scas/lon-trim-in')))),
+        c.declare('ap/eo-lon-in', 0.0)          # (ENG OUT's Touchdown task: eng_out)
+        c.fn('ctl/lon-in', S(M(lon, v(B.X_LON), ff), M(sc, S(p('scas/lon-in'), p('scas/lon-trim-in'))), p('ap/eo-lon-in')),
              clip=('-%g' % B.X_LON, '%g' % B.X_LON))
-        c.fn('ctl/lat-in', S(M(lat, v(B.X_LAT), ff), M(sc, p('scas/lat-in'))), clip=('-%g' % B.X_LAT, '%g' % B.X_LAT))
-        c.fn('ctl/ped-in', S(M(ped, v(B.X_PED)), M(sc, p('scas/ped-in'))), clip=('-%g' % B.X_PED, '%g' % B.X_PED))
+        c.declare('ap/eo-ped-in', 0.0)          # (ENG OUT's own, low on the final and on the ground: eng_out_site)
+        c.declare('ap/eo-lat-in', 0.0)
+        c.fn('ctl/lat-in', S(M(lat, v(B.X_LAT), ff), M(sc, p('scas/lat-in')), p('ap/eo-lat-in')), clip=('-%g' % B.X_LAT, '%g' % B.X_LAT))
+        c.fn('ctl/ped-in', S(M(ped, v(B.X_PED)), M(sc, p('scas/ped-in')), p('ap/eo-ped-in')), clip=('-%g' % B.X_PED, '%g' % B.X_PED))
+        if U.NAME == 'V-22':
+            # (the nose wheel through the pedals, its authority falling with the speed, as a pedal's on other aircraft: all 70 deg to taxi,
+            # a few at the landing's. The V-22's own schedule isn't public: estimates)
+            c.fn('ctl/steer-deg', M(Q(p('ctl/ped-in'), v(B.X_PED)), T1('velocities/vg-fps', EO_STEER_FPS, EO_STEER_DEG)), out='fcs/steer-pos-deg[0]', desc='the nose wheel, deg')
         c.channel('nacelles', execrate=CONTROL_EXECRATE)
         # the nacelle angle follows its command at the conversion rate; it starts at the command. FlightGear starting it
         # in the air (its preset not on the ground; the test programme's trims are, by default), the command (so the
@@ -424,8 +455,9 @@ class Model:
             # conversion protection [PD fig. 5]: the command held within the corridor's boundaries at the equivalent
             # airspeed (ctl/cps-on; the test programme switches it off)
             c.declare('ctl/cps-on', 1)
+            c.declare('ctl/cps-free', 0)        # (ENG OUT's fall and glide: eng_out)
             (lv, ln), (uv, un) = U.CPS
-            on = GT(p('ctl/cps-on'), v(0.5))
+            on = GT(M(p('ctl/cps-on'), D(v(1), p('ctl/cps-free'))), v(0.5))
             lo_ = c.fn('ctl/cps-min-deg', IFTHEN(on, T1('velocities/ve-kts', lv, ln), v(U.NACELLE_MIN)))
             hi_ = c.fn('ctl/cps-max-deg', IFTHEN(on, T1('velocities/ve-kts', uv, un), v(U.NACELLE_MAX)))
             cmd = c.fn('ctl/nacelle-cmd-limited-deg', MAX(lo_, MIN(hi_, cmd)))
@@ -484,7 +516,9 @@ class Model:
                        [0.5 * fc, 0.5 * fc, 0.5 * fc, 0.5 * fc, 0.5 * fc], [0, 0, 0, 0, 0]])
         c.declare('ctl/flaperon-override', 0)
         c.declare('ctl/flaperon-set-deg', 0.0)
-        c.fn('ctl/flaperon-cmd-deg', IFTHEN(GT(p('ctl/flaperon-override'), v(0.5)), p('ctl/flaperon-set-deg'), fsch))
+        c.declare('ap/eo-flap-own', 0)          # (ENG OUT's on the wheels: the schedule holds them at 40 under 160 kt)
+        c.declare('ap/eo-flap-deg', 0.0)
+        c.fn('ctl/flaperon-cmd-deg', IFTHEN(GT(p('ctl/flaperon-override'), v(0.5)), p('ctl/flaperon-set-deg'), IFTHEN(GT(p('ap/eo-flap-own'), v(0.5)), p('ap/eo-flap-deg'), fsch)))
         c.channel('servos', execrate=CONTROL_EXECRATE)
         # swashplate and surface actuators: first-order, 0.05 s (estimate)
         for n in ['r/theta75', 'l/theta75', 'r/b1s', 'l/b1s', 'elevator', 'rudder', 'aileron', 'flaperon']:
@@ -569,6 +603,7 @@ class Model:
         c.declare('scas/phi-cmd-deg', 25.0)
         c.declare('scas/detent', 0.05)    # stick or pedals within this of their centre: at rest (fraction of travel)
         c.declare('scas/auth-in', 0.5 * B.X_LON)            # stick (pitch, roll), in
+        c.declare('scas/auth-aft-in', 0.5 * B.X_LON)        # (aft of it: ENG OUT's own pull-out, eng_out)
         c.declare('scas/auth-ped-in', B.X_PED)              # pedals: the full travel, which the yaw's rate command needs in a
                                                             # tailwind (half of it let a 35 kt one turn the aircraft)
         auth, auth_ped = p('scas/auth-in'), p('scas/auth-ped-in')
@@ -704,7 +739,7 @@ class Model:
         else:
             qff = v(0)
         c.fn('scas/lon-calc', D(S(M(kx['theta'], S(M(p('scas/kq'), p('scas/q-wo')), M(p('scas/ktheta'), err['theta']))), p('scas/theta-int-in')), qff),
-             clip=('-scas/auth-in', 'scas/auth-in'), out='scas/lon-in')
+             clip=('-scas/auth-aft-in', 'scas/auth-in'), out='scas/lon-in')
         rf = rate_ff('roll')
         pff = M(p('ap/phi-ref-rate'), p('ap/phi-on'), Q(v(1), T1('velocities/vc-kts', rf[0], rf[1]))) if rf else v(0)
         c.fn('scas/lat-calc', S(NEG(S(M(kx['phi'], S(M(p('scas/kp'), p('scas/p-wo')), M(p('scas/kphi'), err['phi']))), p('scas/phi-int-in'))), pff),
@@ -935,11 +970,21 @@ class Model:
         # closed with a gain for 60 deg of phase margin on the measured response (tf_lag): a linear loop. Where the
         # lever is at its stop and the aircraft falls behind the model, the model and the reference come down to it:
         # the plan sees the height there is (no wind-up)
-        lk, lw, lt1, lt2, lkh = tf_lag()
+        lk, lw, lt1, lt2, lkh, lpd = tf_lag()
+        # its descent no more than keeps the aircraft, overshooting as its step down does (tf_lag), out of PULL UP's
+        # envelope at the clearance: there, over the ground, h = s PULLUP_S + s^2 / (2 g PULLUP_G) (alerts.py; the
+        # alert's height the aircraft's, the clearance the wheels'). The 2000 ft/min it had was that envelope's at 200
+        # ft: over the hills at 150 kt, the descent 11 % over it, PULL UP sounded for 1.9 s (the step down's peak 1.115
+        # there); with 100 ft set the envelope is 19 ft/s
+        kpu = 2 * G0 * alerts.PULLUP_G
+        hpu = S(MAX(v(100), p(ST + 'target-agl-ft')), D(p('position/h-agl-ft'), p('hh/h-wheels-ft')))
+        spu = M(v(kpu / 2), D(SQ(S(v(alerts.PULLUP_S ** 2), M(v(4 / kpu), hpu))), v(alerts.PULLUP_S)))
+        desc = c.fn('ap/tf-desc-max-fps', Q(spu, MAX(v(1), T1('ap/tf-config-kt', lk, lpd))),
+                    desc='TF\'s descent limit, ft/s: its overshoot inside PULL UP\'s envelope at the clearance (autopilot.nas plans within it)')
         w1 = c.fn('ap/tf-w', T1('ap/tf-config-kt', lk, lw), desc='the quick lag\'s share of the climb\'s response (tf_lag)')
         tau1 = c.fn('ap/tf-tau1-s', MAX(v(0.05), T1('ap/tf-config-kt', lk, lt1)), desc='the quick lag, s (tf_lag)')
         tau2 = c.fn('ap/tf-tau2-s', MAX(v(0.05), T1('ap/tf-config-kt', lk, lt2)), desc='the slow lag, s (tf_lag)')
-        ttgt = IFTHEN(GT(flyup, v(0.5)), ccap, p('ap/tf-hdot-fps'))
+        ttgt = IFTHEN(GT(flyup, v(0.5)), ccap, MAX(NEG(desc), p('ap/tf-hdot-fps')))
         trate = M(IFTHEN(GT(M(tf, low), v(0.5)), MAX(p('ap/tf-flyup-g'), p('ap/tf-ride-g')), p('ap/tf-ride-g')), v(G0), dt)
         tprev = p('ap/tf-cmd-fps')
         run = GT(M(tf, NOT(tfr)), v(0.5))
@@ -1126,32 +1171,40 @@ class Model:
         """ENG OUT: both engines out, the glide and the landing on the wheels as the model flies them best (deadland.py
         auto, its settings swept: deadland.py's docstring). A flight director mode: it comes on when both engines that
         ran stop in the air (or with its key), its commands on the FLT format for the crew to fly; coupled (CPLD) the
-        augmentation flies them, as the other modes' (they wait meanwhile: off, the hover hold with them).
-        The lever at flat pitch (the governor windmilling the rotors), the nacelles to airplane mode (the conversion
-        protection lets them follow the speed). The pitch flies the glide's speed, ap/eo-vg-kt (the most energy for the
-        flare: 180 did worse), the speed's error as an acceleration less the flight path's own (as the autopilot's back
-        side), no lower than ap/eo-dive-deg; the dive's descent limited to what a pull-out at ap/eo-pull-g stops by the
-        flare's height. At ap/eo-flare-ft on the wheels' radar height (higher when sinking fast), the flare: the pitch on a
-        descent rate closing on a float ap/eo-float-ft over the ground, its time constant fitted to the descent at the
-        flare's start and closing to ap/eo-tau-s, never faster than there is, the ground's own rate added; the pitch no
-        higher than ap/eo-tail-deg (the fuselage's underside meets the ground at TAIL_STRIKE_DEG, 7.3 deg, on the
-        wheels), its attitude held to that (the attitude's error integrated, the limit led by the pitch rate); the
-        nacelles commanded up from ap/eo-nac-start-ft to ap/eo-nac-flare-deg, the corridor's upper boundary letting them
-        come as the speed falls (the proprotors clear the ground from 38.5 deg, level); the flaperons, its own law there,
-        coming down from the flare's start at ap/eo-flap-rate-dps to ap/eo-flap-max-deg. Out of pitch (the attitude at
-        its limit and sinking 2 ft/s past the command for 1 s), the settling at ap/eo-td-fps, the lever at flat pitch
-        still. On the ground (coupled) the lever down, the attitude held and the nacelles coming up to
-        ap/eo-nac-safe-deg, then the mode off. Its flare across the weight, the field's air, the wind and the
-        ground's slope: deadland.py flare. The heading held from engaging (the bug's with HDG
-        HOLD), within ap/eo-flare-bank-deg in the flare. The gear is the crew's: the mode line asks for it
-        (autopilot.nas). Its authority the augmentation's own, half the stick: with the whole the dive was steeper and its
-        pull-out came too late. (A nose raised as the rotor speed sagged changed nothing: none.) Phases (ap/eo-phase):
-        1 diving to the glide's speed, 2 gliding, 3 flaring, 4 settling, 5 on the ground."""
+        augmentation flies them, as the other modes' (they wait meanwhile: off, the hover hold with them). The lever at
+        flat pitch (the governor windmilling the rotors), the nacelles to airplane mode (the conversion protection lets
+        them follow the speed). The pitch flies the glide's speed, ap/eo-vg-kt (the most energy for the flare: 180 did
+        worse), the speed's error as an acceleration less the flight path's own (as the autopilot's back side), no lower
+        than ap/eo-dive-deg and no higher than the wing's stall; the dive's descent limited to what a pull-out at
+        ap/eo-pull-g stops by the flare's height. At ap/eo-flare-ft on the wheels' radar height (higher when sinking
+        fast), the flare: the pitch on a descent rate closing on a float ap/eo-float-ft over the ground, its time
+        constant fitted to the descent at the flare's start and closing to ap/eo-tau-s, never faster than there is, the
+        ground's own rate added; the pitch no higher than ap/eo-tail-deg (the fuselage's underside meets the ground at
+        TAIL_STRIKE_DEG, 7.3 deg, on the wheels), its attitude held to that (the attitude's error integrated, the limit
+        led by the pitch rate); the nacelles commanded up from ap/eo-nac-start-ft to ap/eo-nac-flare-deg, the corridor's
+        upper boundary letting them come as the speed falls (the proprotors clear the ground from 38.5 deg, level); the
+        flaperons, its own law there, coming down from the flare's start at ap/eo-flap-rate-dps to ap/eo-flap-max-deg.
+        Out of pitch (the attitude at its limit and sinking 2 ft/s past the command for 1 s), the settling at
+        ap/eo-td-fps, the lever at flat pitch still. On the ground (coupled) the lever down, the attitude held and the
+        nacelles coming up to ap/eo-nac-safe-deg, then the mode off. Its flare across the weight, the field's air, the
+        wind and the ground's slope: deadland.py flare. The heading held from engaging (the bug's with HDG HOLD), within
+        ap/eo-flare-bank-deg in the flare. The gear is the crew's: the mode line asks for it (autopilot.nas). Its
+        authority the augmentation's own, half the stick: with the whole the dive was steeper and its pull-out came too
+        late. (A nose raised as the rotor speed sagged changed nothing: none.) Phases (ap/eo-phase): 1 diving to the
+        glide's speed, 2 gliding, 3 flaring, 4 settling, 5 on the ground."""
         c = s.ctl
         KT, AF = 1.6878, '/instrumentation/mv22b/afcs/'
-        for n, x in (('vg-kt', 200.0), ('kv', 0.25), ('kp', 0.8), ('ki', 0.25), ('a-max-g', 0.2), ('dive-deg', -20.0), ('pitch-max-deg', 15.0),
+        # (the glide's speed by the weight, EO_VG_KT: light, at 200 KCAS the glide is well past its best, 20 % of the range at 36 000 lb with the flaperons out.
+        # From 42 000 lb 200 stays: at 47 500 lb 185 KCAS did worse, 10 of 48 low starts against 13. ap/eo-vg-set-kt: a test's own)
+        sch0 = eo_schedule() if U.NAME == 'V-22' else None
+        c.declare('ap/eo-vg-set-kt', 0.0)
+        if sch0:
+            c.fn('ap/eo-vg-kt', IFTHEN(GT(p('ap/eo-vg-set-kt'), v(1)), p('ap/eo-vg-set-kt'), T1('inertia/weight-lbs', EO_VG_W, EO_VG_KT)), desc='the glide\'s speed by the weight, KCAS')
+        else:
+            c.declare('ap/eo-vg-kt', 200.0)
+        for n, x in (('kv', 0.25), ('kp', 0.8), ('ki', 0.25), ('a-max-g', 0.2), ('dive-deg', -20.0), ('pitch-max-deg', 15.0),
                      ('flare-ft', 250.0), ('float-ft', 10.0), ('tau-s', 3.0), ('kh', 0.3), ('khi', 0.15),
-                     ('td-fps', 3.0), ('tail-deg', 6.0), ('nac-flare-deg', 45.0), ('gear-ft', 1000.0),
+                     ('td-fps', 3.0), ('tail-deg', 6.5), ('nac-flare-deg', 45.0), ('gear-min-ft', 1000.0),
                      ('theta-rate-dps', 4.0), ('flare-bank-deg', 5.0), ('sink-ok-fps', 45.0), ('pull-g', 0.1), ('settle-ft', 300.0), ('kg', 1.0),
                      ('ka', 1.0), ('att-int-max-deg', 5.0), ('lead-s', 0.5), ('bank-deg', 55.0), ('phi-rate-dps', 15.0)):
             c.declare('ap/eo-' + n, x)
@@ -1179,8 +1232,19 @@ class Model:
         for n, x in (('roll', 1), ('nac-safe-deg', 60.0)):
             c.declare('ap/eo-' + n, x)
         # (flown coupled down to the ground, ap/eo-flown: CPLD itself drops on the wheels)
+        # (and on until the aircraft stops: let go at the nacelles' 60 deg, nothing held it to the line for the rest of the run)
         roll = c.fn('ap/eo-rolling', M(on('ap/eo-roll'), on(AF + 'eng-out'), p('ctl/scas-on'), GT(st, v(4.5)), on('ap/eo-flown'),
-                                        LT(p('ctl/nacelle-deg'), p('ap/eo-nac-safe-deg'))), desc='1: ENG OUT rolling out, the nacelles still coming up')
+                                        MAX(LT(p('ctl/nacelle-deg'), p('ap/eo-nac-safe-deg')), GT(p('velocities/vg-fps'), v(EO_STOP_FPS)))), desc='1: ENG OUT rolling out, until it stops')
+        # (the brakes on as the planned run has them, from ap/eo-brake-s after the wheels, with the crew's own on top. Left on when it stops)
+        for n, x in (('brake-s', 2.0),):
+            c.declare('ap/eo-' + n, x)
+        c.declare('ap/eo-wheels-s', 0.0)
+        c.declare('/controls/gear/brake-parking', 0)
+        c.fn('ap/eo-wheels-next', M(roll, wow, S(p('ap/eo-wheels-s'), p('simulation/channel-dt'))), out='ap/eo-wheels-s')
+        brk = GT(p('ap/eo-wheels-s'), p('ap/eo-brake-s'))
+        c.fn('ap/eo-brake-l', MAX(p('fcs/left-brake-cmd-norm'), brk), out='fcs/left-brake-cmd-norm')
+        c.fn('ap/eo-brake-r', MAX(p('fcs/right-brake-cmd-norm'), brk), out='fcs/right-brake-cmd-norm')
+        c.fn('ap/eo-park-next', MAX(p('/controls/gear/brake-parking'), M(GT(st, v(4.5)), on('ap/eo-flown'), on(AF + 'eng-out'), LT(p('velocities/vg-fps'), v(EO_STOP_FPS)))), out='/controls/gear/brake-parking')
         ended = MAX(GT(M(GT(st, v(4.5)), LT(p(thr), v(0.02)), NOT(roll)), v(0.5)), GT(M(wow, LT(st, v(0.5))), v(0.5)))
         c.fn('ap/eo-mode-next', IFTHEN(fail, v(1), IFTHEN(ended, v(0), p(AF + 'eng-out'))), out=AF + 'eng-out')
         eo = on(AF + 'eng-out')
@@ -1240,18 +1304,81 @@ class Model:
         # meets it, with the time the nose takes to come up to the tail's limit at the pitch's rate
         th = p('attitude/theta-deg')
         sink = MAX(v(0), NEG(p('velocities/h-dot-fps')))
+        # the gear asked for at its height, or sooner the faster the descent: the time it takes. At 1000 ft whatever the descent, from a
+        # hover at 4100 ft over the field 9 flights of 16 at 47 500 lb met the ground with it still coming down
+        c.fn('ap/eo-gear-ft', MAX(p('ap/eo-gear-min-ft'), M(sink, v(GEAR_S))), desc='the height ENG OUT asks for the gear, ft')
         # (up to twice its height: below it the dive's pull-out limits the descent, the pitch)
-        gate = c.fn('ap/eo-gate-ft', MIN(M(v(2), p('ap/eo-flare-ft')), MAX(p('ap/eo-flare-ft'), S(p('ap/eo-float-ft'), M(sink, S(p('ap/eo-tau-s'),
-                    Q(MAX(v(0), D(p('ap/eo-tail-deg'), th)), p('ap/eo-theta-rate-dps'))))))), desc='the flare\'s height on the wheels, ft')
+        # (the handover to the Flare task: no early flare with the wings still banked. The turn's descent read as a fast one, the gate went up to 500 ft in 50 deg of bank onto the
+        # line, and the flare took the aircraft mid-turn. The turn ends first, down to the flare's own height)
+        c.declare('ap/eo-gate-bank-deg', 15.0)
+        c.declare('ap/eo-plan', 1)
+        gate_h = MIN(M(v(2), p('ap/eo-flare-ft')), MAX(p('ap/eo-flare-ft'), S(p('ap/eo-float-ft'), M(sink, S(p('ap/eo-tau-s'),
+                     Q(MAX(v(0), D(p('ap/eo-tail-deg'), th)), p('ap/eo-theta-rate-dps')))))))
+        gate = c.fn('ap/eo-gate-ft', IFTHEN(GT(M(on('ap/eo-plan'), GT(ABS(p('attitude/phi-deg')), p('ap/eo-gate-bank-deg'))), v(0.5)), p('ap/eo-flare-ft'), gate_h), desc='the flare\'s height on the wheels, ft')
         nst = c.fn('ap/eo-phase-new', IFTHEN(NOT(eo), v(0), IFTHEN(GT(M(wow, GT(st, v(0.5))), v(0.5)), v(5), IFTHEN(GT(st, v(4.5)), v(5),
                    IFTHEN(GT(M(LT(st, v(2.5)), LT(h, gate)), v(0.5)), v(3),
+                   # (a flare begun over a hill's crest on the way, the ground gone from under it: back to the glide. Held on to, the
+                   # nacelles and flaperons out and 5 deg of bank, it hung at 130 KCAS and fell in at 106 ft/s, 7000 ft short)
+                   IFTHEN(GT(M(is_(3), GT(h, M(v(2.5), p('ap/eo-flare-ft')))), v(0.5)), v(2),
                    IFTHEN(GT(M(is_(3), GT(p('ap/eo-cap-s'), v(1.0))), v(0.5)), v(4),
-                   IFTHEN(GT(M(LT(st, v(2.5)), GT(vc, D(vg, v(10)))), v(0.5)), v(2), IFTHEN(LT(st, v(0.5)), v(1), st))))))))
-        to3 = GT(M(GT(nst, v(2.5)), LT(st, v(2.5))), v(0.5))
+                   IFTHEN(GT(M(LT(st, v(2.5)), GT(vc, D(vg, v(10)))), v(0.5)), v(2), IFTHEN(LT(st, v(0.5)), v(1), st)))))))))
+        to3 = GT(MAX(M(GT(nst, v(2.5)), LT(st, v(2.5))), M(LT(nst, v(2.5)), GT(st, v(2.5)))), v(0.5))
         flare = GT(st, v(2.5))
         # the pitch: its integral from the attitude on engaging, coupling and flaring
         a_max = M(p('ap/eo-a-max-g'), v(G0))
-        ea = D(lim(M(p('ap/eo-kv'), D(vg, vc), v(KT)), NEG(a_max), a_max), vfd)
+        # (turning while still diving for the glide's speed, the speed held and the dive left for after the turn: the height
+        # kept, and the turn tighter, its radius as the speed's square. Over LOWI at 160 KCAS the nose went to -15 deg with
+        # the Nordkette 1 NM ahead, 640 ft spent on speed before the turn away had begun)
+        # (the first turn alone, no longer than a half turn takes: held through every later bank, 154 KCAS all the way down, the
+        # glide's ratio 6 for 8, the flight that turned away from the Nordkette came down short of everything)
+        c.declare('ap/eo-turn-first-deg', 15.0)
+        c.declare('ap/eo-turn-first-max-s', 22.0)
+        c.declare('ap/eo-turn-first-s', 0.0)
+        c.declare('ap/eo-phi-cmd-deg', 0.0)
+        # (not with height to spare: held so the glide went at 157 KCAS, its ratio with the brake out 5.3 for 4.5 at the speed)
+        c.declare('ap/eo-site-margin-ft', 0.0)
+        hold = c.fn('ap/eo-turn-first', GT(M(is_(1), GT(MAX(ABS(p('attitude/phi-deg')), ABS(p('ap/eo-phi-cmd-deg'))), p('ap/eo-turn-first-deg')),
+                                             LT(p('ap/eo-turn-first-s'), p('ap/eo-turn-first-max-s')), LT(p('ap/eo-site-margin-ft'), v(EO_SURPLUS_FT))), v(0.5)), desc='turning first, the dive held')
+        c.fn('ap/eo-turn-first-next', IFTHEN(is_(1), S(p('ap/eo-turn-first-s'), M(hold, p('simulation/channel-dt'))), v(0)), out='ap/eo-turn-first-s')
+        # (after the nacelle brake not back to the glide's speed but to where the flare can start from: back to 200 KCAS it dived
+        # for the speed, and with it to the ground before the float was done, 170-190 KCAS, the corridor holding the nacelles
+        # low and the tips in the ground. From 170 the flare is 1500 ft shorter, the touchdown 140-150 KCAS)
+        c.declare('ap/eo-nb-deg', 0.0)
+        c.declare('ap/eo-nb-used', 0)
+        # the Glide task, ap/eo-plan: one plan from the end of the entry to the flare's gate, each control one owner, as a glider flies an approach: the pitch the
+        # glide's one speed, the drag the path. No speed of the brake's own and none to dive back to after it, and no pull-out law: the nacelles' way in is the plan's.
+        # ap/eo-in-ft over the gate they are in and the flaperons alone tune what is left; ap/eo-close-dps how fast the plan takes them in, so the height that takes
+        # is planned, ap/eo-plan-a-g the most acceleration the speed may ask of the pitch: it holds the speed, it doesn't dive for it
+        for n, x in (('in-ft', 300.0), ('close-dps', 5.6), ('plan-a-g', 0.06), ('flap-out-deg', 20.0), ('plan-kg', 0.5), ('plan-g-max-deg', 6.0)):
+            c.declare('ap/eo-' + n, x)
+        pl_on = on('ap/eo-plan')
+        pl = c.fn('ap/eo-glide-plan', M(pl_on, is_(2), on('ap/eo-site-on'), GT(p('ap/eo-site-state'), v(0.5))), desc='1: the Glide task flying its plan')
+        c.declare('ap/eo-site-fall', 1.0)         # (no brake in the fall to flying speed: held at 45 deg from a hover the nose went to +41)
+        # (the speeds and the nacelles by the weight, capability.py: the flare wants 170 KCAS at 36 000 lb and 200 from 47 500. With
+        # ap/eo-nb-test-deg, deadland.py capturns, the glide's speed held and the nacelles there)
+        c.declare('ap/eo-nb-test-deg', -1.0)
+        sch = eo_schedule() if U.NAME == 'V-22' else None
+        testing = GT(p('ap/eo-nb-test-deg'), v(-0.5))
+        by_w = lambda n, x, d: c.fn('ap/eo-' + n, IFTHEN(testing, x, T1('inertia/weight-lbs', sch['weight_lb'], sch[d])), desc=d + ' by the weight (capability.py)') if sch else None
+        if sch:
+            c.fn('ap/eo-nb-after-kt', IFTHEN(MAX(testing, pl_on), vg, T1('inertia/weight-lbs', sch['weight_lb'], sch['after_kt'])), desc='the speed after the brake (eosite.nas): the glide\'s own')
+            c.fn('ap/eo-nb-kt', IFTHEN(MAX(testing, pl_on), vg, T1('inertia/weight-lbs', sch['weight_lb'], sch['nb_kt'])), desc='the speed on the brake: the glide\'s own')
+            c.fn('ap/eo-nb-nac-deg', IFTHEN(testing, p('ap/eo-nb-test-deg'), IFTHEN(pl_on, T1('inertia/weight-lbs', sch['gl_weight_lb'], sch['gl_nac_max']), T1('inertia/weight-lbs', sch['weight_lb'], sch['nb_deg']))), desc='the nacelles at their most on the brake, deg')
+            c.fn('ap/eo-nb-ld', T1('inertia/weight-lbs', sch['weight_lb'], sch['nb_ld']), desc='the nacelle brake\'s glide ratio by the weight (eosite.nas)')
+            c.fn('ap/eo-nb-lag-s', Q(p('ap/eo-nb-nac-deg'), v(U.NACELLE_RATE)), desc='the nacelles\' time up to the brake, s (eosite.nas: nothing yet spent)')
+            c.fn('ap/eo-xw-limit-kt', T1('inertia/weight-lbs', sch['xw_weight_lb'], sch['xw_limit_kt']), desc='the crosswind full pedal takes out, kt (eosite.nas)')
+            c.fn('ap/eo-ped-beta-rad-in', T1('inertia/weight-lbs', sch['xw_weight_lb'], [x_ / R2D / B.X_PED for x_ in sch['xw_beta_deg']]), desc='the sideslip an inch of pedal holds at the touchdown\'s speed, rad')
+            for n, k_ in (('short-ft', 'zone_short_ft'), ('past-ft', 'zone_past_ft'), ('side-ft', 'zone_side_ft'), ('rise', 'zone_rise')):
+                c.fn('ap/eo-zone-' + n, T1('inertia/weight-lbs', sch['zone_weight_lb'], sch[k_]), desc='the ground a strip keeps clear by the weight (eosite.nas zone_check)')
+        else:
+            for n, x in (('nb-after-kt', 200.0), ('nb-kt', 200.0), ('nb-nac-deg', 1.0), ('nb-ld', 1.0)):
+                c.declare('ap/eo-' + n, x)
+        vg2 = IFTHEN(GT(p('ap/eo-nb-used'), v(0.5)), p('ap/eo-nb-after-kt'), vg)
+        vb = D(vg2, M(MIN(v(1), Q(p('ap/eo-nb-deg'), p('ap/eo-nb-nac-deg'))), D(vg2, p('ap/eo-nb-kt'))))
+        vgc = c.fn('ap/eo-vg-cmd-kt', IFTHEN(hold, MIN(vg, vc), vb), desc='the speed ENG OUT\'s pitch flies, kt')
+        a_lim = IFTHEN(pl, M(p('ap/eo-plan-a-g'), v(G0)), a_max)
+        # (faster than the plan the nose comes up as freely as ever; slower it doesn't dive for the speed)
+        ea = D(lim(M(p('ap/eo-kv'), D(vgc, vc), v(KT)), NEG(a_max), a_lim), vfd)
         dive, pmax, tail = p('ap/eo-dive-deg'), p('ap/eo-pitch-max-deg'), p('ap/eo-tail-deg')
         # (the flare's path never asks a faster descent than there is: at its height the path's was 60 ft/s, the
         # glide's 44, and the nose went down first; held to the descent the flare began with, a descent easing for a
@@ -1295,8 +1422,14 @@ class Model:
         # raised in proportion to the excess, the speed's integral with it. Flared on the descent's rate alone, a dive at
         # 150-200 ft/s from a hover started the flare at 1100-3100 ft and settled there; pulled out by the flare's
         # height, the glide still swung there, 46-54 ft/s)
-        hg = NEG(SQ(S(SQR(p('ap/eo-sink-ok-fps')), M(v(2), p('ap/eo-pull-g'), v(G0),
-                                                      MAX(v(0), D(h, S(p('ap/eo-flare-ft'), p('ap/eo-settle-ft'))))))))
+        # (off the nacelle brake, harder and later: its way down steep to the last, height to lose with a mile to go. At 0.1 g the
+        # limit held it to 45-60 ft/s from 1000 ft, 20 s and 4000 ft past the point; at 0.25 g from 100 ft over the flare, 9-9.5
+        # ft/s on the wheels and 1000 ft nearer)
+        c.declare('ap/eo-nb-pull-g', 0.25)
+        c.declare('ap/eo-nb-settle-ft', 100.0)
+        nbu = GT(p('ap/eo-nb-used'), v(0.5))
+        pullg, settle = IFTHEN(nbu, p('ap/eo-nb-pull-g'), p('ap/eo-pull-g')), IFTHEN(nbu, p('ap/eo-nb-settle-ft'), p('ap/eo-settle-ft'))
+        hg = NEG(SQ(S(SQR(p('ap/eo-sink-ok-fps')), M(v(2), pullg, v(G0), MAX(v(0), D(h, S(p('ap/eo-flare-ft'), settle)))))))
         eg = c.fn('ap/eo-pull-err-fps', D(hg, p('velocities/h-dot-fps')), desc='the dive\'s descent past its limit, ft/s')
         # (the pitch that turns the flight path to the limit's at the present angle of attack: the attitude plus the
         # path's change, rad. Its gain 0.3 deg per ft/s, 1.7 times that, overshot: out of a hover the nose came up to
@@ -1311,12 +1444,51 @@ class Model:
         hdd = M(v(G0), D(M(p('accelerations/Nz'), COS(p('attitude/theta-rad')), COS(p('attitude/phi-rad'))), v(1)))
         eg_d = D(eg, M(p('ap/eo-guard-td-s'), hdd))
         g_on = GT(MAX(GT(eg, v(0)), M(GT(p('ap/eo-guard-td-s'), v(0)), GT(eg_d, v(0)), GT(eg, v(-3)))), v(0.5))
-        guard = IFTHEN(g_on, MIN(pmax, S(th, M(p('ap/eo-kg'), v(R2D), Q(eg_d, V_)))), v(-90))
+        # (not the Glide task's: its plan brings the descent in itself; the guard is for the entry and a glide with no site. Left on, the two asked different things of the one pitch)
+        guard = IFTHEN(GT(M(g_on, NOT(pl)), v(0.5)), MIN(pmax, S(th, M(p('ap/eo-kg'), v(R2D), Q(eg_d, V_)))), v(-90))
+        # (the pitch the speed takes as the nacelles move, from the grid: the Glide task's speed law told what the drag is doing, not left to find it in the speed's error)
+        # (and the path's error beside the speed's, as total energy control's pitch has both: as the drag goes the descent the nacelles now give is shallower than the one
+        # flown, and the nose comes up for that, not only for the speed it would otherwise gain. Not in a turn: the path there is the turn's)
+        if sch:
+            ldn = T2('inertia/weight-lbs', 'ctl/nacelle-deg', sch['gl_weight_lb'], sch['gl_nac'], sch['gl_ld'])
+            g_ref = NEG(ATAN2(v(1), ldn))
+            g_now = ATAN2(p('velocities/h-dot-fps'), MAX(p('velocities/vt-fps'), v(100)))
+            g_kb = T1('ap/eo-phi-abs-deg', [10.0, 30.0], [1.0, 0.0])
+            c.fn('ap/eo-phi-abs-deg', ABS(p('attitude/phi-deg')))
+            g_e = c.fn('ap/eo-plan-g-err-deg', M(pl, g_kb, lim(M(p('ap/eo-plan-kg'), D(g_ref, g_now), v(R2D)), NEG(p('ap/eo-plan-g-max-deg')), p('ap/eo-plan-g-max-deg'))), desc='the path\'s share of the pitch, deg')
+            tff = c.fn('ap/eo-plan-theta-deg', S(M(pl_on, is_(2), T2('inertia/weight-lbs', 'ctl/nacelle-deg', sch['gl_weight_lb'], sch['gl_nac'], sch['gl_theta'])), g_e), desc='the pitch the nacelles take at the glide\'s speed, and the path\'s share, deg')
+        else:
+            tff = v(0)
         ip = p('ap/eo-int-deg')
         # (its integral, while the limit has the pitch, following it: the speed's law takes the pitch back from where
         # the limit leaves it)
         pe = M(p('ap/eo-kp'), Q(ea, v(G0)), v(R2D))
         gl_i = MAX(lim(D(ip, M(p('ap/eo-ki'), Q(ea, v(G0)), v(R2D), dt)), dive, pmax), S(guard, pe))
+        # (no more than the pitch at which the wing stalls, the angle of its most lift in Bell's data for the flaperons
+        # there (wing_tables, airplane mast: 16 deg F1, 14 F2), but no lower than the dive's. Falling from a hover at
+        # 100-150 ft/s, the wing at 40-90 deg, the forward airspeed is the fall seen through the attitude: the speed's
+        # law read the pitch's own swing as 40 ft/s^2 of speed and drove the pitch between its limits every 4-5 s, and
+        # the dive's guard asked a pull-out the wing could not make; the rotors in the up-flow then pitched the nose up
+        # past what the stick holds (to their masts' line with the flow, 90 deg less the nacelles' angle), and from 3000
+        # and 4000 ft it fell flat at 160-170 ft/s, the rotor speed lost. With the limit the nose stays down while the
+        # wing is stalled, the speed comes and the nacelles with it: from 4000 ft on the wheels at 11.7 ft/s
+        # (deadland.py auto), from 4500-8000 at 7.1-7.7 against 7.1-12, from the conversion at 2000 ft at 17 against 41;
+        # where the wing flies, the same to the digit, but for a few seconds in a site's turns at 44-55 deg of bank, the
+        # wing at 11-12 deg, and in 11 of deadland.py flare's 243, heavy in thin air with the wind behind (by up to 0.9
+        # ft/s, 211 intact against 210). The airspeed along the horizon instead of the body's axis held the nose down
+        # too, but swung the glide's pitch -5..+5 deg (a shallower path more speed along the horizon, the nose raised
+        # for it) and its flares touched at 11 ft/s against 7.3; with it, the limit under the dive's too asked the nose
+        # lower in the fall, from 4000 ft 25 ft/s against 9. Its integral no higher, as no higher than
+        # ap/eo-pitch-max-deg: held to it less the proportional part, the integral went to -18 deg in a gust's start
+        # while the command stayed short of the limit)
+        al_, fx_, bm_, CL_, CD_ = s.wing_tables()
+        a_st = []
+        for x in (0, 1):
+            ys = [row[fx_.index(x)] for row in CL_[1]]
+            a_st.append(max((y, a_) for a_, y in zip(al_, ys) if -10 <= a_ <= 30)[1])
+        stall = c.fn('ap/eo-stall-theta-deg', MAX(dive, S(th, D(T1('aero/wing/flap-index', [0, 1], a_st), p('aero/wing/alpha-deg')))),
+                     desc='ENG OUT\'s pitch at the wing\'s stall (no lower than its dive), deg')
+        gl_i = MIN(gl_i, D(stall, tff))
         # (its gain ap/eo-khi, 0.15 deg/s per ft/s: with 0.3 the 18 flares of deadland.py flare quick touched at up to
         # 13.8 ft/s, with 0.15 up to 11.3; 0.1 too slow. On the ground, rolling out, held where it touched)
         grd = GT(st, v(4.5))
@@ -1330,8 +1502,31 @@ class Model:
         # (the tail's limit led by the pitch rate: the nose coming up to it, the reference's own overshoot took it 1.9 deg
         # past)
         top = MIN(tail, D(tail, M(p('ap/eo-lead-s'), v(R2D), p('velocities/q-rad_sec'))))
-        tcd = c.fn('ap/eo-theta-cmd-deg', IFTHEN(flare, lim(S(ip, M(p('ap/eo-kh'), eh, NOT(grd))), v(-20), top),
-                                                 MAX(lim(D(ip, pe), dive, pmax), guard)),
+        # the Touchdown task: the mains on, the pitch its own from the attitude they touched at, the nose eased down at ap/eo-derot-dps to where the aircraft rests. The mains
+        # sit behind the centre of gravity and their impact throws the nose down at 18-37 deg/s, the wheel on it in 0.1-0.4 s; the augmentation's stick came 0.2 s late, so
+        # this has its own: on the pitch's error and its rate, straight to the stick. Down only: the reference never rises, so it can't lift the aircraft off again
+        for n, x in (('derot', 1), ('derot-dps', 2.5), ('rest-deg', -0.8), ('derot-kt', 2.0), ('derot-kq', 0.5), ('derot-aft-in', 4.8), ('derot-fwd-in', 1.0), ('derot-ref-deg', 0.0)):
+            c.declare('ap/eo-' + n, x)
+        touch = GT(M(GT(nst, v(4.5)), LT(st, v(4.5))), v(0.5))
+        land = GT(M(on('ap/eo-derot'), GT(MAX(st, nst), v(4.5)), on('ap/eo-flown')), v(0.5))
+        d_ref = p('ap/eo-derot-ref-deg')
+        c.fn('ap/eo-derot-ref-next', IFTHEN(touch, th, IFTHEN(land, MAX(p('ap/eo-rest-deg'), D(d_ref, M(p('ap/eo-derot-dps'), dt))), th)), out='ap/eo-derot-ref-deg')
+        d_on = GT(M(land, GT(d_ref, S(p('ap/eo-rest-deg'), v(0.05)))), v(0.5))
+        d_stick = lim(NEG(S(M(p('ap/eo-derot-kt'), D(d_ref, th)), M(p('ap/eo-derot-kq'), D(NEG(p('ap/eo-derot-dps')), M(p('velocities/q-rad_sec'), v(R2D)))))),
+                      NEG(p('ap/eo-derot-aft-in')), p('ap/eo-derot-fwd-in'))
+        # (the Glide task's stick for the nacelles, from the grid: with them out the stick sat at the augmentation's limit and its trim wound forward, and as they closed the
+        # forward trim left behind took the nose to -25 deg at 0.35-0.6 g. Fed in with the nacelles the moment is met as it comes, and the trim has nothing to wind up on)
+        c.declare('ap/eo-plan-stick', 1)
+        s_ff = M(on('ap/eo-plan-stick'), pl_on, is_(2), T2('inertia/weight-lbs', 'ctl/nacelle-deg', sch['gl_weight_lb'], sch['gl_nac'], [[x * B.X_LON for x in r] for r in sch['gl_stick']])) if sch else v(0)
+        # the Flare task's limit on the tail, straight to the stick as the Touchdown's is: the augmentation is slow at this speed by design (its gain a third, its integral 0.1 in/s for 7 deg of error), the nacelles' moment
+        # came in faster than it answered with half an inch of stick still unused, and the nose went 1.5-3.5 deg over the limit in the last 2 s
+        for n, x in (('tail-kt', 1.0), ('tail-kq', 0.5)):
+            c.declare('ap/eo-' + n, x)
+        t_over = S(D(th, p('ap/eo-tail-deg')), M(p('ap/eo-tail-kq'), v(R2D), p('velocities/q-rad_sec')))
+        t_stick = M(flare, NOT(grd), MAX(v(0), M(p('ap/eo-tail-kt'), t_over)))
+        c.fn('ap/eo-lon-next', S(M(d_on, d_stick), s_ff, t_stick), out='ap/eo-lon-in')
+        tcd = c.fn('ap/eo-theta-cmd-deg', IFTHEN(land, d_ref, IFTHEN(flare, lim(S(ip, M(p('ap/eo-kh'), eh, NOT(grd))), v(-20), top),
+                                                 MIN(MAX(S(lim(D(ip, pe), dive, pmax), tff), guard), stall))),
                    desc='ENG OUT\'s pitch, deg (the flight director\'s)')
         # (flown, the attitude's error integrated into the reference: the attitude, not only the reference, comes to the
         # command, and so to the tail's limit. In the float the nacelles coming up pitched the nose up and the
@@ -1339,19 +1534,77 @@ class Model:
         # over the limit)
         am = p('ap/eo-att-int-max-deg')
         fly2 = MAX(fly, roll)
-        c.fn('ap/eo-att-int-next', IFTHEN(GT(MAX(NOT(fly2), frise), v(0.5)), v(0), lim(S(p('ap/eo-att-int-deg'), M(p('ap/eo-ka'), D(tcd, th), dt)),
+        # (not while the stick has no more to give that way: it wound to its limit with the stick against the stop, the reference 5 deg under the command, and as the moment eased the nose went on down through it, 6.8 to 3 deg
+        # in 2 s over the ground, and touched 8 KCAS early)
+        lon_, slon_ = p('ctl/lon-in'), p('scas/lon-in')
+        s_fwd = MAX(GT(lon_, v(0.98 * B.X_LON)), GT(slon_, D(p('scas/auth-in'), v(0.02))))
+        s_aft = MAX(LT(lon_, v(-0.98 * B.X_LON)), LT(slon_, D(v(0.02), p('scas/auth-aft-in'))))
+        a_err = D(tcd, th)
+        a_run = D(v(1), MAX(M(s_fwd, LT(a_err, v(0))), M(s_aft, GT(a_err, v(0)))))
+        # (and slower in the flare, from nothing at its start: at ap/eo-ka's 1 per second, under the augmentation's own integral, the pitch swung +-3 deg on a 2.8 s period down to the wheels, and what it held from the glide
+        # stepped the reference at the gate. 0.3: the pitch rate's rms in the flare 3.2 to 2.1 deg/s at 60 500 lb)
+        for n, x in (('ka-flare', 0.3), ('att-reset', 1)):
+            c.declare('ap/eo-' + n, x)
+        c.fn('ap/eo-att-int-next', IFTHEN(GT(MAX(NOT(fly2), frise, land, M(on('ap/eo-att-reset'), to3)), v(0.5)), v(0), lim(S(p('ap/eo-att-int-deg'), M(IFTHEN(flare, p('ap/eo-ka-flare'), p('ap/eo-ka')), a_err, a_run, dt)),
              NEG(am), am)), out='ap/eo-att-int-deg')
         tref = S(tcd, p('ap/eo-att-int-deg'))
+        # (falling from a hover, the flow from under the wing, the whole stick: the rotors in the up-flow pitch the nose up towards
+        # their masts' line, and at 47 500 lb the half stick ran out 5 s in, the nose went to +50 deg, the rotors stopped and it never
+        # flew. Not after it: with the whole of it in the dive that went deeper and its pull-out later)
+        # (and the whole of it aft while the nose is well under its command: the half stick held aft for 16 s of a fall from a hover, the nose
+        # at -49 deg against -20, the dive's limit not its limit at all)
+        # the conversion corridor off from the cut to the flare: it keeps the aircraft stable with the rotors under power, and with them
+        # windmilling it does the opposite. Falling from a hover held at its lower boundary the nose went to +47-51 deg at 36 000-47 500 lb
+        # (once for good, 9456 ft and no flying speed), the gimbals to 18-19 deg; free, at every weight the nose stayed under +2, 170-760 ft less
+        # lost, the gimbals at 13-14. Back on for the flare, where off it was no better and from 200 KCAS at 47 500-54 000 lb 4 ft/s harder
+        c.declare('ap/eo-cps-free', 1)
+        c.declare('ap/eo-cps-free-st', 2.5)
+        # (and again where the nacelles' own line in the flare passes it, ap/eo-nac-line-deg: fast, at 173 KCAS, the corridor stopped them at about 32 deg where the tips clear from 35-40.
+        # Free through the whole flare they cut the strikes but landed harder, the rise at speed costing lift for too long)
+        # (and on the wheels until the aircraft has stopped: back on at the touchdown it drove the nacelles down at their full rate to its boundary for the speed, 39 to 33 deg in a second at 177 KCAS, with the nose coming
+        # down, and 15 of 39 flights at 60 500 lb put the tips in the ground rolling. It protects a powered conversion; on the wheels it has nothing to protect)
+        hi_raw = T1('velocities/ve-kts', U.CPS[1][0], U.CPS[1][1]) if U.CPS else v(U.NACELLE_MAX)
+        late = M(p('ap/eo-nac-go'), MAX(GT(p('ap/eo-nac-line-deg'), hi_raw), GT(p('ctl/nacelle-deg'), hi_raw)))
+        c.fn('ap/eo-cps-free-next', M(fly2, p('ap/eo-cps-free'), MAX(LT(st, p('ap/eo-cps-free-st')), M(GT(st, v(2.5)), MAX(GT(st, v(4.5)), late)))), out='ctl/cps-free')
+        c.declare('ap/eo-aft-whole', 1)
+        c.declare('ap/eo-aft-lead-deg', 5.0)
+        c.fn('ap/eo-auth-aft-next', IFTHEN(GT(M(fly, p('ap/eo-aft-whole'), LT(th, D(p('ap/eo-theta-cmd-deg'), p('ap/eo-aft-lead-deg')))), v(0.5)), v(B.X_LON), v(0.5 * B.X_LON)), out='scas/auth-aft-in')
+        c.declare('ap/eo-fall-alpha-deg', 45.0)
+        # (and with the nacelles out on the Glide task's plan: at 60 500 lb they took more forward stick than the half, the nose stayed at -5 deg against -30, the speed went from 210 to 177 KCAS,
+        # and as they closed the stick held forward took the nose to -34 deg, 197 ft/s at 630 ft. The plan has no dive for it to deepen)
+        c.fn('ap/eo-auth-next', IFTHEN(GT(MAX(M(fly, GT(p('aero/alpha-deg'), p('ap/eo-fall-alpha-deg'))), M(pl, GT(p('ctl/nacelle-deg'), v(5)))), v(0.5)), v(B.X_LON), v(0.5 * B.X_LON)), out='scas/auth-in')
         # (out of pitch: the attitude, not the command, at the limit: the command reached it at once and the settling
         # began at 100 ft, the nose still coming up)
         c.fn('ap/eo-cap-next', IFTHEN(GT(M(is_(3), GT(th, D(tail, v(0.5))), GT(eh, v(2))), v(0.5)), S(p('ap/eo-cap-s'), dt), v(0)),
              out='ap/eo-cap-s')
-        # the bank: the heading from engaging, the bug's with HDG HOLD
+        # the bank: with no site, the open course eosite.nas finds over the terrain (ap/eo-open-on: the glide's furthest
+        # before the ground comes within the flare's height: over LOWI, held on the heading it had, ENG OUT twice flew
+        # into the valley's side), else the heading from engaging, the bug's with HDG HOLD
         c.fn('ap/eo-psi-next', IFTHEN(eorise, p('attitude/psi-rad'), p('ap/eo-psi-rad')), out='ap/eo-psi-rad')
+        for n in ('open-on', 'open-hdg-deg'):
+            c.declare('ap/eo-' + n, 0)
         bug = M(S(p('/autopilot/settings/heading-bug-deg'), p('/environment/magnetic-variation-deg')), v(1 / R2D))
-        dpsi = D(IFTHEN(on(AF + 'hdg-hold'), bug, p('ap/eo-psi-rad')), p('attitude/psi-rad'))
+        dpsi = D(IFTHEN(on('ap/eo-open-on'), M(p('ap/eo-open-hdg-deg'), v(1 / R2D)), IFTHEN(on(AF + 'hdg-hold'), bug, p('ap/eo-psi-rad'))),
+                 p('attitude/psi-rad'))
         kpsi = Q(MAX(p('velocities/vt-fps'), v(60)), M(v(G0), p('ap/hdg-tau-s')))
-        bmax = IFTHEN(flare, p('ap/eo-flare-bank-deg'), M(T1('velocities/vc-kts', [40, 80, 150], [0.6, 0.8, 1]), p('ap/eo-bank-deg')))
+        # (no more than the glide holds at the weight, deadland.py turns: 51-53 deg up to 42 000 lb, 49 at 47 500-54 000,
+        # 43 at 60 500; set to 55 the heavy one rolled back to 29, the speed past 219 KCAS)
+        d_eo = eo_site()
+        held = T1('inertia/weight-lbs', d_eo['weight_lb'], d_eo['bank_held_deg']) if d_eo and 'bank_held_deg' in d_eo else p('ap/eo-bank-deg')
+        blim = c.fn('ap/eo-bank-lim-deg', MIN(p('ap/eo-bank-deg'), held), desc='ENG OUT\'s bank limit at the weight, deg')
+        # (in the flare by the height, not by the flare's start: the low rotor's tip keeping half of it. At 5 deg from the flare's start, which at
+        # 80 ft/s comes at 500 ft, a turn onto the final still 21 deg off its line was cut short and landed 590 ft beside it)
+        hs = (0.0, 10.0, 20.0, 30.0, 50.0, 80.0, 120.0)
+        tips = [math.degrees(math.asin(max(0.0, min(1.0, (x / 2 - 5.0) / EO_TIP_SPAN_FT)))) for x in hs]
+        # (and nothing at the wheels, by the time to go: straight and level when any wheel touches)
+        c.fn('ap/eo-tgo-flare-s', Q(p('hh/h-wheels-ft'), MAX(v(5), NEG(p('velocities/h-dot-fps')))), desc='the time to the wheels at this descent, s')
+        # (the Final task, in the Glide's bank: under the inner height wings level comes before the line. A turn's descent grows as 1 / cos(bank)^1.5, the gate's contract 60 ft/s from the
+        # nominal's 50: 28 deg. At 50 deg down to 230 ft the flare started in the turn at 80 ft/s and touched at 21-24. Rolled out by the height: wide of the line, level, and slower down)
+        # (off, 90: at 28 deg, the six weights: landings over 42 ft/s 20 against 8. Rolled out wide of the line it met the ground beside the strip at speed. The turn has to end earlier, not shallower)
+        c.declare('ap/eo-final-bank-deg', 90.0)
+        c.declare('ap/eo-final-band-ft', 300.0)
+        bank_f = S(p('ap/eo-final-bank-deg'), M(D(blim, p('ap/eo-final-bank-deg')), MAX(v(0), MIN(v(1), Q(D(h, S(p('ap/eo-flare-ft'), p('ap/eo-in-ft'))), p('ap/eo-final-band-ft'))))))
+        bmax = IFTHEN(flare, MIN(blim, T1('ap/eo-tgo-flare-s', [1.0, 4.0], [0.0, 10.0]), MAX(M(p('ap/eo-flare-bank-deg'), T1('hh/h-wheels-ft', [2.0, 20.0], [0.0, 1.0])), T1('hh/h-wheels-ft', hs, tips))), MIN(M(T1('velocities/vc-kts', [40, 80, 150], [0.6, 0.8, 1]), blim), IFTHEN(pl, bank_f, v(90))))
         # the glide's reach, for the display: the energy height on the wheels at the glide's speed, over the flare's, at
         # the glide's ratio for its speed and the weight (the model's own zero-power trims in airplane mode,
         # deadstick.py --table, 1000 ft), in still air: the gear up down to ap/eo-gear-ft, where the mode asks for it,
@@ -1367,8 +1620,14 @@ class Model:
         vgt = Q(M(vg, v(KT)), SQ(p('atmosphere/sigma')))
         hsl = p('position/h-sl-ft')
         sig_g = M(p('atmosphere/sigma'), tag('pow', Q(D(v(1), M(v(6.8756e-6), D(hsl, h))), D(v(1), M(v(6.8756e-6), hsl))), v(4.2559)))
-        vgg = Q(M(vg, v(KT)), SQ(sig_g))
-        en = c.fn('ap/eo-energy-ft', S(h, Q(D(SQR(p('velocities/vt-fps')), SQR(vgg)), v(2 * G0))),
+        vgg = Q(M(vg2, v(KT)), SQ(sig_g))
+        # (less what getting into the glide takes past that, by the speed: from a hover the dive and the rotors' drag spend 900-1600 ft
+        # of it, capability.py entry; from 170 KCAS nothing)
+        entry = c.fn('ap/eo-entry-ft', T2('inertia/weight-lbs', 'velocities/vc-kts', sch['weight_lb'], sch['entry_kcas'], sch['entry_ft']), desc='the height the fall to flying speed still costs past its way at the glide, ft') if sch else v(0)
+        if sch:
+            c.fn('ap/eo-entry-loss-ft', T2('inertia/weight-lbs', 'velocities/vc-kts', sch['weight_lb'], sch['entry_kcas'], sch['entry_loss_ft']), desc='the height to the fall\'s end, ft')
+            c.fn('ap/eo-entry-way-ft', T2('inertia/weight-lbs', 'velocities/vc-kts', sch['weight_lb'], sch['entry_kcas'], sch['entry_way_ft']), desc='the way to the fall\'s end, ft')
+        en = c.fn('ap/eo-energy-ft', D(S(h, Q(D(SQR(p('velocities/vt-fps')), SQR(vgg)), v(2 * G0))), entry),
                   desc='the energy height on the wheels at the glide\'s speed at the ground, ft')
         gl = glide_ld()
         if gl:
@@ -1388,8 +1647,33 @@ class Model:
         c.fn('ap/eo-reach-s', Q(reach, vgt), desc='the glide\'s time to the flare, s')
         # the bank: to the landing site when there is one (eng_out_site), else the heading
         hdg_bank = M(kpsi, ATAN2(SIN(dpsi), COS(dpsi)), v(R2D))
-        site = s.eng_out_site(reach, ld_up, vgt, kpsi, flare, eo) if (U.NAME == 'V-22' and eo_site()) else None
-        phc = c.fn('ap/eo-phi-cmd-deg', lim(IFTHEN(site['on'], M(site['bank'], v(R2D)), hdg_bank) if site else hdg_bank, NEG(bmax), bmax),
+        c.fn('ap/eo-ld-up', ld_up, desc='the glide\'s ratio, the gear up, at its speed and the weight (eosite.nas: the reach to each site)')
+        # (the guidance's reach to its site from the site's elevation, its plane's at the point, where it is known: the
+        # reach above is from the ground under the aircraft, and over LOWI's valley side, 925 ft over the runway, read
+        # 1.1 NM short of the runway's; under ground lower than a site it reads long. The height between at the glide's
+        # ratio, as eosite.nas ranks them)
+        known = GT(M(on('ap/eo-site-on'), on('ap/eo-site-plane')), v(0.5))
+        reach_s = S(reach, M(known, D(p('position/terrain-elevation-asl-ft'), p('ap/eo-site-elev-ft')), ld_up))
+        # the glide flown as a glider's, its brake part way out for energy both ways: the flaperons at the ratio of the
+        # clean glide's that leaves the same share each way, sqrt(r_min), r_min the full flaperons' (deadstick.py
+        # --flaptable: 0.60-0.69 of clean by the weight and the gear; sqrt 0.77-0.83, about 15 deg: +21-29 % to
+        # stretch, -17-23 % to steepen). A turn's cost in reach is the brake's too: its height per 180 deg grows as the
+        # glide's ratio falls, h180 / r, and its way at r LD is h180 LD (deadland.py site's measure, clean)
+        gf = glide_ld_flap()
+        gp = p('gear/gear-pos-norm')
+        if gf:
+            rmin = [[row[-1] / row[0] for row in gf[k]] for k in ('ld_gear_up', 'ld_gear_down')]
+            r_min = c.fn('ap/eo-brake-min-ratio', S(M(D(v(1), gp), T1('inertia/weight-lbs', gf['weight_lb'], rmin[0])),
+                                                    M(gp, T1('inertia/weight-lbs', gf['weight_lb'], rmin[1]))),
+                         desc='the full flaperons\' glide ratio, of the clean one')
+            r_nom = c.fn('ap/eo-brake-nom-ratio', SQ(r_min), desc='the brake\'s nominal glide ratio, of the clean one (eosite.nas plans at it)')
+        else:
+            r_min = r_nom = v(1)
+        site = s.eng_out_site(reach_s, ld_up, vgt, kpsi, flare, eo, r_nom) if (U.NAME == 'V-22' and eo_site()) else None
+        # (wings level while the flow still comes from under the wing: the heading hardly moves then, the turn comes once it flies, and a
+        # bank reversed in those seconds, the open course's for the site's, took the fall from a hover nose up to +41 deg, whole stick
+        # and all, 1200 ft of height gone)
+        phc = c.fn('ap/eo-phi-cmd-deg', M(LT(p('aero/alpha-deg'), p('ap/eo-fall-alpha-deg')), lim(IFTHEN(site['on'], M(site['bank'], v(R2D)), hdg_bank) if site else hdg_bank, NEG(bmax), bmax)),
                    desc='ENG OUT\'s bank, deg')
         # the nacelles (within the corridor) and the lever; on the ground after a coupled landing the lever down
         # (converting at the corridor's lower boundary, as the speed lets the nacelles come down: on AUTO NAC's schedule,
@@ -1402,9 +1686,11 @@ class Model:
         # descent grew back, and the flare came late and slow: 38 700 lb at 5000 ft and ISA + 20 touched at 39.5 ft/s,
         # 7.4 with them from 100 ft. To 90 deg, floating over ground falling away, their moment took the nose to 22 deg;
         # the tips clear on the wheels from 38.5 deg level, 42 with the nose down)
-        for n, x in (('nac-start-ft', 100.0), ('nac-go', 0)):
+        # (and earlier the faster the descent, the time they take from 0: off the nacelle brake's steep way down the flare has
+        # less height to go, and 15 flights of 40 met the ground at 170-190 KCAS with them at 17 deg, the tips in it)
+        for n, x in (('nac-start-ft', 100.0), ('nac-go', 0), ('nac-lead-s', 5.0), ('nac-lead-fps', 25.0)):
             c.declare('ap/eo-' + n, x)
-        go = GT(M(flare, MAX(on('ap/eo-nac-go'), LT(h, p('ap/eo-nac-start-ft')))), v(0.5))
+        go = GT(M(flare, MAX(on('ap/eo-nac-go'), LT(h, MAX(p('ap/eo-nac-start-ft'), M(p('ap/eo-nac-lead-s'), MAX(v(0), D(sink, p('ap/eo-nac-lead-fps')))))))), v(0.5))
         c.fn('ap/eo-nac-go-next', go, out='ap/eo-nac-go')
         # (the flaperons ENG OUT's own in the flare: its landing's lift and drag, not the airplane's least-drag law
         # (flap_law takes the more of the two). From the flare's start at ap/eo-flap-rate-dps to ap/eo-flap-max-deg,
@@ -1416,18 +1702,165 @@ class Model:
         # lift outran the pitch: 3 deg/s left one flare at 27 ft/s, 4-8 deg/s ballooned, set at once 40 deg ballooned
         # every flare to 2.2 g. Braked instead to a speed planned down the flare, no better: the speed stayed over the
         # plan. The flaperons' own rate and limit speed are not public: the emergency's lift is taken over their limit)
-        for n, x in (('flap-rate-dps', 2.0), ('flap-max-deg', 40.0), ('flap-deg', 0.0)):
+        # (the most the flare takes, by the weight: capability.py; ap/eo-flap-max-test-deg: deadland.py capflare's own)
+        c.declare('ap/eo-flap-max-test-deg', -1.0)
+        if sch:
+            c.fn('ap/eo-flap-max-deg', IFTHEN(GT(p('ap/eo-flap-max-test-deg'), v(-0.5)), p('ap/eo-flap-max-test-deg'), T1('inertia/weight-lbs', sch['weight_lb'], sch['flap_max_deg'])),
+                 desc='the flaperons the flare goes to, deg')
+        else:
+            c.declare('ap/eo-flap-max-deg', 40.0)
+        for n, x in (('flap-rate-dps', 2.0), ('flap-deg', 0.0)):
             c.declare('ap/eo-' + n, x)
         # (from 0 at the flare's start, the heavy glide's few degrees of AUTO NAC's pitch limit stepping back there: from
         # them, 198 of the 243 intact against 210, the lift coming without the pitch and its drag, the heavy aircraft
         # touching faster: on 1 % up at 54 000 lb 1 intact of 27 against 17, on 1 % down 21 against 17)
-        c.fn('ap/eo-flap-next', IFTHEN(flare, lim(S(p('ap/eo-flap-deg'), M(p('ap/eo-flap-rate-dps'), dt)), v(0), p('ap/eo-flap-max-deg')), v(0)),
+        # (the brake: the ratio of the clean glide the path left takes, need / reach, from the site's choice to the
+        # flare, between the full flaperons' and none: the margin, against the nominal ratio, by its own measure; the
+        # S-turns spend what is over it. Before, a surplus alone, spent by the final's start and the final flown clean:
+        # every error after it fell on the flare's point, and over LOWI's north slope the circle's ran 1000 ft short
+        # with the brake already in. The deflection from the model's own trims: at 200 KCAS 7.44 to 4.50 from 0 to 40
+        # deg at 38 700 lb, the gear up; 6.18 to 3.99 down)
+        if gf and site:
+            rs = [round(0.40 + 0.05 * i, 2) for i in range(13)]
+            def inv(rows):
+                return [[float(np.interp(r, [x / row[0] for x in row][::-1], gf['flap_deg'][::-1])) for r in rs] for row in rows]
+            # (the energy kept for the final, as a glider keeps its height through the pattern and uses the brakes on final: before it, spent only what the final's own brake couldn't. Spent
+            # as soon as it showed the surplus went in the turns, whose cost the plan underrates, and the flights came to the final 1000-2000 ft short, rolling out at 70-160 ft. What the final
+            # can spend: its way at the ratio the nacelles give at ap/eo-plan-final-nac over the nominal's, a descent the close can still bring in)
+            c.declare('ap/eo-plan-final-nac', 30.0)
+            ld_f = T2('inertia/weight-lbs', 'ap/eo-plan-final-nac', sch['gl_weight_lb'], sch['gl_nac'], sch['gl_ld'])
+            hold_e = c.fn('ap/eo-plan-hold-ft', M(pl_on, LT(p('ap/eo-site-state'), v(2.5)), p('ap/eo-site-final-ft'), MAX(v(0), D(Q(M(ld_up, r_nom), ld_f), v(1)))), desc='the margin kept for the final, ft')
+            m_raw = p('ap/eo-site-margin-ft')
+            m_sp = c.fn('ap/eo-plan-spend-ft', MIN(m_raw, MAX(v(0), D(m_raw, hold_e))), desc='the margin to spend here, ft')
+            rq = c.fn('ap/eo-brake-ratio', MAX(r_min, MIN(v(1), D(r_nom, Q(m_sp, MAX(reach_s, v(1)))))),
+                      desc='the glide\'s ratio, of the clean one, the site\'s path left takes (need / reach)')
+            brake = GT(M(fly, LT(st, v(2.5)), on('ap/eo-site-on'), GT(p('ap/eo-site-state'), v(0.5))), v(0.5))
+            defl = lambda ratio: S(M(D(v(1), gp), T2('inertia/weight-lbs', ratio, gf['weight_lb'], rs, inv(gf['ld_gear_up']))),
+                                   M(gp, T2('inertia/weight-lbs', ratio, gf['weight_lb'], rs, inv(gf['ld_gear_down']))))
+            # (no more than its flaperons can bring back to the nominal by the flare's point at their rate: the flare from
+            # the nominal's 15 deg as from none, deadland.py flare quick 25 of 27 intact against 24, worst 12.8 ft/s; from
+            # 25 deg 12 and 35.4, from 40 15 and 33.1, every 54 000 lb flare broken, the glide arriving at 43 ft/s)
+            nom = c.fn('ap/eo-brake-nom-deg', defl('ap/eo-brake-nom-ratio'), desc='the brake\'s nominal deflection, deg')
+            # (by the time left to the flare, the height's or the path's, whichever is longer. By the path's alone a high plan
+            # took them in on the way to the point, 15 deg by the point with 1800-2000 ft still to lose, and the aircraft
+            # flew 12 000 ft on at the nominal's ratio: 40 deg was held for 6 s of a 75 s flight)
+            # (the height's at the full brake's descent, the most there is: at the descent of the moment, 40-100 ft/s with the
+            # turns and the pull-outs, they were still at 26 deg at the flare, the flare's own 40 came at 220 ft, the speed went
+            # early and it fell in at 31 ft/s)
+            left = MAX(Q(p('ap/eo-site-path-ft'), MAX(p('velocities/vt-fps'), v(100))),
+                       Q(MAX(v(0), D(h, p('ap/eo-flare-ft'))), Q(vgt, M(ld_up, r_min))))
+            cap = S(nom, M(p('ap/eo-flap-rate-dps'), left))
+            # (and in as the nacelles go out: at 47 500 lb and 170 KCAS 40 deg of flaperon leaves stick for 15 deg of nacelle, none for 45)
+            c.declare('ap/eo-nb-line', 0)
+            tgt = M(brake, MIN(defl('ap/eo-brake-ratio'), cap), D(v(1), M(p('ap/eo-nb-line'), MIN(v(1), Q(p('ap/eo-nb-deg'), MAX(v(1), p('ap/eo-nb-nac-deg')))))))
+            # (the Glide task: with the nacelles out the flaperons from the nominal in by ap/eo-flap-out-deg, for the stick; with them in, the fine tuning that's left)
+            nb_ = p('ap/eo-nb-deg')
+            tgt = IFTHEN(GT(M(pl, GT(nb_, v(1))), v(0.5)), M(brake, nom, MAX(v(0), D(v(1), Q(nb_, p('ap/eo-flap-out-deg'))))), tgt)
+            # (the Glide task's contract with the flare: the nominal's flaperons at the gate, in time at their rate. Short of energy the stretch had them in and the flare started from none, reached only 20 deg by the
+            # wheels, and touched at 12-16 ft/s and 151-155 KCAS against 8-10 and 143-146 from the nominal, at 38 722 lb. A shade of reach for the flare's whole lift)
+            c.declare('ap/eo-gate-flap-s', 1.0)
+            g_left = Q(MAX(v(0), D(h, p('ap/eo-gate-ft'))), MAX(sink, v(10)))
+            tgt = IFTHEN(GT(M(pl, LT(g_left, S(Q(nom, p('ap/eo-brake-out-dps')), p('ap/eo-gate-flap-s')))), v(0.5)), MAX(tgt, M(brake, nom)), tgt)
+        else:
+            tgt = v(0)
+        # (deadland.py flare's: the brake held at a deflection into the flare, -1 none)
+        c.declare('ap/eo-brake-test-deg', -1.0)
+        tgt = IFTHEN(GT(p('ap/eo-brake-test-deg'), v(-0.5)), M(fly, LT(st, v(2.5)), p('ap/eo-brake-test-deg')), tgt)
+        c.declare('ap/eo-brake-flap-deg', 0.0)
+        c.declare('ap/eo-brake-out-dps', 6.0)
+        eb = p('ap/eo-brake-flap-deg')
+        # (out faster than in: taken in it sets the flare's start, out it only spends. At 2 deg/s 20 s of a high plan's 30 went
+        # on getting there)
+        rt = M(IFTHEN(GT(M(pl, GT(p('ap/eo-nb-deg'), v(1))), v(0.5)), p('ap/eo-brake-out-dps'), p('ap/eo-flap-rate-dps')), dt)
+        rt_out = M(p('ap/eo-brake-out-dps'), dt)
+        c.fn('ap/eo-brake-flap-next', S(eb, MAX(NEG(rt), MIN(rt_out, D(tgt, eb)))), out='ap/eo-brake-flap-deg')
+        # (ap/eo-flap-test-deg: deadland.py capflare, the brake's flaperons as a site's approach has them)
+        c.declare('ap/eo-flap-test-deg', 0.0)
+        # (on the wheels in again at ap/eo-flap-in-dps, none by default: lift off the wing, the weight on the tyres for the brakes and the steering)
+        c.declare('ap/eo-flap-in-dps', 0.0)
+        flap_up = S(p('ap/eo-flap-deg'), M(p('ap/eo-flap-rate-dps'), dt))
+        flap_dn = S(p('ap/eo-flap-deg'), NEG(M(p('ap/eo-flap-in-dps'), dt)))
+        own = GT(M(GT(st, v(4.5)), GT(p('ap/eo-flap-in-dps'), v(0.01))), v(0.5))
+        c.fn('ap/eo-flap-own-next', own, out='ap/eo-flap-own')
+        c.fn('ap/eo-flap-next', IFTHEN(flare, lim(IFTHEN(own, flap_dn, flap_up), v(0), p('ap/eo-flap-max-deg')), MAX(eb, p('ap/eo-flap-test-deg'))),
              out='ap/eo-flap-deg')
         # (on the wheels to the rollout's, ap/eo-nac-safe-deg. ap/eo-nac-flare-deg 45 in the flare: with 60 their moment
         # pitched the nose to 7-8 deg on falling ground, past the tail's limit: 27 quick flares with the flaperons, 21
         # intact with 45 against 18, the worst 9.3 ft/s against 12.2)
         nac_t = IFTHEN(GT(st, v(4.5)), MAX(p('ap/eo-nac-flare-deg'), p('ap/eo-nac-safe-deg')), p('ap/eo-nac-flare-deg'))
-        c.fn('ap/eo-nac-cmd-deg', MAX(lo_, MIN(hi_, IFTHEN(go, nac_t, v(0)))),
+        # (the nacelle brake: over a high site the flaperons alone do not spend it. The model's own zero-power trims, flaperons
+        # 40 and the gear down (deadstick.py): 4.0 at 200 KCAS, 3.3 with the nacelles at 30 and 150 KCAS, 2.3 at 45 and 150,
+        # 2.0 at 130, against the 8000-12 000 ft a short path over a field left past it: the path's own length cannot
+        # spend it, the turn's radius a mile, a lap 21 000 ft and more, and nothing between. Same path, same ground: the
+        # aircraft only comes down steeper. Out while the flaperons' middle leaves height over, so that they still have
+        # both ways to go after it; in over a floor that leaves the speed time to come back before the flare)
+        if site:
+            c.declare('ap/eo-nb-back', 1.0)
+            c.declare('ap/eo-nb-span-ft', EO_NB_SPAN_FT)
+            # (the speed back to the flare's takes the height of its energy as well as the glide while it comes: the glide alone left the
+            # heavy aircraft, whose flare wants 200 KCAS, diving for the speed at 1200 ft in the last turn, 150 ft/s, pitch -27 deg, and
+            # ballooning out of the pull)
+            dv = M(MAX(v(0), D(p('ap/eo-nb-after-kt'), p('ap/eo-nb-kt'))), v(KT))
+            back = S(M(p('ap/eo-nb-back'), Q(vgt, M(ld_up, r_min)), Q(dv, a_max)), Q(M(vgt, dv), v(G0)))
+            # (and what it comes down on the brake while the nacelles close: at 45 deg and glide speed that is 150 ft/s for 5.6 s)
+            c.declare('ap/eo-nb-close', 0.0)
+            back = S(back, M(p('ap/eo-nb-close'), Q(vgt, p('ap/eo-nb-ld')), p('ap/eo-nb-lag-s')))
+            # (the Glide task's: in by the inner height over the gate, closing along a ceiling that falls with the height, the time they take at ap/eo-close-dps at the mean of
+            # the descents between; to the planner its middle, the brake's way down at its most above it, the nominal's below)
+            h_in = c.fn('ap/eo-in-h-ft', S(p('ap/eo-flare-ft'), p('ap/eo-in-ft')), desc='the height the nacelles are in by, ft')
+            span = c.fn('ap/eo-close-span-ft', M(v(0.5), S(Q(vgt, T1('inertia/weight-lbs', sch['gl_weight_lb'], sch['gl_ld_min'])), Q(vgt, M(ld_up, r_nom))), Q(p('ap/eo-nb-nac-deg'), p('ap/eo-close-dps'))), desc='the height the nacelles close over, ft')
+            floor = c.fn('ap/eo-nb-floor-ft', IFTHEN(pl_on, S(h_in, span), S(p('ap/eo-flare-ft'), p('ap/eo-nb-settle-ft'), back)), desc='the nacelle brake in by this height, ft')
+            # (ap/eo-nb-line: as a glider's airbrakes, the straight line from here to the spot: the glide ratio it takes now, from the margin against the reach
+            # and so anew every tick, the nacelles for that ratio from the grid at this weight, none while the nominal glide does. Nothing to spend, nothing
+            # opened: the Shuttle's low energy limit comes with it)
+            r_raw = D(r_nom, Q(p('ap/eo-site-margin-ft'), MAX(reach_s, v(1))))
+            # (the Glide task's line: to the point on the nominal glide ap/eo-in-ft over the gate, not the flare's own: a line to the gate arrives at the brake's descent, too steep to
+            # flare. The whole of the ratio: the old line's, of the nominal not the clean glide, read a quarter long and ran long)
+            # (less what closing from here will spend past the nominal, the Shuttle's low energy limit: left out, the nacelles stayed out until the margin was gone and 2500 ft under it)
+            nb_c = p('ap/eo-nb-deg')
+            ld_nb = T2('inertia/weight-lbs', 'ap/eo-nb-deg', sch['gl_weight_lb'], sch['gl_nac'], sch['gl_ld'])
+            shut = c.fn('ap/eo-close-cost-ft', M(v(0.5), MAX(v(0), D(Q(vgt, ld_nb), Q(vgt, M(ld_up, r_nom)))), Q(nb_c, p('ap/eo-close-dps')), M(ld_up, r_nom)), desc='what closing the nacelles from here spends past the nominal glide, in way, ft')
+            # (and a little in hand, as a glider aims to overshoot its point and brakes to it: spent to the nominal exactly the plan ran a shade short, the flaperons went in to stretch it,
+            # and the flare, starting from none, had too little lift: 11-17 ft/s against 8-9 from the nominal's 15 deg)
+            c.declare('ap/eo-plan-bias-ft', 300.0)      # (the 5th percentile of the margin at the gate, 38 722 lb, -270 ft)
+            r_in = D(r_nom, Q(D(p('ap/eo-plan-spend-ft'), S(shut, p('ap/eo-plan-bias-ft'))), MAX(D(reach_s, M(p('ap/eo-in-ft'), ld_up)), v(500))))
+            c.fn('ap/eo-ld-req', IFTHEN(pl_on, M(ld_up, MAX(v(0.05), r_in)), M(ld_up, MAX(v(0.05), Q(r_raw, r_nom)))), desc='the glide ratio to the line\'s end from here')
+            nac_r = T2('inertia/weight-lbs', 'ap/eo-ld-req', sch['weight_lb'], sch['nb_ld_axis'], sch['nb_nac_by_ld'])
+            by_line = Q(nac_r, MAX(v(1), p('ap/eo-nb-nac-deg')))
+            by_span = MAX(v(0), MIN(v(1), Q(p('ap/eo-site-mid-ft'), p('ap/eo-nb-span-ft'))))
+            nbs = M(on('ap/eo-site-on'), on('ap/eo-site-commit'), GT(p('ap/eo-site-state'), v(0.5)), IFTHEN(on('ap/eo-nb-line'), by_line, by_span))
+            # (the Glide task: the nacelles for the ratio, the gear's share of it, under the ceiling, at their rates)
+            nac_by = S(M(D(v(1), gp), T2('inertia/weight-lbs', 'ap/eo-ld-req', sch['gl_weight_lb'], sch['nb_ld_axis'], sch['gl_nac_up'])),
+                       M(gp, T2('inertia/weight-lbs', 'ap/eo-ld-req', sch['gl_weight_lb'], sch['nb_ld_axis'], sch['gl_nac_down'])))
+            ceil_ = c.fn('ap/eo-nb-ceil-deg', M(p('ap/eo-nb-nac-deg'), MAX(v(0), MIN(v(1), Q(D(h, h_in), MAX(v(1), span))))), desc='the most the nacelles may be out at this height, deg')
+            # (only on a path it can measure: on the final's state the path left is the way along the line, and taken thousands of feet off it, past the point, that read nothing,
+            # the margin 15 000 ft, and the nacelles went full out with nowhere near the height to spend)
+            c.declare('ap/eo-plan-off-ft', 1000.0)
+            sure = MAX(LT(p('ap/eo-site-state'), v(2.5)), LT(ABS(p('ap/eo-site-y-ft')), p('ap/eo-plan-off-ft')))
+            nb_t = M(fly, is_(2), GT(p('ap/eo-site-fall'), v(0.999)), on('ap/eo-site-on'), on('ap/eo-site-commit'), GT(p('ap/eo-site-state'), v(0.5)), sure, MIN(nac_by, ceil_))
+            nb0 = p('ap/eo-nb-deg')
+            # (short of energy they come in at their own rate, not the plan's)
+            nb_plan = S(nb0, lim(D(nb_t, nb0), NEG(M(IFTHEN(LT(D(p('ap/eo-site-margin-ft'), S(p('ap/eo-close-cost-ft'), p('ap/eo-plan-bias-ft'))), v(0)), v(U.NACELLE_RATE), p('ap/eo-close-dps')), dt)), M(v(U.NACELLE_RATE), dt)))
+            nbn = c.fn('ap/eo-nb-next', IFTHEN(GT(p('ap/eo-nb-test-deg'), v(-0.5)), M(fly, p('ap/eo-nb-test-deg')),
+                                               IFTHEN(pl_on, nb_plan, M(fly, LT(st, v(2.5)), GT(h, floor), GT(p('ap/eo-site-fall'), v(0.999)), p('ap/eo-nb-nac-deg'), nbs))), out='ap/eo-nb-deg')
+            c.declare('ap/eo-site-slow', 0)
+            c.fn('ap/eo-nb-used-next', M(eo, MAX(p('ap/eo-nb-used'), GT(nbn, v(5)), M(on('ap/eo-site-on'), on('ap/eo-site-slow')))), out='ap/eo-nb-used')
+        # the Flare task's stick: the pitch owns it, and the nacelles have what it leaves (control allocation's clamp: the lower priority takes the remainder). Rising in the float they went on past what the whole
+        # forward stick holds, from 188 KCAS at 60 500 lb with the flaperons at 25 deg (the trims say the same: eo_brake_grid_v22.json), the nose went to 9-13 deg against a command of 5 and at worst ballooned to 51 ft
+        # and fell in at 32 ft/s, 22 flights of 39. They stop as the stick runs out and come on as the speed gives it back, its moment going with the dynamic pressure. Up only: once risen, never back
+        for n, x in (('nac-stick', 1.0), ('nac-stick-band', 0.05)):
+            c.declare('ap/eo-' + n, x)
+        room = c.fn('ap/eo-nac-room', MAX(v(0), MIN(v(1), Q(D(p('ap/eo-nac-stick'), Q(p('ctl/lon-in'), v(B.X_LON))), p('ap/eo-nac-stick-band')))), desc='the nacelles\' share of their rate in the flare, by the forward stick left')
+        nac_now = p('ctl/nacelle-deg')
+        in_flare = GT(M(go, LT(st, v(4.5))), v(0.5))
+        # (and their timing, the line they arrive on: as late as their rate allows and still have the tips clear on the wheels, at the pitch there is, a second in hand. Freed for a fixed 2.5 s
+        # they rose 20 deg from the corridor's 12 at 190 KCAS and touched at 30, the tips in the ground)
+        c.declare('ap/eo-nac-tip-deg', eo_tip_deg(EO_TIP_FT))
+        c.declare('ap/eo-nac-lead-tgo-s', 1.0)
+        c.fn('ap/eo-nac-line-deg', D(D(p('ap/eo-nac-tip-deg'), th), M(v(U.NACELLE_RATE), MAX(v(0), D(p('ap/eo-tgo-flare-s'), p('ap/eo-nac-lead-tgo-s'))))), desc='where the nacelles have to be now to arrive with the tips clear, deg')
+        tgt = MAX(nac_now, MIN(nac_t, MAX(hi_raw, p('ap/eo-nac-line-deg'))))
+        nac_go = IFTHEN(in_flare, MIN(tgt, S(nac_now, M(room, v(U.NACELLE_RATE), dt))), nac_t)
+        c.fn('ap/eo-nac-cmd-deg', MAX(lo_, MIN(hi_, IFTHEN(go, nac_go, p('ap/eo-nb-deg')))),
              desc='ENG OUT\'s nacelle command, within the corridor')
         # (the lever at flat pitch to the ground. The rotors' energy as a cushion, the lever up from 20 ft in the
         # settling, never fired in FlightGear's Kansas landing and offline only a foot up, by chance of the settling's
@@ -1454,28 +1887,30 @@ class Model:
         laF, loF = M(p('ap/eo-site-lat-deg'), v(1 / R2D)), M(p('ap/eo-site-lon-deg'), v(1 / R2D))
         dN = M(D(la, laF), v(R_E))
         dE = M(D(lo, loF), v(R_E), COS(M(S(la, laF), v(0.5))))
-        cc = S(M(p('ap/eo-site-course-deg'), v(1 / R2D)), M(D(lo, loF), SIN(la)))
+        cc = c.fn('ap/eo-site-course-rad', S(M(p('ap/eo-site-course-deg'), v(1 / R2D)), M(D(lo, loF), SIN(la))), desc='the line\'s course here, rad')
         x = c.fn('ap/eo-site-x-ft', S(M(dE, SIN(cc)), M(dN, COS(cc))), desc='the aircraft along the landing\'s line from its point, ft')
         y = c.fn('ap/eo-site-y-ft', D(M(dE, COS(cc)), M(dN, SIN(cc))), desc='the aircraft right of the landing\'s line, ft')
         s.eo_line = [x, y, cc]
         return s.eo_line
 
-    def eng_out_site(s, reach, ld_up, vgt, kpsi, flare, eo):
-        """ENG OUT's landing site: the point where the flare is to begin (ap/eo-site-lat-deg, -lon-deg) on the
-        landing's line (ap/eo-site-course-deg, true), from Nasal/eosite.nas (ap/eo-site-on; ap/eo-site-new pulsed for a
-        new one). Flown to as the Space Shuttle's terminal area energy management flew to its runway [TAEM]: a straight
-        leg to the heading alignment circle, tangent to the final ap/eo-site-final-ft before the point on the side the
-        aircraft is on (or ap/eo-site-side's, +1 right), its radius the glide's speed's at ap/eo-hac-frac of ENG OUT's
+    def eng_out_site(s, reach, ld_up, vgt, kpsi, flare, eo, r_nom):
+        """ENG OUT's landing site: the point where the flare is to begin (ap/eo-site-lat-deg, -lon-deg) on the landing's
+        line (ap/eo-site-course-deg, true), from Nasal/eosite.nas (ap/eo-site-on; ap/eo-site-new pulsed for a new one).
+        Flown to as the Space Shuttle's terminal area energy management flew to its runway [TAEM]: the leg (a turn, a
+        straight; below) to the heading alignment circle, tangent to the final ap/eo-site-final-ft before the point on
+        the path's side (ap/eo-site-side's, +1 right), its radius the glide's speed's at ap/eo-hac-frac of ENG OUT's
         bank limit (as WYPT's arcs, room for their corrections: 44 deg, near the least height per heading turned,
         deadland.py site); around it, its bank fed forward; the final. The final: the roll out's own time from the
-        circle's bank at the flight director's roll rate and the augmentation's delay, so that one begun as late as
-        the circle's end still levels before the gate. The margin: the reach less what the path takes (each straight
-        leg's way through the air, its ground speed's share; the circle at its measured height per 180 deg, at the
-        glide's straight ratio), + high. High before the circle, S-turns: the leg turned away from the final by
-        acos(L1 / (L1 + margin)), the angle that spends the margin by the circle. States (ap/eo-site-state): 1 to the
-        circle, 2 on it, 3 on the final; the flare flies the final's law. Returns the bank (rad) and whether it flies."""
+        circle's bank at the flight director's roll rate and the augmentation's delay, so that one begun as late as the
+        circle's end still levels before the gate. The margin: the reach less what the path takes (each straight leg's
+        way through the air, its ground speed's share; the circle at its measured height per 180 deg, at the glide's
+        straight ratio), + high. High before the circle, S-turns: the leg turned away from the final by acos(L1 / (L1 +
+        margin)), the angle that spends the margin by the circle. States (ap/eo-site-state): 1 to the circle, 2 on it, 3
+        on the final; the flare flies the final's law. Returns the bank (rad) and whether it flies."""
         c = s.ctl
         c.declare('ap/eo-hac-frac', 0.8)
+        c.declare('ap/eo-site-commit', 0)
+        c.fn('ap/eo-site-commit-num', p('ap/eo-site-commit'))
         d_ = eo_site()
         on = lambda prop: GT(p(prop), v(0.5))
         TWO_PI = 2 * math.pi
@@ -1484,69 +1919,240 @@ class Model:
             w_ = ATAN2(SIN(a), COS(a))
             return IFTHEN(LT(w_, v(0)), S(w_, v(TWO_PI)), w_)
         x, y, cc = s.eo_line
-        # the circle, the final
-        ph = M(p('ap/eo-hac-frac'), p('ap/eo-bank-deg'), v(1 / R2D))
+        # (what is used more than once here has a name: these are strings, and each use of one pastes its whole tree in.
+        # The four paths written out so came to 125 000 elements, 95 % of the flight controls' work, every 1/60 s in
+        # all flight, ENG OUT or not)
+        vgt = c.fn('ap/eo-site-vgt-fps', vgt, desc='the glide\'s true airspeed, ft/s')
+        # the circle, the final. Its bank eosite.nas's (ap/eo-site-hac-deg) when it sends one, else ap/eo-hac-frac of
+        # the bank limit: a wider circle spends more of the glide per degree turned, the time the turn takes at the
+        # glide's own descent (deadland.py turns: at 42 000 lb 1763 ft per 180 deg at 44, 4074 at 20, 5456 at 15),
+        # the surplus a short way to a site leaves past what the brake and the S-turns spend (11 000 ft long, before)
+        c.declare('ap/eo-site-hac-deg', 0.0)
+        phd = c.fn('ap/eo-site-hac-bank-deg', IFTHEN(GT(p('ap/eo-site-hac-deg'), v(0.5)), p('ap/eo-site-hac-deg'),
+                                                     M(p('ap/eo-hac-frac'), p('ap/eo-bank-lim-deg'))), desc='the circle\'s bank, deg')
+        ph = M(phd, v(1 / R2D))
         R = c.fn('ap/eo-site-r-ft', Q(SQR(vgt), M(v(G0), tag('tan', ph))), desc='the heading alignment circle\'s radius, ft')
         rate, lag = M(p('ap/eo-phi-rate-dps'), v(1 / R2D)), p('ap/roll-lag-s')
         # (the final: the roll out and the speed settled, three of its loop's time constants, 1 / ap/eo-kv. With the
         # roll out's time alone, 1350 ft, the speed was 5 kt down after the circle at the gate, the nose went down for
         # it, the pull out's guard brought it up again, and the flare began at 13 ft/s, held that while the speed bled
         # 56 kt with the nacelles coming up, and touched at 40 ft/s)
-        Lf = c.fn('ap/eo-site-final-ft', M(vgt, S(Q(ph, rate), lag, Q(v(3), p('ap/eo-kv')))), desc='the final, ft')
+        # (shorter when eosite.nas sends one, ap/eo-site-final-cmd-ft: the Shuttle's minimum entry point [TAEM], the way
+        # to go cut when the energy is low)
+        c.declare('ap/eo-site-final-cmd-ft', 0.0)
+        Lf0 = c.fn('ap/eo-site-final-full-ft', M(vgt, S(Q(ph, rate), lag, Q(v(3), p('ap/eo-kv')))), desc='the full final, ft')
+        Lf = c.fn('ap/eo-site-final-ft', IFTHEN(GT(p('ap/eo-site-final-cmd-ft'), v(0.5)), MIN(p('ap/eo-site-final-cmd-ft'), Lf0), Lf0), desc='the final, ft')
         st = p('ap/eo-site-state')
         is_ = lambda n: GT(M(GT(st, v(n - 0.5)), LT(st, v(n + 0.5))), v(0.5))
         new = GT(MAX(p('ap/eo-site-new'), M(on('ap/eo-site-on'), eo, LT(st, v(0.5)))), v(0.5))
-        sd = p('ap/eo-site-s')
-        # (and to the leg, behind the final's start, the side it is on: an S-turn took a straight-in across the line,
-        # the circle's tangent point from there went to its far side, and the plan to a whole circle more; so each
-        # S-turn now swings across the line and the next one back, a weave)
-        side = IFTHEN(LT(y, v(0)), v(-1), v(1))
-        follow = GT(M(GT(st, v(0.5)), LT(st, v(1.5)), LT(x, NEG(Lf)), GT(ABS(y), v(10)), LT(ABS(p('ap/eo-site-side')), v(0.5))), v(0.5))
-        c.fn('ap/eo-site-s-next', IFTHEN(new, IFTHEN(GT(ABS(p('ap/eo-site-side')), v(0.5)), p('ap/eo-site-side'), side), IFTHEN(follow, side, sd)),
-             out='ap/eo-site-s')
+        sd = p('ap/eo-site-s')      # (the circle's side: the path's, below)
         # the aircraft from the circle's centre (the final's start E abeam it, R to the side): the tangent point it goes
         # round the circle from, the turn from there to E, and from abeam the aircraft
         u, w = S(x, Lf), D(y, M(sd, R))
-        dd = SQ(S(SQR(u), SQR(w)))
+        # (no way on, out of a hover, the heading: the ground's track there is the drift's)
+        trk_ = c.fn('ap/eo-site-track-rad', IFTHEN(GT(p('velocities/vg-fps'), v(60)), ATAN2(p('velocities/v-east-fps'), p('velocities/v-north-fps')), p('attitude/psi-rad')), desc='the track, rad')
         lam = ATAN2(w, u)
-        lamT = S(lam, M(sd, tag('acos', MIN(v(1), Q(R, MAX(dd, v(1)))))))
         lamE = M(sd, v(-math.pi / 2))
-        thT = m2(M(sd, D(lamE, lamT)))
         # (the final's line extended is the circle's tangent at E: from on it the tangent point is E, and its turn 0 or
         # a whole circle by a hair; a turn the roll in's lead would not fly is none: the final's law takes the aircraft
         # onto the line)
-        lead_a = M(Q(M(v(G0), tag('tan', ph)), vgt), S(Q(ph, M(v(2), rate)), lag))
-        thT = IFTHEN(GT(thT, D(v(TWO_PI), lead_a)), v(0), thT)
+        lead_a = c.fn('ap/eo-site-lead-rad', M(Q(M(v(G0), tag('tan', ph)), vgt), S(Q(ph, M(v(2), rate)), lag)), desc='the roll in\'s lead, rad of turn')
         tha = m2(M(sd, D(lamE, lam)))
         tha = c.fn('ap/eo-site-arc-rad', IFTHEN(GT(tha, D(v(TWO_PI), lead_a)), v(0), tha),
                    desc='the circle\'s turn still to go, from abeam the aircraft, rad')
-        L1 = SQ(MAX(v(0), D(SQR(dd), SQR(R))))
-        h180 = T1('inertia/weight-lbs', d_['weight_lb'], d_['turn_ft_per_180'])
+        # (and the turn still to go by the heading, to the final's course the way the circle turns: by where the
+        # aircraft is round the circle alone, a site handed over with the aircraft near the final's start but heading
+        # across it read the circle flown, its turn unpaid in the margin, and the final began unaligned, banked 54 deg
+        # for 20 s, its surplus no longer to be spent: over LOWI 11 300 ft long, past the runway's end; joined on the
+        # circle with the heading well off its track, the margin read 7000 ft high and the landing came 11 000 ft short)
+        tha_h = m2(M(sd, D(cc, trk_)))
+        tha_h = c.fn('ap/eo-site-arc-hdg-rad', IFTHEN(GT(tha_h, D(v(TWO_PI), lead_a)), v(0), tha_h),
+                     desc='the circle\'s turn still to go by the heading, rad')
+        bk = 'turn_ft_per_180_bank' in d_
+        h180 = (T2('inertia/weight-lbs', 'ap/eo-site-hac-bank-deg', d_['weight_lb'], d_['turn_bank_deg'], d_['turn_ft_per_180_bank']) if bk
+                else T1('inertia/weight-lbs', d_['weight_lb'], d_['turn_ft_per_180']))
+        h180_0 = T2('inertia/weight-lbs', 'ap/eo-bank-lim-deg', d_['weight_lb'], d_['turn_bank_deg'], d_['turn_ft_per_180_bank']) if bk else h180
         # the turn in and out as delays: half the roll's ramp at its rate, and the augmentation's own (as WYPT's arcs)
-        dly = S(Q(ph, M(v(2), rate)), lag)
-        w_out = M(Q(M(v(G0), tag('tan', ph)), vgt), dly)
+        dly = c.fn('ap/eo-site-dly-s', S(Q(ph, M(v(2), rate)), lag), desc='the turn in or out as a delay, s')
+        w_out = c.fn('ap/eo-site-wout-rad', M(Q(M(v(G0), tag('tan', ph)), vgt), dly), desc='the heading the delay turns through, rad')
         passed = GT(M(LT(p('ap/eo-site-tha-prev'), v(1)), GT(tha, v(TWO_PI - 1))), v(0.5))
         # (a margin a whole turn of the circle would spend: round it again, spiralling down over the site, as the S-turns
         # can spend no more than the leg allows: from 6000 ft 2 NM out the margin was 5.4 NM)
         lap = M(v(2), h180, ld_up)
-        to3 = GT(M(is_(2), MAX(LT(tha, w_out), passed), LT(p('ap/eo-site-margin-ft'), lap)), v(0.5))
+        # (onto the final unless going round again leaves less over: no more than half a lap high. With a whole lap the test,
+        # over LOWI a final began at 5900 ft, 21 000 ft high 2400 ft from its point, with nothing left to spend it on, and
+        # it flew on over the field into the rising ground 4 NM past it)
+        # (lined up from either side: 22 deg short of the final's course on a circle turning away from it read 338 deg to go, a
+        # lap, where a pilot rolls out and takes the final)
+        tha_s = c.fn('ap/eo-site-arc-hdg-near-rad', IFTHEN(GT(tha_h, v(TWO_PI - 1)), D(v(TWO_PI), tha_h), tha_h))
+        # (and on a committed path, joined already past the final's start: the final's law takes the line from either side, where
+        # the circle's, never banking against its turn, held the wings level across it: over LOWI 4300 ft through the line,
+        # good energy and the field underneath, into the valley's far side)
+        # (only just past it, within 45 deg of the line on the circle: a circle on the far side joined at its forward edge has its 270 deg still to go, past the final's start by x alone. Over LOWI,
+        # flying at the slope north of the valley, the final's law dropped the circle 3300 ft off the line and turned along the slope instead of round, and it flew into it)
+        inside = M(p('ap/eo-site-commit-num'), GT(x, NEG(Lf)), LT(x, v(0)), GT(tha, v(1.75 * math.pi)))
+        to3 = GT(MAX(M(is_(2), MAX(LT(tha, w_out), passed, GT(tha, v(TWO_PI - 1))), MAX(LT(tha_h, w_out), GT(tha_h, v(TWO_PI - 1))), LT(p('ap/eo-site-margin-ft'), M(lap, v(0.5)))),
+                     M(is_(2), inside)), v(0.5))
         # each straight leg's way through the air: its ground speed's share (the wind along and across its track)
         wN, wE = p('atmosphere/total-wind-north-fps'), p('atmosphere/total-wind-east-fps')
         def air(trk):
             al, ac = S(M(wN, COS(trk)), M(wE, SIN(trk))), D(M(wE, COS(trk)), M(wN, SIN(trk)))
             return Q(vgt, MAX(v(30), S(al, SQ(MAX(v(1), D(SQR(vgt), SQR(ac)))))))
-        chi1 = S(cc, lamT, M(sd, v(math.pi / 2)))
+        air_cc = c.fn('ap/eo-site-air-final', air(cc), desc='the final\'s way through the air per ft over the ground')
+        # (falling to flying speed the first turn is nearly free: from a hover it came round 120 deg in 12 s for no more height than
+        # the fall takes straight on, the radius and cost of the speed it's at, not the glide's. Planned at the glide's, 3 NM of turning
+        # that weren't there hid every field but the one straight ahead, 1.2 NM on and 12 000 ft too close)
+        # (over once and for all at its speed: not by the phase, which a glide held under 190 KCAS by the brake never leaves, and at 136 KCAS
+        # on the nacelle brake the fall would have read as begun again and the brake gone)
+        c.declare('ap/eo-fall-over', 0)
+        c.fn('ap/eo-fall-over-next', M(eo, MAX(p('ap/eo-fall-over'), GT(p('velocities/vc-kts'), v(EO_FALL_KT)))), out='ap/eo-fall-over')
+        fall = c.fn('ap/eo-site-fall', IFTHEN(on('ap/eo-fall-over'), v(1), MIN(v(1), MAX(v(0.03), SQR(Q(p('velocities/vc-kts'), v(EO_FALL_KT)))))),
+                    desc='the first turn\'s radius and cost in the fall, of the glide\'s')
         k_t = c.fn('ap/eo-site-turn-ft-rad', Q(M(h180, ld_up), v(math.pi)),
-                   desc='a turn\'s cost in the glide\'s still-air way, ft per rad (eosite.nas ranks the sites with it)')
+                   desc='the circle\'s turn\'s cost in the glide\'s still-air way, ft per rad (eosite.nas ranks the sites with it)')
+        k_t0 = c.fn('ap/eo-site-turn0-ft-rad', Q(M(h180_0, ld_up, fall), v(math.pi)), desc='the leg\'s turn\'s at the bank limit, ft per rad')
         arc_eq = lambda th: M(th, k_t)
+        arc0 = lambda th: M(th, k_t0)        # (the turn onto the leg, at the bank limit: priced at the circle's, 30 % over)
         # (before the circle, the turn from the track onto the leg too, at the circle's cost: from a site behind the
         # turn back, 180 deg, about 1500 ft, and each S-turn's turn back went unpaid, the aircraft arriving low)
-        trk = ATAN2(p('velocities/v-east-fps'), p('velocities/v-north-fps'))
-        need = IFTHEN(is_(3), M(MAX(v(0), NEG(x)), air(cc)),
-                      IFTHEN(is_(2), S(arc_eq(tha), M(Lf, air(cc))),
-                             S(M(L1, air(chi1)), arc_eq(ABS(wrap(D(chi1, trk)))), arc_eq(thT), M(Lf, air(cc)))))
-        mg = c.fn('ap/eo-site-margin-ft', D(reach, need), desc='the reach less what the site\'s path takes, ft (+ high)')
-        c.fn('ap/eo-site-path-ft', IFTHEN(is_(3), MAX(v(0), NEG(x)), IFTHEN(is_(2), S(M(tha, R), Lf), S(L1, M(thT, R), Lf))),
+        trk = trk_
+        air_trk = c.fn('ap/eo-site-air-track', air(trk), desc='straight on, the way through the air per ft over the ground')
+        # the leg a Dubins path [Dubins 1957]: a turn at ENG OUT's bank limit from the aircraft's own track, the straight
+        # common tangent, the circle onto the final. Four: the circle on either side, the first turn either way (k: 2 for
+        # the circle on the left, + 1 for the cross path, the turns opposite). A cross path whose circles overlap flies
+        # straight first, until they part: the teardrop. eosite.nas prices each with the terrain under it and sends its
+        # own (ap/eo-site-side, ap/eo-site-turn); without it, the cheapest here, kept unless another is cheaper by half
+        # a radian's turn (near 180 deg two are alike, and the bank would reverse). Planned with the turn in place on
+        # the side the aircraft was on, a site behind and the aircraft heading away read 7000 ft high over LOWI: the
+        # turn back carried it 1.5 NM aside, it joined the final 4500 ft off the line, flared 800 ft off it and touched
+        # down 10 000 ft long; the teardrop's way there was 3 NM more than the reach
+        psi_s = c.fn('ap/eo-site-psi-rad', wrap(D(trk, cc)), desc='the track from the line\'s course, rad')
+        sin_psi, cos_psi = c.fn('ap/eo-site-psi-sin', SIN(psi_s)), c.fn('ap/eo-site-psi-cos', COS(psi_s))
+        R0 = c.fn('ap/eo-site-r0-ft', Q(M(SQR(vgt), fall), M(v(G0), tag('tan', M(p('ap/eo-bank-lim-deg'), v(1 / R2D))))),
+                  desc='the leg\'s turn\'s radius at ENG OUT\'s bank limit, ft')
+        def dubins(pre, s1, s2, xa, ya):
+            n_ = lambda n, e: c.fn(pre + n, e)
+            c1x, c1y = D(xa, M(v(s1), R0, sin_psi)), S(ya, M(v(s1), R0, cos_psi))
+            dx_, dy_ = n_('dx-ft', D(NEG(Lf), c1x)), n_('dy-ft', D(M(v(s2), R), c1y))
+            rho = n_('rho-ft', D(M(v(s2), R), M(v(s1), R0)))
+            d2 = n_('d2-ft2', S(SQR(dx_), SQR(dy_)))
+            Lr = n_('l-ft', SQ(MAX(v(0), D(d2, SQR(rho)))))
+            phi = n_('phi-rad', D(ATAN2(dy_, dx_), ATAN2(rho, MAX(Lr, v(1)))))
+            a1, a2 = n_('a1-raw', m2(M(v(s1), D(phi, psi_s)))), n_('a2-raw', m2(M(v(-s2), phi)))
+            a1, a2 = [n_(n, IFTHEN(GT(a_, D(v(TWO_PI), lead_a)), v(0), a_)) for n, a_ in (('a1-rad', a1), ('a2-rad', a2))]
+            chi = n_('chi-rad', S(cc, phi))
+            # (the circles touching, a turn rolling out onto the circle, a path of no leg: overlapping by a hair it read as none
+            # for a frame, and the guidance took another for that frame)
+            cost = n_('cost-ft', IFTHEN(GT(S(d2, M(v(2 * EO_TOUCH_FT), ABS(rho))), SQR(rho)), S(M(Lr, air(chi)), arc0(a1), arc_eq(a2)), v(1e9)))
+            return [Lr, phi, a1, a2, cost]
+        KS = ((1, 1), (1, -1), (-1, -1), (-1, 1))
+        paths = []
+        for k, (s2, s1) in enumerate(KS):
+            d0, s0 = dubins('ap/eo-site-p%d-' % k, s1, s2, x, y), v(0)
+            if s1 != s2:
+                # (straight on until the circles are R + R0 apart: the far root of |C1 + s u - C2| = R + R0)
+                ddx = c.fn('ap/eo-site-p%d-ddx-ft' % k, D(D(x, M(v(s1), R0, sin_psi)), NEG(Lf)))
+                ddy = c.fn('ap/eo-site-p%d-ddy-ft' % k, D(S(y, M(v(s1), R0, cos_psi)), M(v(s2), R)))
+                ud = c.fn('ap/eo-site-p%d-ud-ft' % k, S(M(cos_psi, ddx), M(sin_psi, ddy)))
+                q = c.fn('ap/eo-site-p%d-q-ft2' % k, D(S(SQR(ud), SQR(S(R, R0))), S(SQR(ddx), SQR(ddy))))
+                sq = c.fn('ap/eo-site-p%d-out-ft' % k, IFTHEN(GT(q, v(0)), S(D(SQ(MAX(v(0), q)), ud), v(1)), v(0)))
+                d1 = dubins('ap/eo-site-p%d-o-' % k, s1, s2, S(x, M(sq, cos_psi)), S(y, M(sq, sin_psi)))
+                c1 = c.fn('ap/eo-site-p%d-c1-ft' % k, IFTHEN(GT(sq, v(2)), S(M(sq, air_trk), d1[4]), v(1e9)))
+                out_ = c.fn('ap/eo-site-p%d-out' % k, LT(c1, d0[4]))
+                d0 = [c.fn('ap/eo-site-p%d-%s-out' % (k, n), IFTHEN(GT(out_, v(0.5)), e1_, e0_))
+                      for n, e1_, e0_ in zip(('l-ft', 'phi-rad', 'a1-rad', 'a2-rad', 'cost-ft'), d1[:4] + [c1], d0)]
+                s0 = M(out_, sq)
+            paths.append(d0 + [s0])
+        c.declare('ap/eo-site-k', 0)
+        c.declare('ap/eo-site-turn', 0)
+        kp = p('ap/eo-site-k')
+        def by_k(vals, k_=kp):
+            return IFTHEN(LT(k_, v(0.5)), vals[0], IFTHEN(LT(k_, v(1.5)), vals[1], IFTHEN(LT(k_, v(2.5)), vals[2], vals[3])))
+        side_, turn_ = p('ap/eo-site-side'), p('ap/eo-site-turn')
+        # (a side alone, sent: the cheaper of its two)
+        costs = [S(pk[4], M(v(1e9), GT(ABS(side_), v(0.5)), GT(ABS(D(side_, v(s2))), v(0.5)))) for pk, (s2, s1) in zip(paths, KS)]
+        costs = [c.fn('ap/eo-site-cost%d-ft' % k, e) for k, e in enumerate(costs)]
+        cmin = MIN(*costs)
+        best = IFTHEN(LT(costs[0], S(cmin, v(1))), v(0), IFTHEN(LT(costs[1], S(cmin, v(1))), v(1), IFTHEN(LT(costs[2], S(cmin, v(1))), v(2), v(3))))
+        own = IFTHEN(new, best, IFTHEN(LT(S(cmin, arc_eq(v(0.5))), by_k(costs)), best, kp))
+        k_sent = S(IFTHEN(LT(side_, v(0)), v(2), v(0)), IFTHEN(LT(M(side_, turn_), v(0)), v(1), v(0)))
+        cm = on('ap/eo-site-commit')
+        sent = GT(M(GT(ABS(side_), v(0.5)), GT(ABS(turn_), v(0.5)), MAX(cm, LT(by_k([pk[4] for pk in paths], k_sent), v(1e8)))), v(0.5))
+        kn = c.fn('ap/eo-site-k-next', IFTHEN(GT(MAX(new, is_(1)), v(0.5)), IFTHEN(sent, k_sent, own), kp), out='ap/eo-site-k')
+        c.fn('ap/eo-site-s-next', by_k([v(s2) for s2, s1 in KS], kn), out='ap/eo-site-s')
+        L1n, phi_, a1_, a2_, cost_, s0_ = [c.fn('ap/eo-site-sel-' + n, by_k([pk[i] for pk in paths]))
+                                           for i, n in enumerate(('l-ft', 'phi-rad', 'a1-rad', 'a2-rad', 'cost-ft', 's0-ft'))]
+        s1_ = c.fn('ap/eo-site-sel-s1', by_k([v(s1) for s2, s1 in KS]))
+        # A path committed (eosite.nas sends it with the site, ap/eo-site-commit): its first turn's way, a straight on first, the
+        # point where the leg meets the circle and the circle's turn from there. Flown as a pilot flies it: the turn the
+        # way it was planned until the nose is on the point, then to the point. Solved anew each frame the path turned over
+        # at its corners: 104 jumps of 3000+ ft on the way to the circle in 40 flights, a lap or more each, the bank
+        # following them, and the height went on turns that led nowhere. (No path sent: solved here, as deadland.py flies)
+        for n in ('tx-ft', 'ty-ft', 'a2-sent-rad', 'a1-sent-rad', 's0-left-ft', 'leg'):
+            c.declare('ap/eo-site-' + n, 0)
+        dxT, dyT = c.fn('ap/eo-site-t-dx-ft', D(p('ap/eo-site-tx-ft'), x)), c.fn('ap/eo-site-t-dy-ft', D(p('ap/eo-site-ty-ft'), y))
+        dT = c.fn('ap/eo-site-t-dist-ft', SQ(S(SQR(dxT), SQR(dyT))))
+        brgT = c.fn('ap/eo-site-t-brg-rad', ATAN2(dyT, dxT))
+        chiT = c.fn('ap/eo-site-t-chi-rad', S(cc, brgT))
+        a1r = c.fn('ap/eo-site-t-a1-raw', m2(M(p('ap/eo-site-turn'), D(chiT, trk))))
+        s0l = p('ap/eo-site-s0-left-ft')
+        # (the straight on first read again from where the aircraft is, never shorter than the plan's: sent from a turn, the aircraft rolled out on a track the plan didn't have, and at its end the
+        # turn at the bank limit rolled out 1000-1300 ft past the line, with 1400 ft of straight still wanted. In the first turn it stays ended)
+        c.declare('ap/eo-site-s0-live', 1)
+        s0_run = D(s0l, M(p('velocities/vg-fps'), p('simulation/channel-dt')))
+        c.fn('ap/eo-site-s0-left-next', IFTHEN(GT(M(on('ap/eo-site-s0-live'), GT(s0l, v(1))), v(0.5)), MAX(v(0), s0_run, s0_), MAX(v(0), s0_run)), out='ap/eo-site-s0-left-ft')
+        pointed = MAX(LT(a1r, lead_a), GT(a1r, D(v(TWO_PI), lead_a)))
+        # (and the bearing gone by the nose the short way, far more turn to go than planned: passed, not a lap to come. Flying straight
+        # on first it slid past, the turn read a whole circle, -20 000 ft, and the aircraft flew 330 deg of it at 43 deg of bank
+        # and came down in the turn)
+        passed = GT(a1r, S(p('ap/eo-site-a1-sent-rad'), v(2)))
+        c.fn('ap/eo-site-leg-next', IFTHEN(new, v(0), MAX(p('ap/eo-site-leg'), M(MAX(pointed, passed), LT(s0l, v(1))))), out='ap/eo-site-leg')
+        a1T = c.fn('ap/eo-site-a1-now-rad', IFTHEN(on('ap/eo-site-leg'), v(0), a1r), desc='the committed path\'s first turn still to go, rad')
+        a2T = p('ap/eo-site-a2-sent-rad')
+        costT = S(M(dT, air(chiT)), arc0(a1T), arc_eq(a2T), M(s0l, air_trk))
+        L1n, phi_, a1_, a2_, cost_, s0_, s1_ = [c.fn('ap/eo-site-fly-' + n, IFTHEN(cm, a_, b_)) for n, a_, b_ in
+                                                (('l-ft', dT, L1n), ('phi-rad', brgT, phi_), ('a1-rad', a1T, a1_), ('a2-rad', a2T, a2_), ('cost-ft', costT, cost_),
+                                                 ('s0-ft', s0l, s0_), ('s1', p('ap/eo-site-turn'), s1_))]
+        # (the circle from here on the side now chosen, the point to it: past the side's choice, as they are read)
+        w = c.fn('ap/eo-site-w-ft', D(y, M(sd, R)))
+        dd = c.fn('ap/eo-site-dd-ft', SQ(S(SQR(u), SQR(w))))
+        lam = c.fn('ap/eo-site-lam-rad', ATAN2(w, u))
+        lamT = c.fn('ap/eo-site-lamt-rad', S(lam, M(sd, tag('acos', MIN(v(1), Q(R, MAX(dd, v(1))))))))
+        thT = c.fn('ap/eo-site-tht-raw', m2(M(sd, D(lamE, lamT))))
+        thT = c.fn('ap/eo-site-tht-rad', IFTHEN(GT(thT, D(v(TWO_PI), lead_a)), v(0), thT))
+        L1 = c.fn('ap/eo-site-l1-point-ft', SQ(MAX(v(0), D(SQR(dd), SQR(R)))))
+        chi1 = c.fn('ap/eo-site-chi1-point-rad', S(cc, lamT, M(sd, v(math.pi / 2))))
+        # (none at all, the aircraft's turn inside the circle: the point to the circle as before, straight on)
+        inf = c.fn('ap/eo-site-none', GT(cost_, v(1e8)))
+        need1 = c.fn('ap/eo-site-need1-ft', IFTHEN(inf, S(M(L1, air(chi1)), arc0(ABS(wrap(D(chi1, trk)))), arc_eq(thT)), cost_))
+        L1, thT = c.fn('ap/eo-site-leg-ft', IFTHEN(inf, L1, L1n)), c.fn('ap/eo-site-circle-rad', IFTHEN(inf, thT, a2_))
+        phi_, a1_, s0_ = (c.fn('ap/eo-site-leg-phi-rad', IFTHEN(inf, psi_s, phi_)), c.fn('ap/eo-site-leg-a1-rad', IFTHEN(inf, v(0), a1_)),
+                          c.fn('ap/eo-site-leg-s0-ft', IFTHEN(inf, v(0), s0_)))
+        chi1 = c.fn('ap/eo-site-chi1-rad', S(cc, phi_))
+        # (on the circle nearly lined up, a hair past its end by where it is: a whole lap by the position alone, the margin down
+        # 27 000 ft in a step from a perfect place, 9700 ft high half a mile from a field, and the field was given up)
+        tha_left = c.fn('ap/eo-site-arc-left-rad', IFTHEN(GT(M(GT(tha, v(TWO_PI - 1)), LT(tha_s, v(1))), v(0.5)), tha_s, MAX(tha, tha_s)),
+                        desc='the circle\'s turn still to go, rad')
+        # (on the final's state the way to the point, not only along the line: taken 3000-8000 ft off it, joining from inside the circle, the way along read a few thousand feet or
+        # nothing, the margin 13 000 ft over, and the brakes went to their full on a surplus that wasn't there)
+        # (and the turn still to make onto it: from where that turn rolls out, not from here. Taken 100 deg off the course, the way straight to the point read 2000-4000 ft of margin that wasn't
+        # there, the brakes went out in the turn at 1000 ft, 100 ft/s into the flare's gate with 50 deg of bank on, where the turn alone left the height to roll out)
+        vg_ = MAX(p('velocities/vg-fps'), v(60))
+        dpsi = c.fn('ap/eo-site-dpsi-rad', wrap(D(cc, trk)), desc='the final\'s course from the track, rad')
+        rc = c.fn('ap/eo-site-rc-ft', Q(SQR(vg_), M(v(G0), tag('tan', M(p('ap/eo-bank-lim-deg'), v(1 / R2D))))), desc='the turn at the bank limit at this speed, ft')
+        c.declare('ap/eo-site-way-turn', 1)
+        a3 = M(on('ap/eo-site-way-turn'), ABS(dpsi))
+        x3 = S(x, M(rc, SIN(a3)))
+        y3 = D(y, M(Q(dpsi, MAX(ABS(dpsi), v(1e-3))), rc, D(v(1), COS(a3))))
+        d3 = c.fn('ap/eo-site-final-way-ft', SQ(S(SQR(MAX(v(0), NEG(x3))), SQR(y3))), desc='the way to the point from the turn onto the final\'s end, ft')
+        need = IFTHEN(is_(3), S(arc0(a3), M(d3, air_cc)),
+                      IFTHEN(is_(2), S(arc_eq(tha_left), M(Lf, air_cc)),
+                             S(need1, M(Lf, air_cc))))
+        mg = c.fn('ap/eo-site-margin-ft', D(M(reach, r_nom), need),
+                  desc='the reach at the brake\'s nominal ratio less what the site\'s path takes, ft (+ high)')
+        c.fn('ap/eo-site-mid-ft', D(M(reach, v(0.5), S(r_nom, p('ap/eo-brake-min-ratio'))), need),
+             desc='what the path leaves at the flaperons\' middle, between the nominal and the full, ft')
+        c.fn('ap/eo-site-path-ft', IFTHEN(is_(3), S(M(a3, rc), d3), IFTHEN(is_(2), S(M(tha_left, R), Lf), S(s0_, M(a1_, R0), L1, M(thT, R), Lf))),
              desc='the path to the site\'s point over the ground, ft')
         # S-turns: against the circle's turn (the turn back to the leg then runs on into the circle's, without a roll
         # reversal: away from the circle's side, with its reversal at 5 deg/s an S-turn ended 50 deg banked the wrong
@@ -1557,30 +2163,109 @@ class Model:
         # in the margin held it short, and 1600-2000 ft were still there on the final; over its first half, the second
         # left for the margin's errors, a straight-in from 4000 ft overspent and was 6700 ft off the line at the flare)
         room = MAX(v(1), D(L1, S(M(v(2), vgt, dly), M(R, p('ap/eo-site-sturn-rad')))))
-        dS = c.fn('ap/eo-site-sturn-rad', IFTHEN(GT(M(is_(1), GT(mg, v(0))), v(0.5)),
-                                                 MIN(tag('acos', Q(room, S(room, mg))), MAX(v(0), Q(D(L1, M(v(2), vgt, dly)), R))), v(0)),
+        # (none on a committed path: the nacelle brake spends it on the path itself. Sized to the surplus they spiralled round
+        # the entry point at the brake's speed, the turn so much tighter than the bearing's swing, and never joined)
+        dS = c.fn('ap/eo-site-sturn-rad', IFTHEN(GT(M(is_(1), GT(mg, v(0)), LT(a1_, lead_a), LT(s0_, v(1))), v(0.5)),
+                                                 IFTHEN(cm, v(0), MIN(tag('acos', Q(room, S(room, mg))), MAX(v(0), Q(D(L1, M(v(2), vgt, dly)), R)))), v(0)),
                   desc='the S-turn away from the leg, rad')
         look = M(MAX(p('velocities/vt-fps'), v(100)), p('ap/nav-look-s'))
-        vg_ = MAX(p('velocities/vg-fps'), v(60))
-        e1 = wrap(D(D(chi1, M(sd, dS)), trk))
-        e2 = wrap(D(S(cc, lam, M(sd, S(v(math.pi / 2), ATAN2(D(dd, R), look)))), trk))
+        # (straight on, the teardrop's way out, until the roll in's lead; in the turn its own way, the long way round
+        # too when the path's so; on the leg onto its line)
+        e1 = c.fn('ap/eo-site-e1-rad', IFTHEN(GT(s0_, M(vgt, dly)), v(0), IFTHEN(GT(a1_, lead_a), M(s1_, MIN(a1_, v(math.pi))), wrap(D(D(chi1, M(sd, dS)), trk)))))
+        e2 = c.fn('ap/eo-site-e2-raw', D(S(cc, lam, M(sd, S(v(math.pi / 2), ATAN2(D(dd, R), look)))), trk))
+        e2 = c.fn('ap/eo-site-e2-rad', wrap(e2))
         # onto the circle the roll in's lead before it; or, closing on it as a pursuit of the tangent point (which goes
         # round ahead of the aircraft: one held 300 ft outside it, the tangent point 1000-1600 ft on, all the way), within
         # the lead of it and on its track within the lead's turn
-        to2 = GT(M(is_(1), MAX(LT(L1, M(vgt, dly)), M(LT(D(dd, R), M(vgt, dly)), LT(ABS(e2), w_out)))), v(0.5))
+        # (a committed path onto the circle only from its leg: passing near the circle in its first turn is not the join)
+        # (and at the point, whatever the nose says: that close its bearing swings faster than the aircraft follows, and held to
+        # the nose on it, flown 1000 ft from the point on the right heading, it went by and a path 35 000 ft longer was taken)
+        to2 = GT(M(is_(1), MAX(M(LT(a1_, lead_a), LT(L1, M(vgt, dly)), LT(s0_, v(1))),
+                               M(LT(D(dd, R), M(vgt, dly)), LT(ABS(e2), w_out), MAX(D(v(1), cm), p('ap/eo-site-leg'))),
+                               M(cm, LT(dT, M(v(1.5), vgt, dly)), LT(s0_, v(1))))), v(0.5))
+        # (the final taken where the turn onto it has to start, from the turn it can make at the speed it is flying: the path's circle reads
+        # nothing to go once the aircraft is inside it, and a first turn tighter than the circle puts it there. Over LOWI at 47 500 lb it eased
+        # from 48 to 30 deg of bank on the way to a join already gone, took the final 413 ft from the line with 51 deg to turn, where that takes
+        # 1450 ft, and crossed it by 1000)
+        lead_y = c.fn('ap/eo-site-lead-y-ft', S(M(rc, D(v(1), COS(dpsi))), M(vg_, dly, ABS(SIN(dpsi)))), desc='the distance off the line the turn onto it starts at, ft')
+        cap = c.fn('ap/eo-site-capture', GT(M(MAX(is_(1), is_(2)), GT(M(y, dpsi), v(0)), LT(ABS(dpsi), v(2)), LT(ABS(y), lead_y), LT(NEG(x), S(Lf, M(rc, ABS(SIN(dpsi))))), LT(S(x, M(rc, ABS(SIN(dpsi)))), v(0)),
+                                              LT(p('ap/eo-site-margin-ft'), M(lap, v(0.5)))), v(0.5)), desc='the turn onto the final starts')
         c.fn('ap/eo-site-tha-next', tha, out='ap/eo-site-tha-prev')
         live = M(on('ap/eo-site-on'), eo)
-        c.fn('ap/eo-site-state-next', IFTHEN(LT(live, v(0.5)), v(0), IFTHEN(new, v(1), IFTHEN(to2, v(2), IFTHEN(to3, v(3), st)))),
+        c.fn('ap/eo-site-state-next', IFTHEN(LT(live, v(0.5)), v(0), IFTHEN(new, v(1), IFTHEN(cap, v(3), IFTHEN(to2, v(2), IFTHEN(to3, v(3), st))))),
              out='ap/eo-site-state', desc='ENG OUT to its site: 1 to the circle, 2 on it, 3 on the final')
         c.fn('ap/eo-site-new-next', v(0), out='ap/eo-site-new')
-        e3 =wrap(D(S(cc, ATAN2(NEG(y), look)), trk))
+        # (the final's own line tracking: on the cruise's 20 s look a line 1000 ft off asked 8 deg back, and of the 17 s left half the error
+        # was still there at the wheels. With the heading's lag the two are one second-order loop, damped by half the root of their ratio)
+        c.declare('ap/eo-final-look-s', 10.0)
+        c.declare('ap/eo-final-tau-s', 5.0)
+        look3 = M(MAX(p('velocities/vt-fps'), v(100)), p('ap/eo-final-look-s'))
+        kpsi3 = Q(MAX(p('velocities/vt-fps'), v(60)), M(v(G0), p('ap/eo-final-tau-s')))
+        e3 = c.fn('ap/eo-site-e3-raw', D(S(cc, ATAN2(NEG(y), look3)), trk))
+        e3 = c.fn('ap/eo-site-e3-rad', wrap(e3))
         c.fn('ap/eo-site-trk-deg', M(v(R2D), IFTHEN(GT(MAX(flare, is_(3)), v(0.5)), S(trk, e3), IFTHEN(is_(2), S(trk, e2), S(trk, e1)))),
              desc='the track to the site, deg')
         ff = M(sd, ATAN2(SQR(vg_), M(v(G0), R)))
         # (on the circle never banked against its turn: joined 110 deg off its track, the shorter way round to it was
         # the other way, and the aircraft cut into the circle)
         arc_bank = M(sd, MAX(v(0), M(sd, S(ff, M(kpsi, e2)))))
-        bank = IFTHEN(GT(MAX(flare, is_(3)), v(0.5)), M(kpsi, e3), IFTHEN(is_(2), arc_bank, M(kpsi, e1)))
+        # (the first turn at its planned radius whatever the speed: slower, on the nacelle brake, it turned far tighter than the
+        # path, the nose came onto the entry point early, and the aircraft arrived there 90 deg across the final, a final
+        # of 800-2000 ft, and touched 2000 ft to the side of it on a slope)
+        c.declare('ap/eo-site-r0-cmd-ft', 0)
+        # (in the fall the heading's own bank: at its planned radius, its way over the ground a third of its speed, it asked 5-12 deg, and the
+        # turn was left to the glide, 45 deg at 180 KCAS and 3400 ft of margin gone)
+        b1 = IFTHEN(LT(fall, v(0.999)), M(p('ap/eo-bank-lim-deg'), v(1 / R2D)),
+                    ATAN2(SQR(vg_), M(v(G0), IFTHEN(GT(p('ap/eo-site-r0-cmd-ft'), v(1)), p('ap/eo-site-r0-cmd-ft'), R0))))
+        bank1 = IFTHEN(GT(M(cm, GT(a1_, lead_a)), v(0.5)), MAX(NEG(b1), MIN(b1, M(kpsi, e1))), M(kpsi, e1))
+        bank = IFTHEN(GT(MAX(flare, is_(3)), v(0.5)), M(kpsi3, e3), IFTHEN(is_(2), arc_bank, bank1))
+        # The pedals, low on the final and through the rollout. On the final they help the bank back to the line, the crab left alone. The crab goes
+        # at the last, as a glider pilot takes it, the wheels then holding the direction: from ap/eo-decrab-s before them to ap/eo-decrab-end-s, by the time
+        # to go at the descent of the moment, the nose goes onto the track. In 15 kt across, 6-2 s stopped 39 ft off the line, 8-3 s 86 ft, 3-0.5 s 4 ft. The pedals straight to what
+        # that sideslip takes (ap/eo-ped-beta-rad-in, deadstick.py --xwind), a PI on the heading round that, rate limited. The roll axis is too slow
+        # for them alone: wings commanded level, 8-15 deg went on before it caught up, so the lateral stick the slip's trims take against them.
+        # On the ground the same law, the nose wheel with it (controls())
+        for n, x_ in (('ped-on', 1.0), ('ped-kp', 10.0), ('ped-ki', 5.0), ('ped-roll', 0.3), ('ped-rate-ips', 3.0), ('decrab-s', 3.0), ('decrab-end-s', 0.5)):
+            c.declare('ap/eo-' + n, x_)
+        c.declare('ap/eo-ped-int-in', 0.0)
+        c.declare('ap/eo-decrab-w', 0.0)
+        a_ped = c.fn('ap/eo-ped-active', M(p('ap/eo-ped-on'), live, GT(MAX(flare, is_(3)), v(0.5)), T1('hh/h-wheels-ft', [0.8 * EO_PED_TOP_FT, EO_PED_TOP_FT], [1.0, 0.0])), desc='how far the pedals are in')
+        tgo = c.fn('ap/eo-tgo-s', Q(p('hh/h-wheels-ft'), MAX(v(5), NEG(p('velocities/h-dot-fps')))), desc='the time to the wheels at this descent, s')
+        w_now = MIN(v(1), MAX(v(0), Q(D(p('ap/eo-decrab-s'), tgo), D(p('ap/eo-decrab-s'), p('ap/eo-decrab-end-s')))))
+        wd = c.fn('ap/eo-decrab-next', M(GT(a_ped, v(0.01)), MAX(p('ap/eo-decrab-w'), w_now)), out='ap/eo-decrab-w')
+        # (the nose on the track, wherever that is by then: straight when a wheel touches. From there the pedals hold on through the rollout, to the
+        # line's course and a little back to it, the weathercock's pull into the wind in the PI's integral, the nose wheel coming in with the speed)
+        back = v(3 / R2D)
+        on_wheels = GT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5))
+        # (and in the air not all the way to the track: ap/eo-decrab-keep of the wind's correction left in, just enough against the drift of the last
+        # seconds, nothing else holding the aircraft against the wind by then)
+        c.declare('ap/eo-decrab-keep', 0.0)
+        wca = wrap(D(S(p('attitude/psi-rad'), p('aero/beta-rad')), trk))
+        psi_f = IFTHEN(on_wheels, S(cc, MAX(NEG(back), MIN(back, ATAN2(NEG(y), look3)))), S(trk, M(p('ap/eo-decrab-keep'), wca)))
+        e_land = wrap(D(psi_f, p('attitude/psi-rad')))
+        e_psi = c.fn('ap/eo-ped-err-rad', S(M(D(v(1), wd), e3), M(wd, e_land)), desc='the nose from where the pedals want it, rad')
+        nose_up = LT(p('gear/unit[0]/WOW'), v(0.5))
+        ffp = M(wd, nose_up, NEG(Q(wrap(D(S(p('attitude/psi-rad'), p('aero/beta-rad')), psi_f)), p('ap/eo-ped-beta-rad-in'))))
+        raw = S(ffp, M(p('ap/eo-ped-kp'), e_psi), p('ap/eo-ped-int-in'))
+        c.fn('ap/eo-ped-int-next', M(a_ped, MAX(v(-B.X_PED), MIN(v(B.X_PED), S(p('ap/eo-ped-int-in'), M(p('ap/eo-ped-ki'), e_psi, p('simulation/channel-dt'), LT(ABS(raw), v(B.X_PED))))))), out='ap/eo-ped-int-in')
+        pstep = M(p('ap/eo-ped-rate-ips'), p('simulation/channel-dt'))
+        tgt = M(a_ped, MAX(v(-B.X_PED), MIN(v(B.X_PED), raw)))
+        ped_ = c.fn('ap/eo-ped-next', S(p('ap/eo-ped-in'), MAX(NEG(pstep), MIN(pstep, D(tgt, p('ap/eo-ped-in'))))), out='ap/eo-ped-in')
+        # (less as the nacelles come up: the stick's power over the roll grows with them. At full pedal, 45 deg of nacelle and 143 KCAS the trim's 0.3 took
+        # it to 9 deg of bank against -4 asked. Estimated: the slip's trims are at nacelles 0)
+        # (and in the last seconds the stick straight from the bank's error, the cross control as much as the pedals turn out to need: the roll axis's
+        # gains fall with the airspeed, and with 13 deg of error it hardly moved. Until the nose wheel is down, on the mains still free to roll)
+        for n, x_ in (('roll-k-in-deg', 0.4), ('roll-d-in-dps', 0.15)):
+            c.declare('ap/eo-' + n, x_)
+        roll_cl = M(wd, nose_up, MAX(v(-0.5 * B.X_LAT), MIN(v(0.5 * B.X_LAT), D(M(p('ap/eo-roll-k-in-deg'), D(p('ap/eo-phi-cmd-deg'), p('attitude/phi-deg'))), M(p('ap/eo-roll-d-in-dps'), p('velocities/p-rad_sec'), v(R2D))))))
+        # (on the wheels the stick into the wind against the pedals, wings held level, as the A320 model's rollout has it: less with the speed, the
+        # surfaces' power going)
+        for n, x_ in (('ail-ped', 0.5), ('ail-bank', 0.2)):
+            c.declare('ap/eo-' + n, x_)
+        ail = M(on_wheels, T1('velocities/vc-kts', [80.0, 140.0], [0.1, 1.0]), v(B.X_LAT),
+                MAX(v(-0.5), MIN(v(0.5), S(NEG(M(p('ap/eo-ail-ped'), Q(ped_, v(B.X_PED)))), NEG(M(p('ap/eo-ail-bank'), p('attitude/phi-deg')))))))
+        # (no stick on the wheels: at 47 500 lb half aft saved 91 ft for 9 deg of pitch past the tail's limit and 2 s off the mains, half forward cost 110 ft)
+        c.fn('ap/eo-lat-next', S(roll_cl, M(a_ped, ail), NEG(M(p('ap/eo-ped-roll'), D(v(1), wd), T1('ctl/nacelle-deg', [0.0, 45.0], [1.0, 0.3]), Q(ped_, v(B.X_PED)), v(B.X_LAT), LT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5))))), out='ap/eo-lat-in')
         return dict(on=GT(M(live, GT(st, v(0.5))), v(0.5)), bank=bank)
 
     def hover_hold(s):
@@ -2220,8 +2905,8 @@ class Model:
         fx_p = M(D(v(1), flare), MAX(v(0), MIN(v(1), Q(D(need, c0), MAX(D(c1, c0), v(0.01))))))
         c.fn('ctl/flap-index-law', MAX(fx_m, fx_p), desc='the least of Bell\'s flap indices (0 F1, 1 F2) that makes it')
         on_ = M(LT(S(*[p('gear/unit[%d]/WOW' % i) for i in range(3)]), v(0.5)), GT(p('aero/qbar-psf'), v(20)))
-        # (ENG OUT's own in its flare, ap/eo-flap-deg, where it is more)
-        return c.fn('ctl/flap-law-deg', M(on_, MAX(T1('ctl/flap-index-law', [0, 1], [0, 40]), M(flare, p('ap/eo-flap-deg')))),
+        # (ENG OUT's own, ap/eo-flap-deg, where it is more: its flare's, and its brake before it)
+        return c.fn('ctl/flap-law-deg', M(on_, MAX(T1('ctl/flap-index-law', [0, 1], [0, 40]), p('ap/eo-flap-deg'))),
                     desc='the flaperons the lift needs, deg')
 
     def wing_tables(s):
@@ -2618,6 +3303,11 @@ class Model:
         for k in range(U.NB):
             o.fn('out/b%d-position' % k, wrap(S(M(v(R2D), p('rotor/psi-rad')), v(360.0 / U.NB * k))), out='/rotors/main/blade[%d]/position-deg' % k)
         o.fn('out/nacelle-deg', p('ctl/nacelle-deg'), out='/sim/model/v22/nacelle-deg')
+        # what the rotors carry, for the sound's load grids (fdm/rotorsound.py): their volumes, and their conditions, which
+        # FlightGear compares with properties only (a loop playing holds one of its 128 sources, silent or not)
+        t_sum = S(p('aero/rotor/r/thrust-lbs'), p('aero/rotor/l/thrust-lbs'))
+        o.fn('out/rotor-thrust-lbf', M(v(0.5), t_sum), out='/rotors/main/thrust-lbf', desc='the two rotors\' mean thrust')
+        o.fn('out/rotor-thrust-weight', Q(t_sum, p('inertia/weight-lbs')), out='/rotors/main/thrust-over-weight', desc='their thrust over the weight')
         for side, m in SIDES:
             o.fn('out/%s/a1' % side, p('aero/rotor/%s/a1-deg' % side), out='/rotors/%s/a1-deg' % side)
             o.fn('out/%s/b1' % side, M(v(m), p('aero/rotor/%s/b1-deg' % side)), out='/rotors/%s/b1-deg' % side)
@@ -2673,6 +3363,38 @@ class Model:
         # the wheels' height above the ground (YASim's property, which the rotor wash places itself by), level
         o.fn('out/gear-agl', MAX(v(0), M(v(0.3048), D(p('position/h-agl-ft'), Q(D(p('inertia/cg-z-in'), v(U.MAIN_GEAR[2])), v(12))))),
              out='/position/gear-agl-m')
+        # Each leg's touchdown, for its tyres' squeal and its strut's thump (the sound's one-shots: PyWopWop's tyre.py). A
+        # wheel meets the runway turning slower than the ground goes by and slides till friction spins it up, losing
+        # I (slip / r)^2 / 2: so each wheel's spin, as its rim's speed, spun up on the ground by the contact's sliding friction
+        # (0.5) on its share of the strut's force (spring and damping as the contact's; two wheels a leg), rolling at the
+        # ground speed, spun down in the air by its bearings and brake pads, a main wheel's brake stopping it (U.TYRES).
+        # Then each leg's sink rate and slip (the ground speed less its rims') as its weight comes on, held till it lifts:
+        # a wheel that hops touches down still turning and slides less. Its own speed downwards: the aircraft's, with its
+        # roll and pitch about the centre of gravity, so a nose that comes down by pitching counts. Every frame: a contact
+        # comes in one
+        o.channel('touchdown')
+        kt = M(p('velocities/vg-fps'), v(1 / 1.6878))                   # the ground speed, kt
+        for n, (name, (fs, bl, wl), k, c, steer) in enumerate(struts()):
+            g = 'gear/unit[%d]/' % n
+            w = U.TYRES['nose' if steer else 'main']
+            dx = Q(D(p('inertia/cg-x-in'), v(fs)), v(12.0))            # ahead of the centre of gravity, ft
+            dy = Q(D(v(bl), p('inertia/cg-y-in')), v(12.0))            # right of it
+            o.fn(g + 'sink-now-fps', S(p('velocities/v-down-fps'), M(p('velocities/p-rad_sec'), dy), NEG(M(p('velocities/q-rad_sec'), dx))),
+                 desc='the leg\'s own speed downwards')
+            down = GT(p(g + 'WOW'), v(0.5))
+            load = MAX(v(0), S(M(v(k), p(g + 'compression-ft')), M(v(c), p(g + 'compression-velocity-fps'))))    # lbf, the leg's
+            up = 0.5 * 4.4482216 / w['wheels'] * w['radius_m'] ** 2 / w['inertia_kgm2'] / 0.514444   # kt/s of rim speed a lbf on the leg gives
+            spin_down = w['radius_m'] / w['inertia_kgm2'] / 0.514444                                   # kt/s a N m takes away
+            torque = v(w['drag_nm'])
+            if not steer:
+                side = 'left' if 'LEFT' in name else 'right'
+                torque = S(torque, M(MAX(p('fcs/%s-brake-cmd-norm' % side), p('/controls/gear/brake-parking')), v(w['brake_nm'])))
+            o.fn(g + 'slip-now-kt', MAX(v(0), D(kt, p(g + 'spin-kt'))), desc='the ground speed less the rims\'')
+            o.fn(g + 'spin-kt', IFTHEN(down, MIN(kt, S(p(g + 'spin-kt'), M(v(up), load, p('simulation/channel-dt')))),
+                                       MAX(v(0), D(p(g + 'spin-kt'), M(v(spin_down), torque, p('simulation/channel-dt'))))),
+                 desc='the rims\' speed: spun up by the runway, rolling, spinning down in the air')
+            o.fn(g + 'touchdown-sink-fps', IFTHEN(down, p(g + 'touchdown-sink-fps'), p(g + 'sink-now-fps')), desc='as the weight came on, held')
+            o.fn(g + 'touchdown-slip-kt', IFTHEN(down, p(g + 'touchdown-slip-kt'), p(g + 'slip-now-kt')), desc='likewise')
         o.channel('engine gauges', execrate=SLOW_EXECRATE)
         for n in range(2):
             g, e = 'eng[%d]' % n, '/engines/engine[%d]' % n
@@ -2774,15 +3496,23 @@ def mass_config(cg=None, weight=None, inertia=None):
     return dict(empty=we, cg=(ex, 0.0, ez), I=I, pms=pms, fuel=fuel)
 
 
+def struts(weight=None):
+    """the gear's contacts, gear/unit[0..2] in order: name, station (FS, BL, WL in), spring (lbf/ft), damping (lbf s/ft),
+    steering (deg). Tricycle gear: about 0.5 ft static deflection, 0.5 of critical damping (estimate), at the weight the
+    flight model is built for"""
+    wt = weight or U.GW_DESIGN
+    out = []
+    for name, at, share, steer in (('NOSE', U.NOSE_GEAR, 0.16, 70), ('LEFT_MAIN', (U.MAIN_GEAR[0], -U.MAIN_GEAR[1], U.MAIN_GEAR[2]), 0.42, 0),
+                                   ('RIGHT_MAIN', U.MAIN_GEAR, 0.42, 0)):
+        k = share * wt / 0.5
+        out.append((name, at, k, 2 * 0.5 * math.sqrt(k * share * wt / G0), steer))
+    return out
+
+
 def fdm_file(cg=None, weight=None, inertia=None):
     mc = mass_config(cg, weight, inertia)
     gear = []
-    wt = weight or U.GW_DESIGN
-    # tricycle gear: about 0.5 ft static deflection, 0.5 of critical damping (estimate)
-    for name, (fs, bl, wl), share, steer in (('NOSE', U.NOSE_GEAR, 0.16, 70), ('LEFT_MAIN', (U.MAIN_GEAR[0], -U.MAIN_GEAR[1], U.MAIN_GEAR[2]), 0.42, 0),
-                                             ('RIGHT_MAIN', U.MAIN_GEAR, 0.42, 0)):
-        k = share * wt / 0.5
-        c = 2 * 0.5 * math.sqrt(k * share * wt / G0)
+    for name, (fs, bl, wl), k, c, steer in struts(weight):
         gear.append('''    <contact type="BOGEY" name="%s">
       <location unit="IN"><x>%.2f</x><y>%.2f</y><z>%.2f</z></location>
       <static_friction>0.8</static_friction><dynamic_friction>0.5</dynamic_friction><rolling_friction>0.02</rolling_friction>
@@ -2897,17 +3627,19 @@ def eo_site_data():
     """ENG OUT's landing site's needs for Nasal/eosite.nas (deadland.py site, siteguide): over the gross weight (w, lb),
     from the flare's start: the wheels under 50 ft (h50), on the ground (td, at td-kt), the run on the ground to a stop, braked
     (roll-*, by FlightGear's ground: pavement, grass, crop), ft; the reach's error near its end (err-lo, -hi, ft, +
-    long: the aircraft short); the guidance's scatter of the flare's start about its point (flare-lo, -hi, ft)"""
+    long: the aircraft short); the guidance's scatter of the flare's start about its point (flare-lo, -hi, ft); the
+    turns' cost (deadland.py turns): turn-180, ft of height per 180 deg, a row of the banks turn-bank a weight"""
     d = eo_site() if U.NAME == 'V-22' else None
     if not d:
         return ''
     row = lambda tag, xs: ''.join('<%s>%g</%s>' % (tag, x, tag) for x in xs)
     return ('  <!-- ENG OUT\'s landing site (Nasal/eosite.nas): what the landing takes, by the gross weight -->\n  <eo-site>%s%s%s%s%s%s%s%s'
-            '<flare-lo>%g</flare-lo><flare-hi>%g</flare-hi></eo-site>\n'
+            '<flare-lo>%g</flare-lo><flare-hi>%g</flare-hi>%s%s</eo-site>\n'
             % (row('w', d['weight_lb']), row('h50', d['gate_to_50ft_ft']), row('td', d['gate_to_touchdown_ft']),
                row('roll-pavement', d['rollout_ft']['pavement']), row('roll-grass', d['rollout_ft']['grass']),
                row('roll-crop', d['rollout_ft']['crop']), row('err-lo', [e[0] for e in d['reach_err_ft']]),
-               row('err-hi', [e[1] for e in d['reach_err_ft']]) + row('td-kt', d['touchdown_kt']), d['flare_err_ft'][0], d['flare_err_ft'][1]))
+               row('err-hi', [e[1] for e in d['reach_err_ft']]) + row('td-kt', d['touchdown_kt']), d['flare_err_ft'][0], d['flare_err_ft'][1],
+               row('turn-bank', d['turn_bank_deg']), row('turn-180', [x for r in d['turn_ft_per_180_bank'] for x in r])))
 
 
 if __name__ == '__main__':

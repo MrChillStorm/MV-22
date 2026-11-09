@@ -138,8 +138,8 @@ class FCS:
 
 _REF = re.compile(r'<property>([^<]+)</property>|<independentVar[^>]*>([^<]+)</independentVar>|<input>([^<]+)</input>'
                   r'|<output>([^<]+)</output>')
-_DEFS = (re.compile(r'<function name="([^"]+)">(?:<description>.*?</description>)?(.*?)</function>\n?', re.S),
-         re.compile(r'<fcs_function name="([^"]+)">(?:<description>.*?</description>)?<function>((?:(?!</fcs_function>).)*?)'
+_DEFS = (re.compile(r'<function name="([^"]+)">(?:<description>[^<]*</description>)?(.*?)</function>\n?', re.S),
+         re.compile(r'<fcs_function name="([^"]+)">(?:<description>[^<]*</description>)?<function>((?:(?!</fcs_function>).)*?)'
                     r'</function></fcs_function>\n?', re.S))
 
 

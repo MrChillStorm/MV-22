@@ -378,11 +378,12 @@ var turns = func {
 # and held to the next plan, and the most height it leaves the aircraft by t is with a pull-up after that at half the
 # ride's acceleration (the margin) up to the climb its power makes (the flight model's): for each point the least v
 # that still clears it so (by bisection: that height rises with v), the command the largest of them. It descends into
-# a valley and pulls up as late as half the ride allows; within 2000 ft/min of descent. No terrain data: the flight
-# model climbs (TF FAIL).
+# a valley and pulls up as late as half the ride allows; no faster than the flight model's limit (ap/tf-desc-max-fps:
+# the aircraft's descent, overshooting as its step down does, within PULL UP's envelope at the clearance). No terrain
+# data: the flight model climbs (TF FAIL).
 var TF_N = 36; var TF_T = 45; var TF_W = 150;
 var TF_RIDES = [["SOFT", 0.1], ["MED", 0.2], ["HARD", 0.3]];
-var TF_DESC = 2000 / 60;
+var tf_desc = 1;                                          # ft/s: the descent it may make (ap/tf-desc-max-fps)
 var tf_climb = 0;                                         # ft/s: the climb the aircraft can make (ap/tf-climb-cap-fps)
 var TF_S = 0.25;
 var tf_trk = nil; var tf_rate = 0;
@@ -420,9 +421,9 @@ var tf_reach = func(v, t, v0, a1, a2) {
 
 # the least vertical speed (ft/s) to command now that still gains dh (ft) by t
 var tf_need = func(dh, t, v0, a1, a2) {
-    if (tf_reach(-TF_DESC, t, v0, a1, a2) >= dh) return -TF_DESC;
+    if (tf_reach(-tf_desc, t, v0, a1, a2) >= dh) return -tf_desc;
     if (tf_reach(tf_climb, t, v0, a1, a2) < dh) return tf_climb;
-    var lo = -TF_DESC; var hi = tf_climb;
+    var lo = -tf_desc; var hi = tf_climb;
     for (var k = 0; k < 12; k += 1) {
         var m = (lo + hi) / 2;
         if (tf_reach(m, t, v0, a1, a2) >= dh) hi = m; else lo = m;
@@ -448,6 +449,7 @@ var tf = func {
     var clr = math.max(100, val(ST ~ "target-agl-ft"));
     var a = val(JSB ~ "ap/tf-ride-g") * 32.174;
     tf_climb = math.max(1, val(JSB ~ "ap/tf-climb-cap-fps"));
+    tf_desc = math.max(1, val(JSB ~ "ap/tf-desc-max-fps"));
     var tr = 1 / math.max(0.05, val(JSB ~ "ap/tf-kh"));
     var w = val(JSB ~ "ap/tf-w");
     tf_m = [[w, val(JSB ~ "ap/tf-tau1-s", 1), val(JSB ~ "ap/tf-v1-fps")], [1 - w, val(JSB ~ "ap/tf-tau2-s", 1), val(JSB ~ "ap/tf-v2-fps")]];
@@ -471,7 +473,7 @@ var tf = func {
     # of those, closed over that, the command meanwhile not eased, which would only take it lower. Climbing at once
     # for it, as much as the power makes, the plan took a tenth of a foot under the clearance over the sea for a
     # climb, and porpoised; further, that climb is the plan's to make, and it does)
-    var v = -TF_DESC;
+    var v = -tf_desc;
     foreach (var sw; tf_past) {
         foreach (var q; sw) {
             var t = q[0] - now; var dh = q[1] + clr - hw;
@@ -484,7 +486,7 @@ var tf = func {
             v = tf_need(dh, t, v0, a, a / 2);
         }
     }
-    setprop(JSB ~ "ap/tf-hdot-fps", math.max(-TF_DESC, math.min(tf_climb, v)));
+    setprop(JSB ~ "ap/tf-hdot-fps", math.max(-tf_desc, math.min(tf_climb, v)));
     setprop(JSB ~ "ap/tf-valid", ok);
 }
 

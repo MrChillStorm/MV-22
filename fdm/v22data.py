@@ -22,6 +22,9 @@ simulation data of it [CR] (data/bell301.py), scaled by geometry; each such valu
         warning's boundary (the cockpit's flight display draws them)
   [3D]  the FlightGear V-22's 3-D model (MV-22B/Models/v22.ac and v22.xml): placement of the nacelle pivot, hubs,
         wing, tail and wheels, so that the flight model and the visual model agree
+  [PG]  Bell Boeing, "V-22 Osprey Pocket Guide" (2012): the landing gear (twin wheels, the design sink rates 12 ft/s
+        normal and 24 crash, the loads and tyre footprints at the empty weight)
+  [GY]  Goodyear, "Aviation Databook" (2022): the V-22's tyre sizes (its application chart) and their dimensions
 
 Frames: the stations (in) are the 3-D model's frame (x aft, y right, z up, m) times 39.37: FS = (x + 8.22) 39.37 (FS 0
 at the tip of the refuelling probe), BL = y 39.37, WL = (z + 2.95) 39.37 (WL 0 at the bottom of the tyres). The nacelle
@@ -196,6 +199,27 @@ J_DRIVE = 2 * 60.0          # slug ft^2 at the rotor: the engines' power turbine
 NOSE_GEAR = model_to_station(-7.25, 0.0, -2.95)
 MAIN_GEAR = model_to_station(-0.47, 2.10, -2.95)
 D_GEAR = (3.0 * FUS_SCALE ** 2, 1.0 * FUS_SCALE ** 2)   # ft^2 main, nose, extended: the XV-15's [CR] scaled
+# The tyres, twin on each leg [PG]: 8.50-10 12-ply tubeless mains, 18x5.7-8 14-ply tubeless nose tyres [GY]. Inflated size and
+# static loaded radius from Goodyear's tables (the 18x5.7-8's 18-ply rows: the size's dimensions; its 14-ply isn't listed); the
+# rolling radius a third of the way from the free radius to the loaded one, as PyWopWop's tyres have it. The 3-D model's wheels
+# are smaller (0.56 and 0.49 m). Tyre weights: distributor listings for the sizes, a Goodyear 10-ply 8.50-10 27.7 lb and a
+# Michelin 18-ply 18x5.7-8 16.0 lb (shipped), ESTIMATES for the V-22's plies. The wheel and brake rotating with each tyre, and
+# the torque that spins a free wheel down in the air (bearings, seals, a main wheel's brake pads riding its disc): ESTIMATED,
+# the drag scaled from PyWopWop's X-57 wheels to the same spin-down times (a main wheel from 85 kt in some 14 s). A main wheel's
+# brake ESTIMATED to hold it at the tyre's rated load (8000 lb) on its loaded radius, the static friction 0.8: braked in the air
+# it stops at once. Each wheel's inertia about its axle as PyWopWop's (tyre.wheel_inertia: the tyre as mass at 0.8 of its
+# radius, the wheel and brake at 0.35). For the touchdowns' sound (genv22.py outputs 'touchdown', rotorsound.py)
+TYRES = {
+    'main': dict(size='8.50-10', diameter_m=25.65 * 0.0254, width_m=8.7 * 0.0254, loaded_radius_m=10.19 * 0.0254,
+                 tyre_kg=27.7 * 0.45359, wheel_kg=9.0, drag_nm=10.0, brake_nm=0.8 * 8000 * 4.4482216 * 10.19 * 0.0254,
+                 rated_lb=8000.0, wheels=2),
+    'nose': dict(size='18x5.7-8', diameter_m=17.9 * 0.0254, width_m=5.7 * 0.0254, loaded_radius_m=7.55 * 0.0254,
+                 tyre_kg=16.0 * 0.45359, wheel_kg=5.0, drag_nm=1.2, brake_nm=0.0, rated_lb=8600.0, wheels=2),
+}
+for _t in TYRES.values():
+    _R = _t['diameter_m'] / 2
+    _t['radius_m'] = _R - (_R - _t['loaded_radius_m']) / 3
+    _t['inertia_kgm2'] = _t['tyre_kg'] * (0.8 * _R) ** 2 + _t['wheel_kg'] * (0.35 * _R) ** 2
 # the pitch at which the fuselage's underside aft of the main wheels meets the ground, the wheels on it and their struts
 # extended: the ramp's lower edge, 3.2 m aft of their contact and 0.41 m above it [3D]
 TAIL_STRIKE_DEG = 7.3

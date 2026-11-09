@@ -59,6 +59,11 @@ ACC = ['accelerations/udot-ft_sec2', 'accelerations/vdot-ft_sec2', 'acceleration
        'accelerations/pdot-rad_sec2', 'accelerations/qdot-rad_sec2', 'accelerations/rdot-rad_sec2']
 
 
+# the trims' heading (deg true) and position ((lat, lon) deg, or None for JSBSim's own): north there unless a test
+# (the ENG OUT finder's bench over FlightGear's terrain) sets them
+IC_PSI_DEG, IC_LATLON = 0.0, None
+
+
 def residual(f, x, V_kt, alt_ft=1000.0, gamma=0.0, settle_s=1.0, revs=2, nacelle=90.0, beta=0.0, extra=(),
              terrain=TERRAIN_FT, cas=False, ned=None):
     """x = collective (deg), lon, lat, ped, alpha (pitch attitude in the hover, or with ned), roll; Hann-weighted mean
@@ -66,10 +71,12 @@ def residual(f, x, V_kt, alt_ft=1000.0, gamma=0.0, settle_s=1.0, revs=2, nacelle
     velocity in ft/s heading north in still air, in place of V_kt and gamma (vertical descents, sideslip)"""
     coll, lon, lat, ped, th, ph = x
     controls(f, coll, lon, lat, ped, nacelle)
+    if IC_LATLON is not None:              # (first: the airspeed's conversion is at the altitude there)
+        f['ic/lat-geod-deg'], f['ic/long-gc-deg'] = IC_LATLON
     f['ic/h-sl-ft'] = alt_ft
     if ned is None:
         f['ic/vc-kts' if cas else 'ic/vt-kts'] = V_kt
-    f['ic/psi-true-deg'] = 0.0
+    f['ic/psi-true-deg'] = IC_PSI_DEG
     f['ic/phi-deg'] = ph
     if ned is not None:
         f['ic/theta-deg'] = th
@@ -98,10 +105,12 @@ def residual(f, x, V_kt, alt_ft=1000.0, gamma=0.0, settle_s=1.0, revs=2, nacelle
 
 
 def trim(f, V_kt, alt_ft=1000.0, gamma=0.0, x0=None, tol=None, iters=24, verbose=False, nacelle=90.0, beta=0.0,
-         extra=('drive/power-required-hp',), fix=None, terrain=TERRAIN_FT, cas=False, ned=None):
+         extra=('drive/power-required-hp',), fix=None, terrain=TERRAIN_FT, cas=False, ned=None, jac=None):
     """Newton trim of collective, cyclic (or elevator), pedals, angle of attack and roll for steady straight flight
     (airframe frozen, rotors running at the held speed), bounded, with a backtracking line search. fix: {index: value}
-    holds controls (e.g. the pedals in airplane mode). Returns x, residuals, extra means."""
+    holds controls (e.g. the pedals in airplane mode). jac: a dict the caller keeps, its Jacobian carried from trim to trim and
+    updated by Broyden's rule instead of six more residuals an iteration, measured afresh when a step stops helping. Returns x,
+    residuals, extra means."""
     f['ctl/init'] = 1
     freeze(f)
     lo = np.array([-10.0, -1, -1, -1, -30, -30]); hi = np.array([45.0, 1, 1, 1, 30, 30])
@@ -120,10 +129,13 @@ def trim(f, V_kt, alt_ft=1000.0, gamma=0.0, x0=None, tol=None, iters=24, verbose
             print(it, np.round(x, 4), np.round(r0, 4), np.round(e0, 1))
         if cost(r0) < (tol or 0.02):
             break
-        J = np.zeros((6, len(free)))
-        for jj, j in enumerate(free):
-            xp = x.copy(); xp[j] += h[j]
-            J[:, jj] = (residual(f, xp, V_kt, alt_ft, gamma, **kw)[0] - r0) / h[j]
+        if jac is not None and 'J' in jac:
+            J = jac['J']
+        else:
+            J = np.zeros((6, len(free)))
+            for jj, j in enumerate(free):
+                xp = x.copy(); xp[j] += h[j]
+                J[:, jj] = (residual(f, xp, V_kt, alt_ft, gamma, **kw)[0] - r0) / h[j]
         if not (np.all(np.isfinite(J)) and np.all(np.isfinite(r0))):
             break
         dxf = np.linalg.lstsq(J * scale[:, None], -r0 * scale, rcond=None)[0]
@@ -139,5 +151,12 @@ def trim(f, V_kt, alt_ft=1000.0, gamma=0.0, x0=None, tol=None, iters=24, verbose
             if cost(rn) < cost(r0):
                 break
             step *= 0.5
+        if jac is not None:
+            dxs = (xn - x)[free]
+            n2 = float(dxs @ dxs)
+            if cost(rn) >= cost(r0) or n2 < 1e-14 or not np.all(np.isfinite(rn)):
+                jac.pop('J', None)
+            else:
+                jac['J'] = J + np.outer(rn - r0 - J @ dxs, dxs) / n2
         x, r0, e0 = xn, rn, en
     return x, r0, e0

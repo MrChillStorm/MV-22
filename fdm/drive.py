@@ -77,6 +77,8 @@ def build(execrate):
         f.fn(g + '/power-next', IFTHEN(init, dem, S(P, M(Q(cdt, v(U.ENGINE_TAU)), D(dem, P)))), out=g + '/power-hp')
         f.fn(g + '/torque-pct', M(v(100 / U.P_MRP), P))
         f.fn(g + '/n1-pct', M(sp, S(v(60), M(v(45), SQ(MAX(v(0), Q(P, v(U.P_MRP))))))), desc='gas generator speed, for the gauges')
+        # (the starter's: while a started engine comes up to its cut-out, 62 % as PyWopWop's bank has it; not in a flameout's rundown)
+        f.fn(g + '/cranking', M(run, LT(p(g + '/n1-pct'), v(62)), LT(sp, v(1))), desc='1: the starter turning, for the sound')
         f.fn(g + '/fuel-flow-pph', M(run, sp, v(SFC), MAX(v(0.1 * U.P_MRP), M(P, D(v(1.5), M(v(0.5 / U.P_MRP), P))))))
     if tanks:
         # the fuel the engines burn, drawn as the transfer sequence drains the tanks [GS]: the aft sponson first, then

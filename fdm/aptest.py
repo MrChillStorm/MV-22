@@ -430,9 +430,6 @@ def route_approach(V=120.0, nacelle=70.0, land=True, T=420.0):
     return out
 
 
-TF_DESC = 2000 / 60.0
-
-
 def tf_reach(v, t, v0, a1, a2, climb, m, hold=0.25):
     """autopilot.nas tf_reach: the most height (ft) the aircraft gains by t, the reference commanded v now: ramped from
     v0 at a1 and held to the next plan (hold s), then pulled up at a2 to the climb the power makes; the aircraft its
@@ -459,13 +456,14 @@ def tf_reach(v, t, v0, a1, a2, climb, m, hold=0.25):
     return out
 
 
-def tf_need(dh, t, v0, a1, a2, climb, m, hold=0.25):
-    """autopilot.nas tf_need: the least vertical speed to command now that still gains dh by t (bisection)"""
-    if tf_reach(-TF_DESC, t, v0, a1, a2, climb, m, hold) >= dh:
-        return -TF_DESC
+def tf_need(dh, t, v0, a1, a2, climb, m, hold=0.25, desc=1.0):
+    """autopilot.nas tf_need: the least vertical speed to command now that still gains dh by t (bisection), no less
+    than -desc"""
+    if tf_reach(-desc, t, v0, a1, a2, climb, m, hold) >= dh:
+        return -desc
     if tf_reach(climb, t, v0, a1, a2, climb, m, hold) < dh:
         return climb
-    lo, hi = -TF_DESC, climb
+    lo, hi = -desc, climb
     for _ in range(12):
         mid = (lo + hi) / 2
         if tf_reach(mid, t, v0, a1, a2, climb, m, hold) >= dh:
@@ -480,7 +478,7 @@ class TfPlan:
     to 45 s, the track and 150 ft either side, and the last sweep's (4 plans') points at their time to go now; the
     reference's command the most any point needs, for the aircraft's model of it to clear it (by then; a point
     nearer than 1/K that it cannot, K the height's tracking gain, 1/K s later, the command meanwhile not eased)"""
-    N, T, W, S, DESC = 36, 45.0, 150.0, 0.25, TF_DESC
+    N, T, W, S = 36, 45.0, 150.0, 0.25
 
     def __init__(s, f, terrain, clr, frame=0.0):
         s.f, s.terrain, s.clr, s.t_next, s.trk, s.rate, s.past = f, terrain, clr, 0.0, None, 0.0, []
@@ -504,6 +502,7 @@ class TfPlan:
         v0 = f['ap/tf-cmd-fps']
         a = f['ap/tf-ride-g'] * 32.174
         climb = max(1.0, f['ap/tf-climb-cap-fps'])
+        desc = max(1.0, f['ap/tf-desc-max-fps'])
         m = ((f['ap/tf-w'], f['ap/tf-tau1-s'], f['ap/tf-v1-fps']), (1 - f['ap/tf-w'], f['ap/tf-tau2-s'], f['ap/tf-v2-fps']))
         pts, px, py, h = [], x, y, trk
         step = vg * s.T / s.N
@@ -514,7 +513,7 @@ class TfPlan:
             pts.append((t + s.T * i / s.N, max(s.terrain(px + side * s.W * math.cos(h), py - side * s.W * math.sin(h)) for side in (-1, 0, 1))))
         s.past = s.past[-int(round(s.T / s.N / s.S)) + 1:] + [pts]
         tr = 1.0 / max(f['ap/tf-kh'], 0.05)
-        v = -s.DESC
+        v = -desc
         for sweep in s.past:
             for ta, e in sweep:
                 tt, dh = ta - t, e + s.clr - hw
@@ -525,8 +524,8 @@ class TfPlan:
                         tt += tr
                         if tf_reach(v, tt, v0, a, a / 2, climb, m, hd) >= dh:
                             continue
-                    v = tf_need(dh, tt, v0, a, a / 2, climb, m, hd)
-        f['ap/tf-hdot-fps'] = max(-s.DESC, min(climb, v))
+                    v = tf_need(dh, tt, v0, a, a / 2, climb, m, hd, desc)
+        f['ap/tf-hdot-fps'] = max(-desc, min(climb, v))
         f['ap/tf-valid'] = 1
 
 
@@ -620,11 +619,11 @@ def tf_lag(speeds=(60.0, 80.0, 100.0, 120.0, 135.0, 150.0, 160.0, 170.0, 180.0, 
     """the climb's response to TF's command at each speed along AUTO NAC's schedule (genv22.tf_lag), level, SPD HOLD,
     the height's tracking off: a step of step ft/s, y its fraction made. Its delay behind a ramp, int(1 - y) dt (exact
     for any linear response); and the gain K of the height's loop, K A(jw)/(jw), A the response's transform (y's
-    derivative's), for pm deg of phase margin: where A's phase is pm - 90 deg, K = w/|A|"""
+    derivative's), for pm deg of phase margin: where A's phase is pm - 90 deg, K = w/|A|. And a step down as large:
+    its peak, the descent's overshoot (TF's descent limit, genv22's ap/tf-desc-max-fps)"""
     from genv22 import autonac_schedule
     sk, sn = autonac_schedule()
-    out = []
-    for V in speeds:
+    def response(V, step):
         f = HH.start(V, float(np.interp(V, sk, sn)), alt=1000)
         f['position/terrain-elevation-asl-ft'] = 0.0
         f[ST + 'target-agl-ft'] = 1000; f[ST + 'target-speed-kt'] = V; f[ST + 'heading-bug-deg'] = 0.0
@@ -641,7 +640,11 @@ def tf_lag(speeds=(60.0, 80.0, 100.0, 120.0, 135.0, 150.0, 160.0, 170.0, 180.0, 
         for i in range(int(T / dt)):
             f.run()
             t.append(i * dt); y.append((f['velocities/h-dot-fps'] - h0) / step)
-        t, y = np.array(t), np.array(y)
+        return np.array(t), np.array(y)
+    out = []
+    for V in speeds:
+        t, y = response(V, step)
+        peak_down = float(response(V, -step)[1].max())
         # the fit: 1 - y = w exp(-t/tau1) + (1 - w) exp(-t/tau2), least squares (w linear, the lags on a grid); w at
         # least 0, so that y is (1 - w e1 + (w - 1) e2 >= 1 - e1 for w > 1, the slow lag's share negative making an
         # overshoot): the height then rises with the command; tau2 at least 2 tau1, so that the fits are well
@@ -664,7 +667,7 @@ def tf_lag(speeds=(60.0, 80.0, 100.0, 120.0, 135.0, 150.0, 160.0, 170.0, 180.0, 
         A = np.array([np.trapezoid(g * np.exp(-1j * wi * t), t) for wi in w])
         ph = np.degrees(np.unwrap(np.angle(A)))
         i = int(np.argmax(ph <= pm - 90.0))
-        out.append(dict(kcas=V, lag=float(np.trapezoid(1 - y, t)), k_h=float(w[i] / abs(A[i])), w_c=float(w[i]), peak=float(y.max()),
+        out.append(dict(kcas=V, lag=float(np.trapezoid(1 - y, t)), k_h=float(w[i] / abs(A[i])), w_c=float(w[i]), peak=float(y.max()), peak_down=peak_down,
                         w=best[1], tau1=best[2], tau2=best[3], res=best[0], t=t[::12].tolist(), y=y[::12].tolist()))
     return out
 
@@ -805,13 +808,15 @@ if __name__ == '__main__':
     if sys.argv[1:2] == ['tflag']:
         rows = tf_lag()
         for r in rows:
-            print('%5.0f kt: the climb %4.2f s behind a ramp (its step\'s peak %4.2f); lags %4.2f of %5.2f s and %5.2f s (rms %.3f); '
+            print('%5.0f kt: the climb %4.2f s behind a ramp (its step\'s peak %4.2f, down %4.2f); lags %4.2f of %5.2f s and %5.2f s (rms %.3f); '
                   'the height\'s gain %5.3f /s, crossing over at %4.2f rad/s' % (
-                      r['kcas'], r['lag'], r['peak'], r['w'], r['tau1'], r['tau2'], r['res'], r['k_h'], r['w_c']))
+                      r['kcas'], r['lag'], r['peak'], r['peak_down'], r['w'], r['tau1'], r['tau2'], r['res'], r['k_h'], r['w_c']))
         json.dump({'kcas': [r['kcas'] for r in rows], 'w': [round(r['w'], 4) for r in rows], 'tau1_s': [round(r['tau1'], 3) for r in rows],
                    'tau2_s': [round(r['tau2'], 3) for r in rows], 'k_h': [round(r['k_h'], 4) for r in rows], 'lag_s': [round(r['lag'], 3) for r in rows],
+                   'peak_up': [round(r['peak'], 4) for r in rows], 'peak_down': [round(r['peak_down'], 4) for r in rows],
                    'note': 'aptest.py tflag: the climb\'s response to TF\'s command, two first order lags in parallel (the quick one\'s share w, '
-                           'tau1, tau2 s), the height\'s tracking gain, 1/s, and the delay behind a ramp, s (genv22.tf_lag)'},
+                           'tau1, tau2 s), the height\'s tracking gain, 1/s, the delay behind a ramp, s, and the peaks of its steps up and down, '
+                           'over the step (genv22.tf_lag)'},
                   open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tf_lag_v22.json'), 'w'), indent=1)
         sys.exit()
     if sys.argv[1:2] == ['tfclimb']:
