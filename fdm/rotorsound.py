@@ -15,24 +15,44 @@ the airplane mode's in as the nacelles come down from NAC_FULL to NAC_GONE deg (
 for the sound in between). Each bank's loops share one gain (outside, cockpit): the airplane mode's are put back at
 the helicopter mode's, so that the two modes' loudness is the physics'.
 
-The blade slap is the flight model's, not the bank's conditions': where the tip vortices pass the blades is set by
-the rotor's advance ratio and the inflow through its tip-path plane, so PyWopWop's map of the slap's level over them
-(its tools/slap_map.py, slap_map.json in the bank) becomes data/slap_v22.json, relative to the bank's slap loops at
-SLAP_REF's state, and genv22.py looks each rotor's state up in it (/rotors/main/slap-ext and -int). Only SLAP_REF's
-slap loops play, at that gain: in a flare, a decelerating turn or a descent at any attitude or nacelle angle.
+The blade slap's level is the flight model's: where the tip vortices pass the blades is set by the rotor's advance ratio
+and the inflow through its tip-path plane, so PyWopWop's map of the slap's level over them (its tools/slap_map.py,
+slap_map.json in the bank) becomes data/slap_v22.json, relative to the bank's slap loops at SLAP_REF's state, and genv22.py
+looks each rotor's state up in it (/rotors/main/slap-ext and -int): in a flare, a decelerating turn or a descent at any
+attitude or nacelle angle. Its sound is the bank's: every condition's slap loops, cross-faded by airspeed and vertical
+speed as PyWopWop's own section has them, each over its own state's level in the map, so a trimmed state plays the bank's
+loop as rendered.
 
 The cockpit's wind is PyWopWop's too (its wind.py): the windscreen's turbulent boundary layer through the cabin wall,
 loops at sea level cross-faded by the equivalent sea level airspeed and scaled for the altitude from FlightGear's
 equivalent airspeed and the air's density and temperature.
 
-    python3 rotorsound.py ~/git/PyWopWop/out/mv22b ~/git/PyWopWop/out/mv22b_airplane ~/git/PyWopWop/out/mv22b_wind
-        copies the loops the banks' FlightGear sections play to MV-22B/Sounds/pywopwop/, writes the sections into
-        Sounds/v22-sound.xml (between BEGIN and END; the original rotor sound, v22_flap.wav, and the earlier wind
-        taken out) and the slap table to data/slap_v22.json (then rebuild with genv22.py)
+The engines' are PyWopWop's as well (its engine.py, from the AE 1107C's cycle and the flight model's Ng and fuel flow:
+compressor, core, power turbine and starter, lit and cold, heard outside and in the cockpit, and the gearbox), one bank
+with the nacelles up and one with them down, faded into each other with the nacelles as the rotors' are, at the same
+gains: their loudness against the rotors and the wind is the physics'.
 
-Make the banks with `pywopwop bank mv22b -o out/mv22b`, `pywopwop bank mv22b --mode airplane -o out/mv22b_airplane`
-and `pywopwop wind mv22b -o out/mv22b_wind --gain-from out/mv22b`, and the map with `python tools/slap_map.py mv22b
--o out/mv22b/slap_map.json` in the PyWopWop checkout.
+The tyres' are PyWopWop's too (its tyre.py, at the rotor bank's gains): each leg's two tyres rolling, by its own rolling speed
+and load (/gear/gear[n]/rollspeed-ms, compression-norm), and its touchdown, a squeal and a strut's thump, once, by the sink
+rate and slip the flight model latches as its weight comes on (genv22.py's 'touchdown' channel). They replace the original
+rumble and squeals.
+
+    python3 rotorsound.py ~/git/PyWopWop/out/mv22b ~/git/PyWopWop/out/mv22b_airplane AIRPLANE_LOAD HELICOPTER_LOAD WIND ENGINES \\
+        ENGINES_AIRPLANE TYRES TOUCHDOWN
+        copies the loops the banks' FlightGear sections play to MV-22B/Sounds/pywopwop/, writes the sections into
+        Sounds/v22-sound.xml (between BEGIN and END; the original rotor sound, v22_flap.wav, the earlier wind and the
+        original tyres taken out) and the slap table to data/slap_v22.json (then rebuild with genv22.py)
+
+Make the banks with `pywopwop bank mv22b -o out/mv22b` (its slap and gains), `pywopwop bank mv22b --mode airplane_load -o
+AIRPLANE_LOAD`, `pywopwop bank mv22b --mode helicopter_load -o HELICOPTER_LOAD`
+and `pywopwop wind mv22b -o out/mv22b_wind --gain-from out/mv22b`, the map with `python tools/slap_map.py mv22b
+-o out/mv22b/slap_map.json --climbs=-4000:1500:250` (down to 4,000 ft/min: past the default 3,000 the steep descents' inflow
+leaves the map, and the slap with it; about a day at 4 workers, `--append` resumes), and the engines' with `pywopwop engine-bank mv22b -o ENGINES --like out/mv22b --duration 5`
+and `pywopwop engine-bank mv22b -o ENGINES_AIRPLANE --nacelle 0 --like out/mv22b_airplane --duration 5` (5 s: at the
+default 15 s the two come to 660 MB; but the gearbox's loop, the cockpit's loudest sound, is heard repeating at 5 s: its two
+files from the same commands at `--duration 15`, put in place of the 5 s ones) in the PyWopWop checkout. The tyres' (TYRES, TOUCHDOWN) with
+tyre.make_tyre_bank and make_touchdown_bank from fdm/v22data.py's TYRES, the struts and contacts of genv22.struts() and the
+rotor bank's gains.
 """
 import json, os, re, shutil, sys
 
@@ -66,10 +86,33 @@ SIDES_ENG = (('right', 0, 'engine_right', 7.04), ('left', 1, 'engine_left', -7.0
 # levels, so their author's balance with the original engine loops (volume 0.25) is kept and carried to the banks'
 # scale as those loops' (the engines' factors above against 0.25, geometric means), outside and in the cockpit. The
 # alerts' tones are fdm/alertsound.py's
-OLD_SOUNDS = ('wingrotation', 'bladefold', 'flap', 'enginetilt', 'rumble', 'squeal', 'squeal1', 'squeal2', 'gear',
+# The rotors by speed and load, from the flight model: a rotor's sound goes with what it is carrying as much as with its speed, so
+# each mode has a grid of loops (pywopwop bank --mode airplane_load, helicopter_load) blended live: airplane mode by the two rotors'
+# mean thrust, lbf, from windmilling (the flight model's -470) to high power; helicopter mode by their thrust over the weight, the
+# bank's load factors at HOVER_T_W, what a hover takes with the wing's download. Hover is the grid's zero speed; in ground effect its
+# own row, from one rotor radius down. The slap is apart, set by the flight model
+# (genv22.py's outputs: properties, since a loop's condition can compare properties only. Each grid loop plays only inside its
+# window of nacelle angle, airspeed and load: a looped sound holds one of FlightGear's 128 sources while its condition is true,
+# however silent, and all 31 a view at once left little for the rest)
+THRUST_P, T_OVER_W_P = '/rotors/main/thrust-lbf', '/rotors/main/thrust-over-weight'
+THRUST = '<property>%s</property>' % THRUST_P
+T_OVER_W = '<property>%s</property>' % T_OVER_W_P
+HOVER_T_W = 1.10
+AGL_P, SPD_P, VS_P = 'position/altitude-agl-ft', 'velocities/airspeed-kt', 'velocities/vertical-speed-fps'
+AGL = '<property>%s</property>' % AGL_P
+# Each loop by altitude: speed and load are PyWopWop's, the loops faded between; the air's density is an expression here, a power of
+# the density ratio for each loop and place (soundalt.py: PyWopWop's own levels at the same calibrated speed and load, over the air
+# that loop can be flown in), so no more loops are needed for it. Not one power for all: a light rotor falls with the density, a rotor
+# pulling hard at speed gets louder with height, at the same calibrated speed its true speed and tip Mach number rising
+SIGMA = '<div><property>/environment/density-slugft3</property><value>0.00237689</value></div>'
+ALT_LAW = json.load(open(os.path.join(HERE, 'data', 'sound_altitude_v22.json')))
+IGE_FT = (28.6, 9.5)            # all out of ground effect, all in it
+OLD_SOUNDS = ('wingrotation', 'bladefold', 'flap', 'enginetilt', 'gear',
               'gear-lock', 'intense ground contact', 'open door', 'Door closed', 'Steps door', 'Steps closed', 'Bay door',
               'Bay close', 'Flares', 'rain')
 OLD_ENGINE_VOLUME = 0.25
+# the original tyres (a rumble while any wheel is down, three squeals by the sink rate and airspeed): the tyre banks' in their place
+OLD_TYRES = ('rumble', 'squeal', 'squeal1', 'squeal2')
 OLD_TAG = '      <!-- at the banks\' scale (fdm/rotorsound.py) -->\n'
 
 
@@ -96,6 +139,72 @@ def ramp(prop, a, b):
     f = 1.0 / (b - a)
     return ('<clip><sum><product><property>%s</property><value>%.6g</value></product><value>%.6g</value></sum>'
             '<clipMin>0</clipMin><clipMax>1</clipMax></clip>' % (prop, f, -a * f))
+
+
+def ramp_x(x, a, b):
+    """ramp on an expression"""
+    f = 1.0 / (b - a)
+    return '<clip><sum><product>%s<value>%.6g</value></product><value>%.6g</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip>' % (x, f, -a * f)
+
+
+def sigma_isa(alt_m):
+    """the standard atmosphere's density ratio under the tropopause"""
+    return (1.0 - 2.25577e-5 * alt_m) ** 4.25588
+
+
+def altitude(k, top_m=None):
+    """the level by the air's density, relative to sea level: its power k, no further than the altitude it was measured to"""
+    x = SIGMA if top_m is None else '<max>%s<value>%.4g</value></max>' % (SIGMA, sigma_isa(top_m))
+    return '<pow>%s<value>%.4g</value></pow>' % (x, k)
+
+
+def engine_power(name):
+    """an engine loop's power of the density ratio (soundalt.py): by its layer, place and Ng; none for the gearbox, its torque's in any air"""
+    m = re.search(r'-(compressor|core|turbine|starter)-(?:lit|cold|starter)-([\d.]+)-(side|cockpit)$', name)
+    if not m:
+        return None
+    law = ALT_LAW['engines'][m.group(1)]
+    return float(np.interp(float(m.group(2)), law['ng'], law[m.group(3)]))
+
+
+def power_fade(*parts):
+    """fades of loops that don't add in phase: their powers cross-fade, so the amplitude is the root of the product. Linear
+    amplitudes left a grid's cell centre 6 dB under its corners, a dip at every speed and load between two loops"""
+    return '<sqrt><product>%s</product></sqrt>' % ''.join(parts)
+
+
+def inside(prop, lo=None, hi=None):
+    """condition terms: prop over lo and under hi (either may be None)"""
+    t = []
+    if lo is not None:
+        t.append('<greater-than><property>%s</property><value>%.6g</value></greater-than>' % (prop, lo))
+    if hi is not None:
+        t.append('<less-than><property>%s</property><value>%.6g</value></less-than>' % (prop, hi))
+    return t
+
+
+def window_terms(prop, axis, i):
+    """the condition terms of point i's cross-fade over prop (windows): true wherever its fade isn't zero"""
+    return inside(prop, axis[i - 1] if i else None, axis[i + 1] if i < len(axis) - 1 else None)
+
+
+def with_condition(blk, terms):
+    """a sound entry with more terms in its condition's <and>"""
+    i = blk.index('<condition>')
+    j = blk.index('</and>', i)
+    k = blk.rfind('\n', i, j) + 1
+    ind = blk[k:j]
+    return blk[:k] + ''.join(ind + '\t' + x + '\n' for x in terms) + blk[k:]
+
+
+def windows(x, axis, i):
+    """the fades that make point i of an axis's cross-fade over the expression x: flat past its ends"""
+    out = []
+    if i:
+        out.append(ramp_x(x, axis[i - 1], axis[i]))
+    if i < len(axis) - 1:
+        out.append(ramp_x(x, axis[i + 1], axis[i]))
+    return out
 
 
 def slap_table(bank):
@@ -141,43 +250,149 @@ def slap_table(bank):
     return out
 
 
-def section(bank, boost=None, helicopter=None):
-    """the bank's <rotor> entries, the loops in SUBDIR. The helicopter mode's: faded out with the nacelles, but for the
-    slap: only SLAP_REF's loops, at the flight model's gain (over boost: the loop raised by it). The airplane mode's
-    (helicopter: the helicopter mode's bank): faded in with the nacelles, at the helicopter mode's bank gains. The
-    files they play"""
-    x = open(os.path.join(bank, 'pywopwop-sound.xml'), encoding='utf-8').read()
-    body = x[x.index('<fx>') + len('<fx>'):x.index('</fx>')].lstrip('\n').rstrip()
-    body = body.replace('<path>Sounds/pywopwop/', '<path>%s/' % SUBDIR)
-    if helicopter:
-        g_air = json.load(open(os.path.join(bank, 'manifest.json')))['gain_db']
-        g_hel = json.load(open(os.path.join(helicopter, 'manifest.json')))['gain_db']
-        to_hel = {g: 10 ** ((g_hel[g] - g_air[g]) / 20) for g in g_air}
-    fade = ramp(NAC, NAC_FULL, NAC_GONE) if helicopter else ramp(NAC, NAC_GONE, NAC_FULL)
-    blocks = []
-    for blk in re.findall(r'\t*<rotor>.*?</rotor>', body, re.S):
-        name = re.search(r'<name>pww-(.+?)</name>', blk).group(1)
-        cond, view, src = re.match(r'(.+)-(side|cockpit)-(rotor|slap|swish|tail|mix)$', name).groups()
-        if helicopter:
-            g = '<value>%.6g</value>' % to_hel['cockpit' if view == 'cockpit' else 'exterior']
-            blk = re.sub(r'(\t+)(<volume><expression><product>\n)', lambda mm: mm.group(0) + mm.group(1) + '\t' + fade + '\n'
-                         + mm.group(1) + '\t' + g + '\n', blk)
-        elif src == 'slap':
-            if cond != SLAP_REF:
+def slap_levels(bank):
+    """the slap map's level (dBA) at an airspeed and vertical speed relative to SLAP_REF's state, by view, as slap_table reads it"""
+    m = json.load(open(os.path.join(bank, 'manifest.json')))
+    d = json.load(open(os.path.join(bank, 'slap_map.json')))
+    ref = next(c for c in m['conditions'] if c['name'] == SLAP_REF)
+    pts = [q for q in d['points'] if 'error' not in q]
+    vc = np.array([(q['airspeed_kt'], q['climb_fpm'] / 100.0) for q in pts])
+
+    def rel(view, kt, fpm):
+        L = np.array([q['levels'][SLAP_VIEW[view][1]]['slap']['dba'] for q in pts])
+        L = np.where(L < -100, L[L > -100].min() - 60, L)
+        at = lambda x, y: float(griddata(vc, L, [(x, y / 100.0)], 'linear')[0])
+        return at(kt, fpm) - at(ref['airspeed_kt'], ref['climb_fpm'])
+    return rel
+
+
+def slap_section(bank, airplane, tab):
+    """the banks' blade slap: every condition's slap loops, in both views, cross-faded as PyWopWop's own section has them
+    (the level-flight loops by airspeed, the climbs and descents by the vertical speed within their airspeed windows), each
+    playing only inside its window. The helicopter mode's level is the flight model's (/rotors/main/slap-ext, -int: its map
+    over the advance ratio and the inflow, relative to SLAP_REF's state): each loop over its own state's level in that map, so
+    that in a trimmed state the bank's loops play as rendered, and in a flare or a turn at the map's level; raised in the file
+    where the map has louder slap than its state, up to PEAK_DBFS. Faded out with the nacelles. The airplane mode's as its bank
+    has them (the map has none), at the helicopter bank's gains, faded in with the nacelles. The entries and, for each file,
+    its bank and the factor it is raised by"""
+    rel = slap_levels(bank)
+    g_ref = json.load(open(os.path.join(bank, 'manifest.json')))['gain_db']
+    blocks, files = [], {}
+    for src_bank, air in ((bank, False), (airplane, True)):
+        x = open(os.path.join(src_bank, 'pywopwop-sound.xml'), encoding='utf-8').read()
+        body = x[x.index('<fx>') + len('<fx>'):x.index('</fx>')]
+        m = json.load(open(os.path.join(src_bank, 'manifest.json')))
+        conds = {c['name']: c for c in m['conditions']}
+        level = sorted([c['airspeed_kt'] for c in m['conditions'] if abs(c['climb_fpm']) < 1.0 and c['ground_clearance_m'] is None
+                        and not c.get('ground_run')])
+        fade = ramp(NAC, NAC_FULL, NAC_GONE) if air else ramp(NAC, NAC_GONE, NAC_FULL)
+        for blk in re.findall(r'\t*<rotor>.*?</rotor>', body, re.S):
+            name = re.search(r'<name>pww-(.+?)</name>', blk).group(1)
+            cname, view, src = re.match(r'(.+)-(side|cockpit|cockpit_open)-(rotor|slap|swish|tail|mix)$', name).groups()
+            if src != 'slap' or view not in SLAP_VIEW:
                 continue
+            c = conds[cname]
+            fn = re.search(r'<path>Sounds/pywopwop/(.+?)</path>', blk).group(1)
+            blk = blk.replace('<path>Sounds/pywopwop/', '<path>%s/' % SUBDIR)
             key = SLAP_VIEW[view][0]
-            rpm = re.search(r'\t*(<clip><sum><product><property>rotors/main/rpm</property>.*?</clip>)', blk).group(1)
-            gain = ('<clip><product><property>/rotors/main/slap-%s</property><value>%.6g</value></product>'
-                    '<clipMin>0</clipMin><clipMax>1</clipMax></clip>' % (key, 1.0 / boost[name]))
-            blk = re.sub(r'(\t*)<volume>.*?</volume>', lambda mm: mm.group(1) + '<volume><expression><product>\n'
-                         + mm.group(1) + '\t' + gain + '\n' + mm.group(1) + '\t' + rpm + '\n' + mm.group(1)
-                         + '</product></expression></volume>', blk, flags=re.S)
-        else:
-            blk = re.sub(r'(\t+)(<volume><expression><product>\n)', lambda mm: mm.group(0) + mm.group(1) + '\t' + fade + '\n', blk)
-        blocks.append(blk)
-    body = '\n'.join(blocks).replace('\t', '  ')
-    files = re.findall(r'<path>%s/([^<]+)</path>' % SUBDIR, body)
-    return body, files
+            # (its window: the nacelles, and the airspeed and vertical speed its fades leave it any volume in)
+            cond = inside(NAC, hi=NAC_FULL) if air else inside(NAC, lo=NAC_GONE)
+            if abs(c['climb_fpm']) < 1.0:
+                cond += window_terms(SPD_P, level, level.index(c['airspeed_kt']))
+            else:
+                cond += inside(SPD_P, c['airspeed_kt'] - 40.0 if c['airspeed_kt'] > 40.0 else None, c['airspeed_kt'] + 50.0)
+                cond += inside(VS_P, lo=5.0) if c['climb_fpm'] > 0 else inside(VS_P, hi=-5.0)
+            fs, y = wav.read(os.path.join(src_bank, fn))
+            room = 10 ** (PEAK_DBFS / 20) / (np.abs(y.astype(np.float64)).max() / 32768.0)
+            parts = [fade, altitude(ALT_LAW['slap'][view])]
+            if air:
+                g = 10 ** ((g_ref['cockpit' if view == 'cockpit' else 'exterior'] - m['gain_db']['cockpit' if view == 'cockpit' else 'exterior']) / 20)
+                g *= sigma_isa(m['altitude_m']) ** -ALT_LAW['slap'][view]
+                b = max(1.0, min(g, room))
+                parts.append('<value>%.6g</value>' % (g / b))
+            else:
+                a = 10 ** (rel(view, c['airspeed_kt'], c['climb_fpm']) / 20)
+                b = max(1.0, min(tab['peak'][key] / a, room))
+                parts.append('<clip><product><property>/rotors/main/slap-%s</property><value>%.6g</value></product>'
+                             '<clipMin>0</clipMin><clipMax>1</clipMax></clip>' % (key, 1.0 / (a * b)))
+            blk = re.sub(r'(\t+)(<volume><expression><product>\n)', lambda mm: mm.group(0) + ''.join(mm.group(1) + '\t' + p + '\n' for p in parts), blk)
+            blk = with_condition(blk, cond)
+            blocks.append(blk)
+            files[fn] = (src_bank, b)
+    return '\n'.join(blocks).replace('\t', '  '), files
+
+
+def grid_section(bank, reference, template, tcond, airplane):
+    """a load grid's loops, each its rotor and swish as one (same volume, pitch and place, so nothing is lost, and the swish, the
+    blade passage's own noise, stays locked to the rotor's thump), blended by airspeed and load with the nacelles' fade, at the
+    reference bank's gains. The sound entries, and for each file its factor (over 1: the file itself raised, FlightGear's
+    volume stopping at 1)"""
+    # (the entry's mode, condition, pitch and place from a bank of the same mode: template's tcond; a grid has no section of its own)
+    x = open(os.path.join(template, 'pywopwop-sound.xml'), encoding='utf-8').read()
+    m = json.load(open(os.path.join(bank, 'manifest.json')))
+    g_ref = json.load(open(os.path.join(reference, 'manifest.json')))['gain_db']
+    to_ref = {g: 10 ** ((g_ref[g] - m['gain_db'][g]) / 20) for g in m['gain_db']}
+    by = {re.search(r'<name>pww-(.+?)</name>', e).group(1): e for e in re.findall(r'\t*<rotor>.*?</rotor>', x, re.S)}
+    fade = ramp(NAC, NAC_FULL, NAC_GONE) if airplane else ramp(NAC, NAC_GONE, NAC_FULL)     # (airplane: all of it with the nacelles down)
+    spd = '<property>velocities/airspeed-kt</property>'
+    conds = [c for c in m['conditions']]
+    air = [c for c in conds if c['ground_clearance_m'] is None]
+    kts = sorted({c['airspeed_kt'] for c in air})
+    if airplane:
+        loads, load_x = sorted({c['thrust_n'] / 4.448222 for c in air}), THRUST
+        at = lambda c: c['thrust_n'] / 4.448222
+    else:
+        loads, load_x = sorted({c['load_factor'] * HOVER_T_W for c in air}), T_OVER_W
+        at = lambda c: c['load_factor'] * HOVER_T_W
+    ige = ramp_x(AGL, *IGE_FT)
+    blocks, files = [], {}
+    for view in ('side', 'cockpit'):
+        for c in conds:
+            name = c['name']
+            blk = by['%s-%s-rotor' % (tcond, view)]
+            blk = re.sub(r'<name>.*?</name>', '<name>pww-%s-%s-blades</name>' % (name, view), blk)
+            blk = re.sub(r'<path>.*?</path>', '<path>%s/%s_%s_blades.wav</path>' % (SUBDIR, name, view), blk)
+            rpm = re.search(r'(<clip><sum><product><property>rotors/main/rpm</property>.*?</clip>)', blk).group(1)
+            # (the power from sea level, the loop in its bank's air: that air's level taken out. Raised in the file if louder than full
+            # volume at the top of its air)
+            law = ALT_LAW['blades'][name]
+            g = to_ref['cockpit' if view == 'cockpit' else 'exterior'] * sigma_isa(m['altitude_m']) ** -law[view]
+            raised = max(1.0, g, g * sigma_isa(law['top_m']) ** law[view])
+            parts = [rpm, altitude(law[view], law['top_m'])]
+            if g / raised < 1:
+                parts.append('<value>%.6g</value>' % (g / raised))
+            cross = [fade] + windows(load_x, loads, loads.index(at(c)))
+            cond = inside(NAC, hi=NAC_FULL) if airplane else inside(NAC, lo=NAC_GONE)
+            cond += window_terms(THRUST_P if airplane else T_OVER_W_P, loads, loads.index(at(c)))
+            if c['ground_clearance_m'] is None:
+                cross += windows(spd, kts, kts.index(c['airspeed_kt']))
+                cond += window_terms(SPD_P, kts, kts.index(c['airspeed_kt']))
+                if not airplane and c['airspeed_kt'] == 0:
+                    cross.append(ramp_x(AGL, *IGE_FT[::-1]))
+                    cond += inside(AGL_P, lo=IGE_FT[1])
+            else:
+                cross += [ramp_x(spd, kts[1], kts[0]), ige]
+                cond += inside(SPD_P, hi=kts[1]) + inside(AGL_P, hi=IGE_FT[0])
+            parts.append(power_fade(*cross))
+            blk = with_condition(blk, cond)
+            blk = re.sub(r'<volume>.*?</volume>', lambda _: '<volume><expression><product>' + ''.join(parts) + '</product></expression></volume>', blk, flags=re.S)
+            blocks.append(blk)
+            files['%s_%s_blades.wav' % (name, view)] = raised
+    return '\n'.join(blocks).replace('\t', '  '), files
+
+
+def blades(bank, fn, k=1.0):
+    """a bank's rotor and swish loops as one (fn its ..._blades.wav): their sum, as the bank's mix less the slap, times k"""
+    fs, r = wav.read(os.path.join(bank, fn.replace('_blades.wav', '_rotor.wav')))
+    fs2, w = wav.read(os.path.join(bank, fn.replace('_blades.wav', '_swish.wav')))
+    if fs != fs2 or len(r) != len(w):
+        sys.exit('%s: its rotor and swish loops differ in length' % fn)
+    y = (r.astype(np.float64) + w.astype(np.float64)) * k
+    pk = np.abs(y).max()
+    if pk > 32767:              # (louder than full scale at the reference gain: fitted to it, that loop alone that much quieter)
+        y *= 32767 / pk
+        print('%s: %.1f dB over full scale at the banks\' gain, played that much under it' % (fn, 20 * np.log10(pk / 32767)))
+    return fs, np.round(y).astype(np.int16)
 
 
 def a_weight_db(f):
@@ -214,54 +429,51 @@ def file_level(path):
     return 10 * np.log10(2 * np.sum(np.abs(Y) ** 2 * w) / len(y) ** 2)
 
 
-def engine_section(helicopter):
-    """the engines' loops (casing: the turbine's whine; exhaust) and start, each engine outside (at its nacelle, its
-    level at 100 m) and in the cockpit, at the banks' gains, following the engine's shaft power"""
+def engine_scale(helicopter):
+    """the original engine recordings' factors at the banks' scale, from Levine and DeFelice's levels: no longer played, they
+    are what carries the original aircraft's other sounds to it (rescale_old)"""
     sys.path.insert(0, HERE)
     import v22data as V
     gains = json.load(open(os.path.join(helicopter, 'manifest.json')))['gain_db']
     full = {v: 20 * np.log10(1.0 / 10 ** (gains['cockpit' if v == 'cockpit' else 'exterior'] / 20) / 2e-5)
             for v in ('outside', 'cockpit')}
     k = {}
-    for name, fn, spec, _ in ENGINE_LOOPS + (('start', 'v22_turbine_strt_out.wav', CASING_DB, None),):
+    for name, fn, spec, _ in ENGINE_LOOPS:
         lf = file_level(os.path.join(SOUNDS, fn))
         for view in ('outside', 'cockpit'):
             k[name, view] = 10 ** ((engine_level(spec, V.P_MRP, view == 'cockpit') - full[view] - lf) / 20)
-            if k[name, view] > 1:
-                sys.exit('%s would need a volume of %.2f in the %s: louder files needed' % (fn, k[name, view], view))
-    out = []
-    for side, n, spool, y in SIDES_ENG:
-        for view in ('outside', 'cockpit'):
-            cond = ('<property>sim/current-view/internal</property>' if view == 'cockpit'
-                    else '<not><property>sim/current-view/internal</property></not>')
-            where = ('' if view == 'cockpit' else '      <position><x>-1.88</x><y>%.2f</y><z>0.52</z></position>\n'
-                     '      <reference-dist>100</reference-dist>\n      <max-dist>4000</max-dist>\n' % -y)
-            on = '<and>%s<greater-than><property>/sim/model/v22/%s</property><value>0.01</value></greater-than></and>' % (cond, spool)
-            for name, fn, _, pf in ENGINE_LOOPS:
-                power = ('<sqrt><clip><div><property>/fdm/jsbsim/eng[%d]/power-hp</property><value>%.6g</value></div>'
-                         '<clipMin>0</clipMin><clipMax>2</clipMax></clip></sqrt>' % (n, V.P_MRP))
-                out.append('    <engine>\n      <name>%s-%s-%s</name>\n      <mode>looped</mode>\n      <path>%s</path>\n'
-                           '      <condition>%s</condition>\n      <volume><expression><product><value>%.6g</value>%s'
-                           '</product></expression></volume>\n      <pitch><property>/sim/model/v22/%s</property>'
-                           '<factor>%g</factor><max>2.0</max></pitch>\n%s    </engine>' % (
-                               side, name, view, fn, on, k[name, view], power, spool, pf, where))
-        # the start: one sound for both views (a sound played once starts again when its condition comes true: with the
-        # view in it, at every change of view), its volume the view's; at the nacelle, its level the 100 m one outside.
-        # Only while a started engine spools up (drive.py: 0 to 1 over 30 s; the recording is 15 s): not at an in-air
-        # start, where it runs already, nor at a shutdown
-        ko, kc = k['start', 'outside'], k['start', 'cockpit']
-        out.append('    <engine>\n      <name>%s-start</name>\n      <mode>once</mode>\n      <path>v22_turbine_strt_out.wav</path>\n'
-                   '      <condition><and><greater-than><property>/fdm/jsbsim/eng[%d]/running</property><value>0.5</value></greater-than>'
-                   '<greater-than><property>/sim/model/v22/%s</property><value>0.01</value></greater-than>'
-                   '<less-than><property>/sim/model/v22/%s</property><value>0.99</value></less-than></and></condition>\n'
-                   '      <volume><expression><sum><value>%.6g</value><product><property>sim/current-view/internal</property>'
-                   '<value>%.6g</value></product></sum></expression></volume>\n'
-                   '      <position><x>-1.88</x><y>%.2f</y><z>0.52</z></position>\n      <reference-dist>100</reference-dist>\n'
-                   '      <max-dist>4000</max-dist>\n    </engine>' % (side, n, spool, spool, ko, kc - ko, -y))
-    note = ('    <!-- the engines: casing and exhaust at Levine and DeFelice\'s turboshaft levels (fdm/rotorsound.py: %s) -->'
-            % ', '.join('%s %s %.0f dBA' % (nm, v, engine_level(sp, V.P_MRP, v == 'cockpit'))
-                        for nm, _, sp, _ in ENGINE_LOOPS for v in ('outside', 'cockpit')))
-    return note + '\n' + '\n'.join(out), k
+    return k
+
+
+def engine_section(bank, helicopter=None):
+    """the engine bank's <engine> entries, the loops in SUBDIR. The nacelles-up bank's: faded out with the nacelles; the
+    nacelles-down bank's (helicopter: the rotors' helicopter bank): faded in, at the helicopter bank's gains. Each only while
+    it can be heard. The files they play"""
+    x = open(os.path.join(bank, 'pywopwop-engines.xml'), encoding='utf-8').read()
+    body = x[x.index('<fx>') + len('<fx>'):x.index('</fx>')].lstrip('\n').rstrip()
+    body = body.replace('<path>Sounds/pywopwop/', '<path>%s/' % SUBDIR)
+    fade = ramp(NAC, NAC_FULL, NAC_GONE) if helicopter else ramp(NAC, NAC_GONE, NAC_FULL)
+    heard = ('<less-than><property>%s</property><value>%g</value></less-than>' % (NAC, NAC_FULL) if helicopter
+             else '<greater-than><property>%s</property><value>%g</value></greater-than>' % (NAC, NAC_GONE))
+    if helicopter:
+        g_air = json.load(open(os.path.join(bank, 'manifest.json')))['gain_db']
+        g_hel = json.load(open(os.path.join(helicopter, 'manifest.json')))['gain_db']
+        to_hel = {g: 10 ** ((g_hel[g] - g_air[g]) / 20) for g in g_air}
+    blocks = []
+    for blk in re.findall(r'\t*<engine>.*?</engine>', body, re.S):
+        name = re.search(r'<name>(.+?)</name>', blk).group(1)
+        g = ''
+        if helicopter:
+            g = '<value>%.6g</value>' % to_hel['cockpit' if name.endswith('-cockpit') else 'exterior']
+        if '<volume><expression><product>' not in blk or '<condition><and>' not in blk:
+            sys.exit('%s: not the volume or condition this expects' % name)
+        k = engine_power(name)
+        alt = altitude(k) if k is not None else ''
+        blk = blk.replace('<volume><expression><product>', '<volume><expression><product>' + power_fade(fade) + g + alt, 1)
+        blk = blk.replace('<condition><and>', '<condition><and>' + heard, 1)
+        blocks.append(blk)
+    body = '\n'.join(blocks).replace('\t', '  ')
+    return body, re.findall(r'<path>%s/([^<]+)</path>' % SUBDIR, body)
 
 
 def wind_section(wind, helicopter):
@@ -278,33 +490,51 @@ def wind_section(wind, helicopter):
     return body, re.findall(r'<path>%s/([^<]+)</path>' % SUBDIR, body)
 
 
-def install(bank, airplane, wind):
+def gear_section(gear, xml, reference):
+    """a tyre bank's FlightGear section (PyWopWop's tyre.py: the rolling loops, or the touchdowns' one-shots), the files it
+    plays; made at the reference bank's gains"""
+    meta = 'touchdown.json' if os.path.exists(os.path.join(gear, 'touchdown.json')) else 'manifest.json'
+    g = json.load(open(os.path.join(gear, meta)))['gain_db']
+    g_ref = json.load(open(os.path.join(reference, 'manifest.json')))['gain_db']
+    for k in g_ref:
+        if abs(g[k] - g_ref[k]) > 0.01:
+            sys.exit('%s: its %s gain %+.2f dB is not the rotor bank\'s %+.2f' % (gear, k, g[k], g_ref[k]))
+    x = open(os.path.join(gear, xml), encoding='utf-8').read()
+    body = x[x.index('<fx>') + len('<fx>'):x.index('</fx>')].lstrip('\n').rstrip()
+    body = body.replace('<path>Sounds/pywopwop/', '<path>%s/' % SUBDIR).replace('\t', '  ')
+    return body, re.findall(r'<path>%s/([^<]+)</path>' % SUBDIR, body)
+
+
+def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres, touchdown):
     tab = slap_table(bank)
     json.dump(tab, open(os.path.join(HERE, 'data', 'slap_v22.json'), 'w'))
-    # the slap loops raised where the map has louder slap than theirs, up to PEAK_DBFS (FlightGear's volume stops at 1)
-    boost, raised = {}, {}
-    for view, (key, _) in SLAP_VIEW.items():
-        fn = '%s_%s_slap.wav' % (SLAP_REF, view)
-        fs, y = wav.read(os.path.join(bank, fn))
-        y = y.astype(np.float64) / 32768.0
-        b = max(1.0, min(tab['peak'][key], 10 ** (PEAK_DBFS / 20) / np.abs(y).max()))
-        boost['%s-%s-slap' % (SLAP_REF, view)] = b
-        raised[fn] = (fs, np.clip(np.round(y * b * 32767), -32768, 32767).astype(np.int16), b, tab['peak'][key])
-    body, files = section(bank, boost)
-    body_a, files_a = section(airplane, helicopter=bank)
+    body, slaps = slap_section(bank, airplane, tab)
+    body_a, grid_a = grid_section(ap_grid, bank, airplane, 'airplane_220', True)
+    body_h, grid_h = grid_section(he_grid, bank, bank, 'hover', False)
     body_w, files_w = wind_section(wind, bank)
-    body_e, k_eng = engine_section(bank)
+    k_eng = engine_scale(bank)
+    body_e, files_e = engine_section(engines)
+    body_ea, files_ea = engine_section(engines_air, helicopter=bank)
+    body_t, files_t = gear_section(tyres, 'pywopwop-tyres.xml', bank)
+    body_d, files_d = gear_section(touchdown, 'pywopwop-touchdown.xml', bank)
     out = os.path.join(SOUNDS, SUBDIR)
     if os.path.isdir(out):
         shutil.rmtree(out)
     os.makedirs(out)
-    for src, fns in ((bank, files), (airplane, files_a), (wind, files_w)):
+    for src, grid in ((ap_grid, grid_a), (he_grid, grid_h)):
+        for fn, k in grid.items():
+            wav.write(os.path.join(out, fn), *blades(src, fn, k))
+    for fn, (src, b) in slaps.items():
+        if b > 1.0:
+            fs, y = wav.read(os.path.join(src, fn))
+            wav.write(os.path.join(out, fn), fs, np.clip(np.round(y.astype(np.float64) * b), -32768, 32767).astype(np.int16))
+        else:
+            shutil.copy(os.path.join(src, fn), os.path.join(out, fn))
+    for src, fns in ((wind, files_w), (engines, files_e), (engines_air, files_ea), (tyres, files_t), (touchdown, files_d)):
         for fn in fns:
-            if fn in raised:
-                wav.write(os.path.join(out, fn), raised[fn][0], raised[fn][1])
-            else:
-                shutil.copy(os.path.join(src, fn), os.path.join(out, fn))
-    body, files = body + '\n' + body_a + '\n' + body_w + '\n' + body_e, files + files_a + files_w
+            shutil.copy(os.path.join(src, fn), os.path.join(out, fn))
+    body = '\n'.join((body, body_a, body_h, body_w, body_e, body_ea, body_t, body_d))
+    files = list(slaps) + list(grid_a) + list(grid_h) + files_w + files_e + files_ea + files_t + files_d
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
     block = BEGIN + '\n' + body + '\n' + END + '\n'
@@ -318,23 +548,22 @@ def install(bank, airplane, wind):
     for rx in [r'    <!-- outside -->\n    <!-- rotor -->\n    <rotor>\n      <name>rotor</name>.*?</rotor>\n',
                r'    <!-- wind: the Bo 105\'s .*?</wind>\n\n'] + [
                r'    <engine>\n      <name>%s-%s</name>.*?</engine>\n' % (s, n) for s in ('left', 'right')
-               for n in ('engine-start', 'engine-loop', 'exhaust-loop')]:
+               for n in ('engine-start', 'engine-loop', 'exhaust-loop')] + [
+               r'    <(rumble|squeal)>\n      <name>%s</name>.*?</\1>\n\n?' % n for n in OLD_TYRES]:
         m = re.search(rx, t, re.S)
         if m:
             t = t[:m.start()] + t[m.end():]
     t, ko, kc = rescale_old(t, k_eng)
     open(p, 'w', encoding='latin-1').write(t)
     mb = sum(os.path.getsize(os.path.join(out, fn)) for fn in files) / 2 ** 20
-    print('%d loops (%.0f MB) in %s, %d sounds in %s' % (len(files), mb, out, body.count('<rotor>') + body.count('<wind>')
-                                                       + body.count('<engine>'), p))
-    print('engines\' volume factors at %.0f shp: %s' % (6150, ', '.join('%s %s %.3f' % (a, b, v) for (a, b), v in k_eng.items())))
+    print('%d loops (%.0f MB) in %s, %d sounds in %s' % (len(files), mb, out, sum(body.count('<%s>' % k) for k in
+                                                       ('rotor', 'wind', 'engine', 'tyre', 'touchdown')), p))
     print('the original sounds at the banks\' scale: x %.3f (%+.1f dB) outside, x %.3f (%+.1f dB) in the cockpit' % (
         ko, 20 * np.log10(ko), kc, 20 * np.log10(kc)))
-    for fn, (_, _, b, pk) in raised.items():
-        print('%s: the map\'s loudest slap %+.1f dB over the loop\'s, the loop raised %+.1f dB%s' % (
-            fn, 20 * np.log10(pk), 20 * np.log10(b), '' if b >= pk else ' (the rest clipped at full volume)'))
+    for fn, (src, b) in sorted(slaps.items()):
+        print('%s: raised %+.1f dB in the file' % (fn, 20 * np.log10(b)))
     print('data/slap_v22.json: %d x %d (lambda x mu), thrust reference %.0f lbf' % (len(tab['lam']), len(tab['mu']), tab['thrust_ref_lbf']))
 
 
 if __name__ == '__main__':
-    install(*[os.path.expanduser(a) for a in sys.argv[1:4]])
+    install(*[os.path.expanduser(a) for a in sys.argv[1:10]])
