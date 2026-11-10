@@ -47,6 +47,10 @@ rumble and squeals.
         only the installed section's pitch blocks rewritten as the install writes them (pitches()), nothing else: for when the
         banks it was made from are no longer on disk. Then check it with soundcheck.py
 
+    python3 rotorsound.py --np-fade
+        only the installed section's power turbine loops given their level by the turbine's speed (np_fade(), NP_EXPONENT)
+        and their pitch blocks as the install writes them, nothing else: likewise without the banks
+
 Make the banks with `pywopwop bank mv22b -o out/mv22b` (its slap and gains), `pywopwop bank mv22b --mode airplane_load -o
 AIRPLANE_LOAD`, `pywopwop bank mv22b --mode helicopter_load -o HELICOPTER_LOAD`
 and `pywopwop wind mv22b -o out/mv22b_wind --gain-from out/mv22b`, the map with `python tools/slap_map.py mv22b
@@ -117,6 +121,14 @@ OLD_SOUNDS = ('wingrotation', 'bladefold', 'flap', 'enginetilt', 'gear',
 OLD_ENGINE_VOLUME = 0.25
 # the original tyres (a rumble while any wheel is down, three squeals by the sink rate and airspeed): the tyre banks' in their place
 OLD_TYRES = ('rumble', 'squeal', 'squeal1', 'squeal2')
+# The power turbine's loops are rendered at 100 % of its speed and play by Ng, pitched by its own speed (the rotors'):
+# their level goes with that speed too, Smith and Bushell's turbine noise (ANOPP section 8.9, eq. 4: its power the tip
+# Mach number cubed times the gas generator's flow), so the amplitude with (NR / 100)^1.5, off where that is 60 dB down.
+# Otherwise an engine running with the rotor brake on (drive.py: cutoffs opened without the autostart, which releases it
+# first) plays them in full while the turbine stands, and a start plays them in full while the rotors are still coming
+# up. PyWopWop's engine writer has it (engine.py's NP_EXPONENT); banks written before it get it here
+NP_EXPONENT = 1.5
+NP_GATE_PCT = 100.0 * 10.0 ** (-60.0 / (20.0 * NP_EXPONENT))       # 1 %
 OLD_TAG = '      <!-- at the banks\' scale (fdm/rotorsound.py) -->\n'
 PITCH_MIN, PITCH_MAX = 0.01, 2.0    # the least and the most pitch SimGear plays (sample.hxx's set_pitch holds it there)
 ENTRY_TAGS = ('rotor', 'engine', 'wind', 'tyre', 'touchdown')     # the banks' entries in the section
@@ -170,17 +182,53 @@ def pitches(body):
     return re.sub(r'<(%s)>.*?</\1>' % '|'.join(ENTRY_TAGS), entry, body, flags=re.S)
 
 
-def pitch_only():
-    """the installed section's pitch blocks rewritten by pitches(), the rest of the file as it is"""
+def np_fade(body):
+    """the power turbine's loops (pww-...-turbine-lit-...) with their level by the turbine's speed, the property their pitch
+    follows: (speed / 100)^NP_EXPONENT in the volume and over NP_GATE_PCT in the condition. Loops that have it already
+    (PyWopWop's writer gives it) are left as they are"""
+    def entry(m):
+        blk = m.group(0)
+        if not re.search(r'<name>pww-[^<]*-turbine-lit-[^<]*</name>', blk):
+            return blk
+        name = re.search(r'<name>(.+?)</name>', blk).group(1)
+        prop = re.search(r'<pitch><property>([^<]+)</property>', blk)
+        if not prop:
+            sys.exit('%s: no pitch property for its speed' % name)
+        q = '<property>%s</property>' % prop.group(1)
+        if re.search(r'<pow><div>%s<value>100</value></div>' % re.escape(q), blk):
+            return blk
+        if '<volume><expression><product>' not in blk or '<condition><and>' not in blk:
+            sys.exit('%s: not the volume or condition this expects' % name)
+        fade = '<pow><div>%s<value>100</value></div><value>%g</value></pow>' % (q, NP_EXPONENT)
+        gate = '<greater-than>%s<value>%.3g</value></greater-than>' % (q, NP_GATE_PCT)
+        blk = blk.replace('<volume><expression><product>', '<volume><expression><product>' + fade, 1)
+        return blk.replace('<condition><and>', '<condition><and>' + gate, 1)
+    return re.sub(r'<engine>.*?</engine>', entry, body, flags=re.S)
+
+
+def section_only(step, what):
+    """the installed section rewritten by step (a function of its text), the rest of the file as it is; what: the blocks
+    to count, a regular expression"""
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
     if BEGIN not in t or END not in t:
         sys.exit('no section of fdm/rotorsound.py in %s' % p)
     i, j = t.index(BEGIN), t.index(END)
-    old, new = t[i:j], pitches(t[i:j])
+    old, new = t[i:j], step(t[i:j])
     open(p, 'w', encoding='latin-1').write(t[:i] + new + t[j:])
-    print('%s: %d pitch blocks rewritten' % (p, sum(a != b for a, b in zip(re.findall(r'<pitch>.*?</pitch>', old, re.S),
-                                                                          re.findall(r'<pitch>.*?</pitch>', new, re.S)))))
+    a, b = re.findall(what, old, re.S), re.findall(what, new, re.S)
+    print('%s: %d of %d rewritten' % (p, sum(x != y for x, y in zip(a, b)), len(b)))
+
+
+def pitch_only():
+    """the installed section's pitch blocks rewritten by pitches(), the rest of the file as it is"""
+    section_only(pitches, r'<pitch>.*?</pitch>')
+
+
+def np_fade_only():
+    """the installed section's power turbine loops faded by their speed (np_fade()), their pitch blocks as the install
+    writes them (pitches()), the rest of the file as it is"""
+    section_only(lambda s: pitches(np_fade(s)), r'<engine>\s*<name>pww-[^<]*-turbine-lit-.*?</engine>')
 
 
 def rescale_old(t, k):
@@ -600,7 +648,7 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
     for src, fns in ((wind, files_w), (engines, files_e), (engines_air, files_ea), (tyres, files_t), (touchdown, files_d)):
         for fn in fns:
             shutil.copy(os.path.join(src, fn), os.path.join(out, fn))
-    body = pitches('\n'.join((body, body_a, body_h, body_w, body_e, body_ea, body_t, body_d)))
+    body = pitches(np_fade('\n'.join((body, body_a, body_h, body_w, body_e, body_ea, body_t, body_d))))
     files = list(slaps) + list(grid_a) + list(grid_h) + files_w + files_e + files_ea + files_t + files_d
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
@@ -635,5 +683,7 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
 if __name__ == '__main__':
     if sys.argv[1:] == ['--pitch']:
         pitch_only()
+    elif sys.argv[1:] == ['--np-fade']:
+        np_fade_only()
     else:
         install(*[os.path.expanduser(a) for a in sys.argv[1:10]])

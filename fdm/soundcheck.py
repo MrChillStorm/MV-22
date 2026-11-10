@@ -5,7 +5,10 @@
     the sum within 0.01 and 2.0 (simgear/sound/xmlsound.cxx, sample.hxx);
   - over random states of the flight model, every loop plays at its own pitch (its speed over the one it was rendered at:
     the factor times the property) wherever it can be heard, and none would need more than SimGear's 2.0;
-  - that the random states reach every pitched loop, so that the check covers them all.
+  - that the random states reach every pitched loop, so that the check covers them all;
+  - the power turbine's loops (pww-...-turbine-lit-...): their level with their own speed, the property their pitch follows,
+    to rotorsound.py's NP_EXPONENT (Smith and Bushell's tip Mach number cubed), and off where that is 60 dB down, so none
+    plays while the turbine stands (the rotor brake on with an engine running).
 A loop is heard where its condition holds and its volume is within 60 dB of the most it reaches over the states.
 
     python3 soundcheck.py [FILE]        (FILE: another sound file than the aircraft's)
@@ -187,6 +190,27 @@ def main(path=XML):
     check('no loop heard where its own pitch needs more than SimGear\'s 2.0', not over,
           '%d: %s' % (len(over), sorted(over.items())[:3]) if over else '')
     check('the states reach every pitched loop', not unheard, '%d never heard: %s' % (len(unheard), unheard[:4]) if unheard else '')
+
+    from rotorsound import NP_EXPONENT, NP_GATE_PCT
+    turb = [x for x in bank if '-turbine-lit-' in x.findtext('name')]
+    stood, unfaded = [], []
+    for x in turb:
+        prop = key(x.find('pitch').find('property'))
+        C = np.broadcast_to(test(list(x.find('condition'))[0], P), (n,))
+        if (C & (P[prop] <= NP_GATE_PCT)).any():
+            stood.append(x.findtext('name'))
+        # its volume over the same state's at 100 %: the speed's own share
+        P100 = dict(P)
+        P100[prop] = np.full(n, 100.0)
+        ex = list(x.find('volume').find('expression'))[0]
+        V, V100 = np.broadcast_to(val(ex, P), (n,)), np.broadcast_to(val(ex, P100), (n,))
+        k = C & (V100 > 0)
+        if not k.any() or np.abs(V[k] / V100[k] - (P[prop][k] / 100.0) ** NP_EXPONENT).max() > 1e-9:
+            unfaded.append(x.findtext('name'))
+    check('no power turbine loop plays while its turbine stands (its speed %.3g %% or less)' % NP_GATE_PCT, not stood,
+          '%d of %d: %s' % (len(stood), len(turb), stood[:2]) if stood else '%d loops' % len(turb))
+    check('the power turbine loops\' level goes with their speed to %g' % NP_EXPONENT, not unfaded and turb,
+          '%d of %d: %s' % (len(unfaded), len(turb), unfaded[:2]) if unfaded else '')
     if fails:
         sys.exit('%d failed' % len(fails))
 
