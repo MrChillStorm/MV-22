@@ -43,6 +43,10 @@ rumble and squeals.
         Sounds/v22-sound.xml (between BEGIN and END; the original rotor sound, v22_flap.wav, the earlier wind and the
         original tyres taken out) and the slap table to data/slap_v22.json (then rebuild with genv22.py)
 
+    python3 rotorsound.py --pitch
+        only the installed section's pitch blocks rewritten as the install writes them (pitches()), nothing else: for when the
+        banks it was made from are no longer on disk. Then check it with soundcheck.py
+
 Make the banks with `pywopwop bank mv22b -o out/mv22b` (its slap and gains), `pywopwop bank mv22b --mode airplane_load -o
 AIRPLANE_LOAD`, `pywopwop bank mv22b --mode helicopter_load -o HELICOPTER_LOAD`
 and `pywopwop wind mv22b -o out/mv22b_wind --gain-from out/mv22b`, the map with `python tools/slap_map.py mv22b
@@ -114,6 +118,69 @@ OLD_ENGINE_VOLUME = 0.25
 # the original tyres (a rumble while any wheel is down, three squeals by the sink rate and airspeed): the tyre banks' in their place
 OLD_TYRES = ('rumble', 'squeal', 'squeal1', 'squeal2')
 OLD_TAG = '      <!-- at the banks\' scale (fdm/rotorsound.py) -->\n'
+PITCH_MIN, PITCH_MAX = 0.01, 2.0    # the least and the most pitch SimGear plays (sample.hxx's set_pitch holds it there)
+ENTRY_TAGS = ('rotor', 'engine', 'wind', 'tyre', 'touchdown')     # the banks' entries in the section
+
+
+def gates(blk, prop):
+    """the least and the most of prop an entry's condition lets it play at (None: no bound). Only an <and> of comparisons
+    bounds it: anything under a <not> or an <or> is passed over"""
+    c = re.search(r'<condition>(.*?)</condition>', blk, re.S)
+    c = re.sub(r'<not>.*?</not>', '', c.group(1), flags=re.S) if c else ''
+    if '<or>' in c:
+        return None, None
+    q = r'<property>/?%s</property><value>([^<]+)</value>' % re.escape(prop.lstrip('/'))
+    lo = [float(v) for v in re.findall('<greater-than>%s</greater-than>' % q, c)]
+    hi = [float(v) for v in re.findall('<less-than>%s</less-than>' % q, c)]
+    return (max(lo) if lo else None), (min(hi) if hi else None)
+
+
+def pitches(body):
+    """the banks' pitch blocks as SimGear has to have them. SimGear plays a <pitch> at its <offset> plus its factor times its
+    property (that within <min> and <max>), and the offset is 1.0 where none is given (xmlsound.cxx; a <volume>'s is 0): the
+    banks' sections stated none, so every loop played an octave up, flat at SimGear's cap of 2.0. Each states 0 here. And a
+    loop's min and max may hold its pitch only where its condition doesn't let it play: otherwise they are its condition's
+    bounds on the pitch's property, or SimGear's own limits where it has none. A rotor loop plays at any rotor speed over its
+    gate (its volume doesn't fade out above its own speed): the banks' 1.25 left the airplane mode's loops (at 84 %) flat over
+    105 %, and they are heard through the conversion at 104 %, NR going 3 % either way before its caution (alerts.py); and their
+    min of 0.2 stood a little over the gate (82 rpm, 0.2 of 412 being 82.4). The power turbine's loops play by Ng whatever the
+    rotor's speed, so with the rotor brake on (drive.py) they were held at 0.05 while the turbine stood. A pitch given by an
+    <expression> adds no offset: left as it is"""
+    def entry(m):
+        blk = m.group(0)
+
+        def one(p):
+            s = p.group(0)
+            if '<expression>' in s:
+                return s
+            prop = re.search(r'<property>([^<]+)</property>', s)
+            f = re.search(r'<factor>([^<]+)</factor>', s)
+            f = float(f.group(1)) if f else 1.0
+            lo, hi = gates(blk, prop.group(1)) if prop else (None, None)
+            mn = re.search(r'<min>([^<]+)</min>', s)
+            if mn and float(mn.group(1)) > (PITCH_MIN if lo is None else lo * f) * (1 + 1e-3):
+                s = s.replace(mn.group(0), '<min>%.6g</min>' % (PITCH_MIN if lo is None else lo * f))
+            mx = re.search(r'<max>([^<]+)</max>', s)
+            if mx and float(mx.group(1)) < min(PITCH_MAX, PITCH_MAX if hi is None else hi * f) * (1 - 1e-3):
+                s = s.replace(mx.group(0), '<max>%.6g</max>' % min(PITCH_MAX, PITCH_MAX if hi is None else hi * f))
+            if '<offset>' not in s:
+                s = s.replace('</pitch>', '<offset>0</offset></pitch>')
+            return s
+        return re.sub(r'<pitch>.*?</pitch>', one, blk, flags=re.S)
+    return re.sub(r'<(%s)>.*?</\1>' % '|'.join(ENTRY_TAGS), entry, body, flags=re.S)
+
+
+def pitch_only():
+    """the installed section's pitch blocks rewritten by pitches(), the rest of the file as it is"""
+    p = os.path.join(SOUNDS, 'v22-sound.xml')
+    t = open(p, encoding='latin-1').read()
+    if BEGIN not in t or END not in t:
+        sys.exit('no section of fdm/rotorsound.py in %s' % p)
+    i, j = t.index(BEGIN), t.index(END)
+    old, new = t[i:j], pitches(t[i:j])
+    open(p, 'w', encoding='latin-1').write(t[:i] + new + t[j:])
+    print('%s: %d pitch blocks rewritten' % (p, sum(a != b for a, b in zip(re.findall(r'<pitch>.*?</pitch>', old, re.S),
+                                                                          re.findall(r'<pitch>.*?</pitch>', new, re.S)))))
 
 
 def rescale_old(t, k):
@@ -533,7 +600,7 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
     for src, fns in ((wind, files_w), (engines, files_e), (engines_air, files_ea), (tyres, files_t), (touchdown, files_d)):
         for fn in fns:
             shutil.copy(os.path.join(src, fn), os.path.join(out, fn))
-    body = '\n'.join((body, body_a, body_h, body_w, body_e, body_ea, body_t, body_d))
+    body = pitches('\n'.join((body, body_a, body_h, body_w, body_e, body_ea, body_t, body_d)))
     files = list(slaps) + list(grid_a) + list(grid_h) + files_w + files_e + files_ea + files_t + files_d
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
@@ -566,4 +633,7 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
 
 
 if __name__ == '__main__':
-    install(*[os.path.expanduser(a) for a in sys.argv[1:10]])
+    if sys.argv[1:] == ['--pitch']:
+        pitch_only()
+    else:
+        install(*[os.path.expanduser(a) for a in sys.argv[1:10]])
