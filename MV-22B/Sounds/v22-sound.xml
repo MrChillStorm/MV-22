@@ -1234,9 +1234,9 @@
           <less-than><property>position/altitude-agl-ft</property><value>28.6</value></less-than>
         </and>
       </condition>
-      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.1</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-2.27273</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt></product></expression></volume>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.1</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-2.27273</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><difference><value>1</value><product><property>/fdm/jsbsim/gear/wow</property><difference><value>1</value><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip></difference></product></difference></product></expression></volume>
       <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.199029</min><max>2</max><offset>0</offset></pitch>
-      <reference-dist>100</reference-dist>
+      <reference-dist>50</reference-dist>
       <max-dist>4000</max-dist>
     </rotor>
     <rotor>
@@ -1254,9 +1254,9 @@
           <less-than><property>position/altitude-agl-ft</property><value>28.6</value></less-than>
         </and>
       </condition>
-      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.002</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>2.27273</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-3.0303</value></product><value>4.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt></product></expression></volume>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.002</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>2.27273</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-3.0303</value></product><value>4.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><difference><value>1</value><product><property>/fdm/jsbsim/gear/wow</property><difference><value>1</value><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip></difference></product></difference></product></expression></volume>
       <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.199029</min><max>2</max><offset>0</offset></pitch>
-      <reference-dist>100</reference-dist>
+      <reference-dist>50</reference-dist>
       <max-dist>4000</max-dist>
     </rotor>
     <rotor>
@@ -1273,9 +1273,9 @@
           <less-than><property>position/altitude-agl-ft</property><value>28.6</value></less-than>
         </and>
       </condition>
-      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>1</value></max><value>0</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>3.0303</value></product><value>-3.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt></product></expression></volume>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>1</value></max><value>0</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>3.0303</value></product><value>-3.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><difference><value>1</value><product><property>/fdm/jsbsim/gear/wow</property><difference><value>1</value><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip></difference></product></difference></product></expression></volume>
       <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.199029</min><max>2</max><offset>0</offset></pitch>
-      <reference-dist>100</reference-dist>
+      <reference-dist>50</reference-dist>
       <max-dist>4000</max-dist>
     </rotor>
     <rotor>
@@ -1497,7 +1497,7 @@
           <less-than><property>position/altitude-agl-ft</property><value>28.6</value></less-than>
         </and>
       </condition>
-      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.345</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-2.27273</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt></product></expression></volume>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.345</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-2.27273</value></product><value>2.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><difference><value>1</value><product><property>/fdm/jsbsim/gear/wow</property><difference><value>1</value><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip></difference></product></difference></product></expression></volume>
       <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.199029</min><max>2</max><offset>0</offset></pitch>
     </rotor>
     <rotor>
@@ -1515,7 +1515,7 @@
           <less-than><property>position/altitude-agl-ft</property><value>28.6</value></less-than>
         </and>
       </condition>
-      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.483</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>2.27273</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-3.0303</value></product><value>4.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt></product></expression></volume>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>0.7421</value></max><value>0.483</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>2.27273</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>-3.0303</value></product><value>4.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><difference><value>1</value><product><property>/fdm/jsbsim/gear/wow</property><difference><value>1</value><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip></difference></product></difference></product></expression></volume>
       <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.199029</min><max>2</max><offset>0</offset></pitch>
     </rotor>
     <rotor>
@@ -1532,7 +1532,7 @@
           <less-than><property>position/altitude-agl-ft</property><value>28.6</value></less-than>
         </and>
       </condition>
-      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>1</value></max><value>0</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>3.0303</value></product><value>-3.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt></product></expression></volume>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.00242718</value></product><value>0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><pow><max><div><property>/environment/density-slugft3</property><value>0.00237689</value></div><value>1</value></max><value>0</value></pow><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>/rotors/main/thrust-over-weight</property><value>3.0303</value></product><value>-3.33333</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>velocities/airspeed-kt</property><value>-0.025</value></product><value>1</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>position/altitude-agl-ft</property><value>-0.052356</value></product><value>1.49738</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><difference><value>1</value><product><property>/fdm/jsbsim/gear/wow</property><difference><value>1</value><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip></difference></product></difference></product></expression></volume>
       <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.199029</min><max>2</max><offset>0</offset></pitch>
     </rotor>
     <wind>
@@ -10009,6 +10009,270 @@
       <reference-dist>30</reference-dist>
       <max-dist>1500</max-dist>
     </touchdown>
+    <rotor>
+      <name>pww-runup_20-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_20_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>20.0099</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>140.08</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.0127747</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>2.61538</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.000572892</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0121359</factor><min>0.2428</min><max>1.7</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_35-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_35_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>86.52</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>201.88</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>3.76923</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-1.61538</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.00234689</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00693481</factor><min>0.6</min><max>1.4</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_50-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_50_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>148.32</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>263.68</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>4.92308</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-2.76923</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.00495588</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00485437</factor><min>0.72</min><max>1.28</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_65-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_65_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>210.12</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>325.48</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>6.07692</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-3.92308</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.0128803</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00373413</factor><min>0.7846</min><max>1.215</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_80-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_80_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>271.92</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>366.68</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0303398</value></product><value>11.125</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-5.07692</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.039271</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00303398</factor><min>0.825</min><max>1.113</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_90-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_90_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>333.72</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>407.88</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0303398</value></product><value>12.375</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0303398</value></product><value>-10.125</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.0825125</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00269687</factor><min>0.9</min><max>1.1</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_100-side-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_100_side_blades.wav</path>
+      <condition>
+        <and>
+          <not><property>sim/current-view/internal</property></not>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>374.92</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>0.0303398</value></product><value>-11.375</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.16568</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.91</min><max>2</max><offset>0</offset></pitch>
+      <reference-dist>50</reference-dist>
+      <max-dist>4000</max-dist>
+    </rotor>
+    <rotor>
+      <name>pww-runup_20-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_20_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>13.9114</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>140.08</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><clip><sum><product><property>rotors/main/rpm</property><value>0.0127747</value></product><value>-0</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>2.61538</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.00069274</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.0121359</factor><min>0.1688</min><max>1.7</max><offset>0</offset></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-runup_35-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_35_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>86.52</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>201.88</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>3.76923</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-1.61538</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.00295826</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00693481</factor><min>0.6</min><max>1.4</max><offset>0</offset></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-runup_50-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_50_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>148.32</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>263.68</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>4.92308</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-2.76923</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.00775888</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00485437</factor><min>0.72</min><max>1.28</max><offset>0</offset></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-runup_65-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_65_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>210.12</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>325.48</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0186706</value></product><value>6.07692</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-3.92308</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.0184153</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00373413</factor><min>0.7846</min><max>1.215</max><offset>0</offset></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-runup_80-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_80_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>271.92</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>366.68</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0303398</value></product><value>11.125</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0186706</value></product><value>-5.07692</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.033727</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00303398</factor><min>0.825</min><max>1.113</max><offset>0</offset></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-runup_90-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_90_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>333.72</value></greater-than>
+          <less-than><property>rotors/main/rpm</property><value>407.88</value></less-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>-0.0303398</value></product><value>12.375</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><clip><sum><product><property>rotors/main/rpm</property><value>0.0303398</value></product><value>-10.125</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.062984</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00269687</factor><min>0.9</min><max>1.1</max><offset>0</offset></pitch>
+    </rotor>
+    <rotor>
+      <name>pww-runup_100-cockpit-blades</name>
+      <mode>looped</mode>
+      <path>pywopwop/runup_100_cockpit_blades.wav</path>
+      <condition>
+        <and>
+          <property>sim/current-view/internal</property>
+          <property>/fdm/jsbsim/gear/wow</property>
+          <greater-than><property>sim/model/v22/nacelle-deg</property><value>45</value></greater-than>
+          <greater-than><property>/rotors/main/thrust-over-weight</property><value>-0.66</value></greater-than>
+          <less-than><property>/rotors/main/thrust-over-weight</property><value>0.66</value></less-than>
+          <greater-than><property>rotors/main/rpm</property><value>374.92</value></greater-than>
+        </and>
+      </condition>
+      <volume><expression><product><sqrt><product><clip><sum><product><property>sim/model/v22/nacelle-deg</property><value>0.0333333</value></product><value>-1.5</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip><difference><value>1</value><pow><clip><product><abs><property>/rotors/main/thrust-over-weight</property></abs><value>1.51515</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip><value>2</value></pow></difference><clip><sum><product><property>rotors/main/rpm</property><value>0.0303398</value></product><value>-11.375</value></sum><clipMin>0</clipMin><clipMax>1</clipMax></clip></product></sqrt><value>0.0983805</value></product></expression></volume>
+      <pitch><property>rotors/main/rpm</property><factor>0.00242718</factor><min>0.91</min><max>2</max><offset>0</offset></pitch>
+    </rotor>
     <!-- end of fdm/rotorsound.py's proprotors -->
 
 
@@ -10043,7 +10307,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </wing>
 
     <blade_fold>
@@ -10077,7 +10341,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </blade_fold>
 
     <flap>
@@ -10112,7 +10376,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </flap>
 
     <engine_tilt>
@@ -10146,7 +10410,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </engine_tilt>
 
 
@@ -10164,7 +10428,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </gear>
 
     <gear>
@@ -10179,7 +10443,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </gear>
 
     <crash>
@@ -10196,7 +10460,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </crash>
 
     <!-- DOORS -->
@@ -10218,7 +10482,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -10239,7 +10503,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -10260,7 +10524,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -10281,7 +10545,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -10302,7 +10566,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </door>
 
     <door>
@@ -10323,7 +10587,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </door>
 
     <flare>
@@ -10343,7 +10607,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </flare>
 
     <rain>
@@ -10371,7 +10635,7 @@
       <reference-dist>100</reference-dist>
       <max-dist>1000</max-dist>
       <!-- at the banks' scale (fdm/rotorsound.py) -->
-      <volume><expression><sum><value>0.133223</value><product><property>sim/current-view/internal</property><value>-0.0922507</value></product></sum></expression></volume>
+      <volume><expression><sum><value>0.301703</value><product><property>sim/current-view/internal</property><value>0.00910397</value></product></sum></expression></volume>
     </rain>
 
 

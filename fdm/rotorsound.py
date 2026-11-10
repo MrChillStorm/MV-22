@@ -51,6 +51,13 @@ rumble and squeals.
         only the installed section's power turbine loops given their level by the turbine's speed (np_fade(), NP_EXPONENT)
         and their pitch blocks as the install writes them, nothing else: likewise without the banks
 
+    python3 rotorsound.py --runup RUNUP
+        the installed section given the rotors' run-up on the ground (runup_section()) from RUNUP, made with `pywopwop bank mv22b
+        --mode helicopter_load --runup --conditions he_ige_1 runup_20 ... runup_100 -o RUNUP`: its he_ige_1 sets the installed
+        loops' scale, as their banks are gone. The grid's in-ground-effect loops as grid_section writes them now, the pitch blocks as
+        the install does; the run-up's loops copied to MV-22B/Sounds/pywopwop/. A full install takes the run-up from the
+        helicopter bank instead (`pywopwop bank mv22b --runup --update -o out/mv22b`)
+
 Make the banks with `pywopwop bank mv22b -o out/mv22b` (its slap and gains), `pywopwop bank mv22b --mode airplane_load -o
 AIRPLANE_LOAD`, `pywopwop bank mv22b --mode helicopter_load -o HELICOPTER_LOAD`
 and `pywopwop wind mv22b -o out/mv22b_wind --gain-from out/mv22b`, the map with `python tools/slap_map.py mv22b
@@ -247,6 +254,84 @@ def rescale_old(t, k):
         j = t.index('\n    </%s>' % tag, i) + 1
         t = t[:j] + OLD_TAG + vol + t[j:]
     return t, ko, kc
+
+# Loudness. Each bank is written so that its loudest file just reaches full scale, and the V-22's loudest are its rotors' heaviest hover in
+# ground effect and its blade slap, pulse trains whose peaks stand some 34 dB over their A-weighted level: everything else played 30 to
+# 50 dB under full scale. In FlightGear, at its default volume (0.8 x 0.6), the cockpit at ground idle played at -43.7 LUFS and the start
+# at -57, where the Alouette III's cockpit plays its ground run at -26.1 and its outside at -33.5 (all measured on FlightGear's own output,
+# ITU-R BS.1770). So each view is raised to the Alouette's at ground idle: the cockpit by 17.6 dB, the outside by 7.1 (its idle -40.6 LUFS
+# by the offline mix, put 8.0 dB under it as the cockpit's was measured). A loop whose peak at its loudest volume would pass LOUD_PEAK_DBFS
+# goes only as far as fits: the heaviest states then stand less over the rest than the model has them. The original sounds (rescale_old)
+# go up with their view. What each file has had is kept in LOUD_LOG beside the loops, so that a second pass adds nothing
+LOUDNESS_DB = {'cockpit': 17.6, 'outside': 7.1}
+LOUD_PEAK_DBFS = -1.0
+LOUD_LOG = 'loudness.json'
+
+
+def loudness_pass(t):
+    """the sound file's text t with its bank loops' files raised by LOUDNESS_DB (each only as far as its peak allows) and the original
+    sounds' factors with them; returns the new text"""
+    import soundcheck as S
+    import xml.etree.ElementTree as ET
+    out = os.path.join(SOUNDS, SUBDIR)
+    log_p = os.path.join(out, LOUD_LOG)
+    applied = json.load(open(log_p)) if os.path.exists(log_p) else {}
+    i, j = t.index(BEGIN), t.index(END)
+    E = [x for x in ET.fromstring('<fx>' + t[i:j] + '</fx>') if (x.findtext('name') or '').startswith('pww-')]
+    n = 40000
+    P = S.states(E, n)
+    inside = '<property>sim/current-view/internal</property>'
+    want, views, skipped = {}, {}, []
+    for x in E:
+        c = ET.tostring(x.find('condition'), encoding='unicode') if x.find('condition') is not None else ''
+        view = 'outside' if '<not>%s</not>' % inside in c.replace('\n', '').replace(' ', '') else ('cockpit' if inside in c else None)
+        if view is None:
+            skipped.append(x.findtext('name'))
+            continue
+        C = np.broadcast_to(S.test(list(x.find('condition'))[0], P), (n,))
+        V = np.broadcast_to(S.val(list(x.find('volume').find('expression'))[0], P), (n,))
+        vmax = float(np.clip(V[C], 0, 1).max()) if C.any() else 0.0
+        fn = os.path.basename(x.findtext('path'))
+        _, y = wav.read(os.path.join(out, fn))
+        pk = max(np.abs(y.astype(np.float64)).max() / 32767 * max(vmax, 1e-6), 1e-9)
+        done = applied.get(fn, 0.0)
+        total = min(LOUDNESS_DB[view], done + LOUD_PEAK_DBFS - 20 * np.log10(pk))
+        want[fn] = min(want.get(fn, 1e9), total)
+        views[fn] = view
+    raised = {'cockpit': [], 'outside': []}
+    for fn, total in want.items():
+        d = total - applied.get(fn, 0.0)
+        if abs(d) > 0.01:
+            fs, y = wav.read(os.path.join(out, fn))
+            wav.write(os.path.join(out, fn), fs, np.clip(np.round(y.astype(np.float64) * 10 ** (d / 20)), -32768, 32767).astype(np.int16))
+            applied[fn] = round(total, 3)
+        raised[views[fn]].append(total)
+    # the original sounds with their views: their factor outside (ko) and in the cockpit (ko + the internal term)
+    old = applied.get('_old', {'outside': 0.0, 'cockpit': 0.0})
+    go, gc = (10 ** ((LOUDNESS_DB[v] - old[v]) / 20) for v in ('outside', 'cockpit'))
+    def scale(m):
+        ko, d = float(m.group(1)), float(m.group(2))
+        ko2, kc2 = min(ko * go, 1.0), min((ko + d) * gc, 1.0)
+        return m.group(0).replace(m.group(1), '%.6g' % ko2, 1).replace('<value>%s</value></product>' % m.group(2), '<value>%.6g</value></product>' % (kc2 - ko2), 1)
+    t = re.sub(re.escape(OLD_TAG) + r'      <volume><expression><sum><value>([^<]+)</value><product><property>sim/current-view/internal'
+               r'</property><value>([^<]+)</value></product></sum></expression></volume>', scale, t)
+    applied['_old'] = dict(LOUDNESS_DB)
+    json.dump(applied, open(log_p, 'w'), indent=0, sort_keys=True)
+    for v, r in raised.items():
+        r = np.array(r)
+        print('%s: %d loops, %d raised the full %.1f dB, the rest %.1f to %.1f dB' % (
+            v, len(r), int(np.sum(r >= LOUDNESS_DB[v] - 0.01)), LOUDNESS_DB[v], r.min() if len(r) else 0, r.max() if len(r) else 0))
+    if skipped:
+        print('no view in their condition, left as they are: %s' % ', '.join(skipped[:6]))
+    return t
+
+
+def loudness_only():
+    """the installed loops raised by LOUDNESS_DB (loudness_pass), the rest of the file as it is"""
+    p = os.path.join(SOUNDS, 'v22-sound.xml')
+    t = open(p, encoding='latin-1').read()
+    open(p, 'w', encoding='latin-1').write(loudness_pass(t))
+
 
 def ramp(prop, a, b):
     """an expression going linearly from 0 at a to 1 at b, clipped to 0..1 (PyWopWop's bank.py _ramp: a <volume>'s own
@@ -488,7 +573,12 @@ def grid_section(bank, reference, template, tcond, airplane):
             else:
                 cross += [ramp_x(spd, kts[1], kts[0]), ige]
                 cond += inside(SPD_P, hi=kts[1]) + inside(AGL_P, hi=IGE_FT[0])
+                # (heard at the distance it was rendered at, on the ground beside the aircraft: the template's is its hover's, 100 m)
+                blk = re.sub(r'<reference-dist>[^<]*</reference-dist>', '<reference-dist>%g</reference-dist>'
+                             % (c.get('listener_distance_m') or 50.0), blk)
             parts.append(power_fade(*cross))
+            if not airplane and c['ground_clearance_m'] is not None:
+                parts.append(GROUND_IGE % ground_share(min(loads)))
             blk = with_condition(blk, cond)
             blk = re.sub(r'<volume>.*?</volume>', lambda _: '<volume><expression><product>' + ''.join(parts) + '</product></expression></volume>', blk, flags=re.S)
             blocks.append(blk)
@@ -496,18 +586,215 @@ def grid_section(bank, reference, template, tcond, airplane):
     return '\n'.join(blocks).replace('\t', '  '), files
 
 
-def blades(bank, fn, k=1.0):
-    """a bank's rotor and swish loops as one (fn its ..._blades.wav): their sum, as the bank's mix less the slap, times k"""
+def _blades_float(bank, fn):
+    """a bank's rotor and swish loops as one, the run-up's with RUNUP_EQ_DB for its view"""
     fs, r = wav.read(os.path.join(bank, fn.replace('_blades.wav', '_rotor.wav')))
     fs2, w = wav.read(os.path.join(bank, fn.replace('_blades.wav', '_swish.wav')))
     if fs != fs2 or len(r) != len(w):
         sys.exit('%s: its rotor and swish loops differ in length' % fn)
-    y = (r.astype(np.float64) + w.astype(np.float64)) * k
+    y = r.astype(np.float64) + w.astype(np.float64)
+    if fn.startswith('runup_'):
+        y = loop_eq(y, fs, RUNUP_EQ_DB['cockpit' if '_cockpit_' in fn else 'side'])
+    return fs, y
+
+
+def loop_eq(y, fs, table):
+    """a seamless loop through a gain curve ([[Hz, dB], ...], in log frequency, its end values held beyond it), applied to its
+    spectrum: the loop is periodic, so it stays seamless"""
+    t = np.asarray(table, float)
+    Y = np.fft.rfft(y)
+    f = np.fft.rfftfreq(len(y), 1.0 / fs)
+    g = np.interp(np.log(np.maximum(f, 1.0)), np.log(t[:, 0]), t[:, 1])
+    return np.fft.irfft(Y * 10 ** (g / 20), len(y))
+
+
+def blades(bank, fn, k=1.0):
+    """a bank's rotor and swish loops as one (fn its ..._blades.wav): their sum, as the bank's mix less the slap, times k"""
+    fs, y = _blades_float(bank, fn)
+    y = y * k
     pk = np.abs(y).max()
     if pk > 32767:              # (louder than full scale at the reference gain: fitted to it, that loop alone that much quieter)
         y *= 32767 / pk
         print('%s: %.1f dB over full scale at the banks\' gain, played that much under it' % (fn, 20 * np.log10(pk / 32767)))
     return fs, np.round(y).astype(np.int16)
+
+
+# The rotors on the ground. The helicopter grid's lowest row carries 0.66 of the weight (0.6 g at the hover's thrust over the weight),
+# held below it: on the ground at flat pitch (the thrust nearly nil) the rotors played as if carrying two thirds of the aircraft,
+# which buried the engines' start. An outside start recording (PyWopWop's refs/recordings/mv22b_start) is broadband from 250 Hz
+# to 8 kHz at 85 % NR, its lows 20-34 dB under its mids; the installed sound's rose 22-27 dB over them. So on the ground (JSBSim's
+# gear/wow) PyWopWop's run-up plays: the rotors on the gear at flat pitch (bank --runup, the preset's flat_pitch_deg: the flight
+# model's collective with the lever down) at 20 to 100 % of their speed, cross-faded by it with flat tops at its points (the
+# governor holds 104 % on one) as the Alouette III's are (al3sound.py), the slowest from nothing, out where it is 60 dB under the
+# loudest. Against the grid's in-ground-effect loops by the thrust over the weight: a rotor's loading noise goes with its thrust
+# (Gutin), so the grid by power (|T/W| / its lowest row)^2 and the run-up by what that leaves; a lever raised on the ground brings
+# the grid in before the wheels leave. Off the ground the grid alone, as before. The run-up has no altitude law (soundalt.py has
+# none for it): its levels are sea level's
+WOW_P = '/fdm/jsbsim/gear/wow'
+RUNUP_FLAT = 0.01         # the run-up's flat tops' half width, of the rotors' nominal speed
+RUNUP_HEARD = 1e-3        # -60 dB: where the slowest run-up loop stops
+RUNUP_PEAK_DBFS = -1.0    # the run-up's files' peaks
+# The run-up's lows fitted to two recordings, by view (dB, in log frequency, held beyond): at flat pitch the rotors' lowest harmonics
+# are their in-plane thickness noise (the run-up's unweighted level stayed put when the mirrored inflow moved its thrust to the
+# flight model's), and both recordings have far less of them. The cockpit's from one recorded on the ground at governed speed
+# (PyWopWop's refs/recordings/mv22b_cockpit2, 102-104 % NR): FlightGear's cockpit at 104 % had 63-100 Hz 17 dB, 125 Hz 10 and 160 Hz
+# 8 over it, each against its 1 kHz octave, and 200 Hz up within a dB or so. The outside's from the start recorded outside
+# (refs/recordings/mv22b_start, at 85 % NR): 125 Hz 12.6 dB, 160 Hz 6.7 and 200 Hz 1.6 over it, the same way; under 125 Hz
+# that camera's own roll-off is unknown, so the cockpit's 17 dB is taken there. Taken down only
+RUNUP_EQ_DB = {'cockpit': [[50.0, -17.0], [100.0, -17.0], [125.0, -10.0], [160.0, -8.0], [200.0, 0.0]],
+               'side': [[50.0, -17.0], [100.0, -17.0], [125.0, -12.6], [160.0, -6.7], [200.0, -1.6], [250.0, 0.0]]}
+GROUND_IGE = ('<difference><value>1</value><product><property>%s</property><difference><value>1</value>%%s</difference>'
+              '</product></difference>' % WOW_P)
+
+
+def ground_share(low):
+    """the grid's share of the rotors' amplitude on the ground: the thrust over the weight against the grid's lowest row, 0 to 1"""
+    return ('<clip><product><abs>%s</abs><value>%.6g</value></product><clipMin>0</clipMin><clipMax>1</clipMax></clip>'
+            % (T_OVER_W, 1.0 / low))
+
+
+def tents(nodes, flat, lo0=None):
+    """fades over sorted grid points (as the Alouette III's al3sound.py has them): for each, the (from, to) of its rising and
+    falling ramps (None at an end) and its open interval. With flat tops of half width flat[i]: within it only point i plays,
+    and the ramps either side move with it so neighbours still add to one. lo0: where the first point's fade starts (None: it
+    holds to the bottom)"""
+    out = []
+    for i, x in enumerate(nodes):
+        up = dn = None
+        a, b = -1e30, 1e30
+        if i > 0:
+            up = (nodes[i - 1] + flat[i - 1], x - flat[i])
+            a = up[0]
+        elif lo0 is not None:
+            up = (lo0, x - flat[i])
+            a = lo0
+        if i < len(nodes) - 1:
+            dn = (nodes[i + 1] - flat[i + 1], x + flat[i])
+            b = dn[0]
+        out.append((up, dn, a, b))
+    return out
+
+
+def runup_section(bank, k, low):
+    """the bank's run-up loops on the ground, each its rotor and swish as one (as the grid's), by the rotors' speed and, against
+    the grid's in-ground-effect loops, by their thrust; k: {'side': ..., 'cockpit': ...}, the factor to the reference bank's
+    scale; low: the grid's lowest row of thrust over the weight. The sound entries, and for each file its factor (over 1: the
+    file itself raised)"""
+    m = json.load(open(os.path.join(bank, 'manifest.json')))
+    runup = sorted([c for c in m['conditions'] if c.get('ground_run')], key=lambda c: c['rpm_percent'])
+    if not runup:
+        return '', {}
+    nom = next(r['nominal_rpm'] for r in m['rotors'].values() if r['role'] == 'main')
+    lv = {(f['condition'], f['observer'], f['source']): f['dba'] for f in m['files']}
+    nodes = [c['rpm_percent'] / 100.0 * nom for c in runup]
+    rpm = 'rotors/main/rpm'
+    share = '<difference><value>1</value><pow>%s<value>2</value></pow></difference>' % ground_share(low)
+    blocks, files = [], {}
+    for view in ('side', 'cockpit'):
+        db = {c['name']: 10 * np.log10(sum(10 ** (lv[(c['name'], view, s)] / 10) for s in ('rotor', 'swish')
+                                           if (c['name'], view, s) in lv)) for c in runup}
+        top = max(db.values())
+        for i, ((up, dn, a, b), c) in enumerate(zip(tents(nodes, [RUNUP_FLAT * nom] * len(nodes), lo0=0.0), runup)):
+            name = c['name']
+            cross = [ramp(NAC, NAC_GONE, NAC_FULL), share] + ([ramp(rpm, *dn)] if dn else [])
+            parts = []
+            if i == 0:
+                # (the slowest from nothing, its amplitude the speed's share of its own, out where it is 60 dB under the loudest)
+                parts.append(ramp(rpm, *up))
+                a = max(nodes[0] * RUNUP_HEARD * 10 ** ((top - db[name]) / 20), 0.01 * nodes[0])
+            else:
+                cross.append(ramp(rpm, *up))
+            parts.append(power_fade(*cross))
+            # (each file raised to RUNUP_PEAK_DBFS, its volume taking the rest: the slow loops lie far under the bank's loudest)
+            pk = np.abs(_blades_float(bank, '%s_%s_blades.wav' % (name, view))[1]).max()
+            g = k[view]
+            raised = max(1.0, g, 10 ** (RUNUP_PEAK_DBFS / 20) * 32767 / max(pk, 1.0))
+            if g / raised < 1:
+                parts.append('<value>%.6g</value>' % (g / raised))
+            cond = [('<property>sim/current-view/internal</property>' if view == 'cockpit'
+                     else '<not><property>sim/current-view/internal</property></not>'), '<property>%s</property>' % WOW_P]
+            cond += inside(NAC, lo=NAC_GONE) + inside(T_OVER_W_P, lo=-low, hi=low) + inside(rpm, lo=a, hi=b if b < 1e29 else None)
+            ref = nodes[i]
+            hi = b if b < 1e29 else 2.0 * ref
+            blk = ('    <rotor>\n      <name>pww-%s-%s-blades</name>\n      <mode>looped</mode>\n'
+                   '      <path>%s/%s_%s_blades.wav</path>\n      <condition>\n        <and>\n%s        </and>\n      </condition>\n'
+                   '      <volume><expression><product>%s</product></expression></volume>\n'
+                   '      <pitch><property>%s</property><factor>%.6g</factor><min>%.4g</min><max>%.4g</max><offset>0</offset></pitch>\n'
+                   % (name, view, SUBDIR, name, view, ''.join('          %s\n' % x for x in cond), ''.join(parts),
+                      rpm, 1.0 / ref, a / ref, min(hi / ref, PITCH_MAX)))
+            if view == 'side':
+                blk += '      <reference-dist>%g</reference-dist>\n      <max-dist>4000</max-dist>\n' % (c.get('listener_distance_m') or 50.0)
+            blocks.append(blk + '    </rotor>\n')
+            files['%s_%s_blades.wav' % (name, view)] = raised
+    return ''.join(blocks).rstrip('\n'), files
+
+
+def ground_ige(body, low, dist):
+    """the installed grid's in-ground-effect loops as grid_section writes them now: on the ground by the thrust (GROUND_IGE),
+    and outside at the distance they were rendered at"""
+    def entry(m):
+        blk = m.group(0)
+        if not re.search(r'<name>pww-he_ige_\d+-(side|cockpit)-blades</name>', blk):
+            return blk
+        if WOW_P not in blk:
+            blk = blk.replace('</product></expression></volume>', GROUND_IGE % ground_share(low) + '</product></expression></volume>', 1)
+        return re.sub(r'<reference-dist>[^<]*</reference-dist>', '<reference-dist>%g</reference-dist>' % dist, blk)
+    return re.sub(r'<rotor>.*?</rotor>', entry, body, flags=re.S)
+
+
+def runup_only(bank):
+    """the installed section with bank's run-up (bank --mode helicopter_load --runup, with the grid's he_ige_1 rendered beside it
+    at the same gains: the installed loops' banks are gone, so their scale is that loop's level as installed over its level in
+    bank), the grid's in-ground-effect loops as grid_section writes them now and the pitch blocks as the install writes them, the
+    rest of the file as it is. The run-up's loops written to SUBDIR"""
+    import soundcheck as S
+    import xml.etree.ElementTree as ET
+    m = json.load(open(os.path.join(bank, 'manifest.json')))
+    cref = next((c for c in m['conditions'] if c['name'] == 'he_ige_1'), None)
+    if cref is None or not any(f['condition'] == 'he_ige_1' for f in m['files']):
+        sys.exit('%s: no he_ige_1 to take the installed scale from' % bank)
+    p = os.path.join(SOUNDS, 'v22-sound.xml')
+    t = open(p, encoding='latin-1').read()
+    if BEGIN not in t or END not in t:
+        sys.exit('no section of fdm/rotorsound.py in %s' % p)
+    i, j = t.index(BEGIN), t.index(END)
+    sec = re.sub(r'\n?[ \t]*<rotor>\s*<name>pww-runup_[^<]*</name>.*?</rotor>', '', t[i:j], flags=re.S)
+    # the grid's lowest row of thrust over the weight: the lowest bound its loops' windows have
+    low = min(float(v) for v in re.findall(r'<greater-than><property>%s</property><value>([^<]+)</value>'
+                                            % re.escape(T_OVER_W_P), sec))
+    nom = next(r['nominal_rpm'] for r in m['rotors'].values() if r['role'] == 'main')
+    k = {}
+    for view in ('side', 'cockpit'):
+        blk = re.search(r'<rotor>\s*<name>pww-he_ige_1-%s-blades</name>.*?</rotor>' % view, sec, re.S).group(0)
+        x = ET.fromstring(blk)
+        P = {S.key(e): np.zeros(1) for e in x.iter('property')}
+        # (its own state: helicopter mode, sea level, its speed and load, on the ground's edge, airborne)
+        P.update({NAC: np.full(1, 90.0), 'environment/density-slugft3': np.full(1, 0.00237689), 'rotors/main/rpm': np.full(1, nom),
+                  T_OVER_W_P.lstrip('/'): np.full(1, cref['load_factor'] * HOVER_T_W), WOW_P.lstrip('/'): np.zeros(1)})
+        V = float(np.ravel(S.val(list(x.find('volume').find('expression'))[0], P))[0])
+        _, y = wav.read(os.path.join(SOUNDS, x.findtext('path')))
+        _, r = wav.read(os.path.join(bank, 'he_ige_1_%s_rotor.wav' % view))
+        _, w = wav.read(os.path.join(bank, 'he_ige_1_%s_swish.wav' % view))
+        z = r.astype(np.float64) + w.astype(np.float64)
+        k[view] = float(np.sqrt(np.mean(y.astype(np.float64) ** 2)) * V / np.sqrt(np.mean(z ** 2)))
+        print('%s: the installed scale over %s\'s, from he_ige_1: %+.2f dB (its octaves 63 Hz-4 kHz: %s)' % (
+            view, bank, 20 * np.log10(k[view]), ' '.join('%+.1f' % d for d in octave_ratio_db(y.astype(np.float64) * V, z))))
+    sec = ground_ige(sec, low, cref.get('listener_distance_m') or 50.0)
+    body, files = runup_section(bank, k, low)
+    sec = pitches(sec.rstrip('\n') + '\n' + body + '\n')
+    for fn, kf in files.items():
+        wav.write(os.path.join(SOUNDS, SUBDIR, fn), *blades(bank, fn, kf))
+    open(p, 'w', encoding='latin-1').write(t[:i] + sec + t[j:])
+    print('%s: %d run-up loops from %s, the grid\'s in-ground-effect loops on the ground by the thrust (lowest row %g)'
+          % (p, len(files), bank, low))
+
+
+def octave_ratio_db(a, b, fs=48000.0, oct_=(63, 125, 250, 500, 1000, 2000, 4000)):
+    """a's octave band levels over b's, dB"""
+    fa, A = np.fft.rfftfreq(len(a), 1 / fs), np.abs(np.fft.rfft(a)) ** 2
+    fb, B = np.fft.rfftfreq(len(b), 1 / fs), np.abs(np.fft.rfft(b)) ** 2
+    band = lambda f, X, o: X[(f >= o / 2 ** 0.5) & (f < o * 2 ** 0.5)].sum() / len(f)
+    return [10 * np.log10(band(fa, A, o) / band(fb, B, o)) for o in oct_]
 
 
 def a_weight_db(f):
@@ -626,6 +913,12 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
     body, slaps = slap_section(bank, airplane, tab)
     body_a, grid_a = grid_section(ap_grid, bank, airplane, 'airplane_220', True)
     body_h, grid_h = grid_section(he_grid, bank, bank, 'hover', False)
+    # (the helicopter bank's own run-up on the ground, if it has one: pywopwop bank mv22b --runup --update -o BANK)
+    low = min(c['load_factor'] for c in json.load(open(os.path.join(he_grid, 'manifest.json')))['conditions']
+              if c['ground_clearance_m'] is None) * HOVER_T_W
+    body_r, grid_r = runup_section(bank, {'side': 1.0, 'cockpit': 1.0}, low)
+    if not grid_r:
+        print('no run-up in %s: the rotors on the ground play the grid\'s lowest row (bank --runup --update adds it)' % bank)
     body_w, files_w = wind_section(wind, bank)
     k_eng = engine_scale(bank)
     body_e, files_e = engine_section(engines)
@@ -636,7 +929,7 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
     if os.path.isdir(out):
         shutil.rmtree(out)
     os.makedirs(out)
-    for src, grid in ((ap_grid, grid_a), (he_grid, grid_h)):
+    for src, grid in ((ap_grid, grid_a), (he_grid, grid_h), (bank, grid_r)):
         for fn, k in grid.items():
             wav.write(os.path.join(out, fn), *blades(src, fn, k))
     for fn, (src, b) in slaps.items():
@@ -648,8 +941,8 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
     for src, fns in ((wind, files_w), (engines, files_e), (engines_air, files_ea), (tyres, files_t), (touchdown, files_d)):
         for fn in fns:
             shutil.copy(os.path.join(src, fn), os.path.join(out, fn))
-    body = pitches(np_fade('\n'.join((body, body_a, body_h, body_w, body_e, body_ea, body_t, body_d))))
-    files = list(slaps) + list(grid_a) + list(grid_h) + files_w + files_e + files_ea + files_t + files_d
+    body = pitches(np_fade('\n'.join([x for x in (body, body_a, body_h, body_r, body_w, body_e, body_ea, body_t, body_d) if x])))
+    files = list(slaps) + list(grid_a) + list(grid_h) + list(grid_r) + files_w + files_e + files_ea + files_t + files_d
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
     block = BEGIN + '\n' + body + '\n' + END + '\n'
@@ -669,6 +962,7 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
         if m:
             t = t[:m.start()] + t[m.end():]
     t, ko, kc = rescale_old(t, k_eng)
+    t = loudness_pass(t)            # (the loops just written: their log went with the old folder)
     open(p, 'w', encoding='latin-1').write(t)
     mb = sum(os.path.getsize(os.path.join(out, fn)) for fn in files) / 2 ** 20
     print('%d loops (%.0f MB) in %s, %d sounds in %s' % (len(files), mb, out, sum(body.count('<%s>' % k) for k in
@@ -685,5 +979,9 @@ if __name__ == '__main__':
         pitch_only()
     elif sys.argv[1:] == ['--np-fade']:
         np_fade_only()
+    elif len(sys.argv) == 3 and sys.argv[1] == '--runup':
+        runup_only(os.path.expanduser(sys.argv[2]))
+    elif sys.argv[1:] == ['--loudness']:
+        loudness_only()
     else:
         install(*[os.path.expanduser(a) for a in sys.argv[1:10]])

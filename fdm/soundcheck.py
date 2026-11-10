@@ -61,6 +61,8 @@ def val(e, P):
         return val(k[0], P) / val(k[1], P)
     if t == 'sqrt':
         return np.sqrt(np.maximum(val(k[0], P), 0.0))
+    if t == 'abs':
+        return np.abs(val(k[0], P))
     if t == 'pow':
         return np.power(np.maximum(val(k[0], P), 0.0), val(k[1], P))
     if t == 'max':
@@ -136,7 +138,9 @@ def states(E, n=40000, seed=3):
     P['velocities/vertical-speed-fps'] = pick([0, -5, 5, -15, -25, -40], -70, 40)
     P['position/altitude-agl-ft'] = pick([0, 5, 9.5, 20, 28.6], 0, 3000)
     P['rotors/main/thrust-lbf'] = pick([-472.1, 899.2, 2472.9, 4945.8], -1500, 7000)
-    P['rotors/main/thrust-over-weight'] = pick([0.66, 1.1, 1.43], 0.3, 1.8)
+    # (on the ground at flat pitch too: the flight model's -0.04 governed, 0.07 with the lever down)
+    P['rotors/main/thrust-over-weight'] = pick([-0.04, 0.0, 0.07, 0.66, 1.1, 1.43], -0.2, 1.8)
+    P['fdm/jsbsim/gear/wow'] = r.integers(0, 2, n).astype(float)
     peak = json.load(open(os.path.join(HERE, 'data', 'slap_v22.json')))['peak']
     P['rotors/main/slap-ext'] = r.uniform(0, peak['ext'], n)
     P['rotors/main/slap-int'] = r.uniform(0, peak['int'], n)
