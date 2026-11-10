@@ -463,7 +463,13 @@ Thurau and Paolo Amoroso. Changed in 2026, all inside `MV-22B`:
   missing fuel flow and their converter (`Nasal/convert.nas`) stopping for
   good after a start in the air are fixed.
 - **Sounds.** Each engine's start and run sounds follow that engine, and the
-  engines are heard while the rotors are still slow.
+  engines are heard while the rotors are still slow. Every sound plays at its
+  level on one scale, in the cockpit and outside alike (`fdm/rotorsound.py
+  --scale`). The crew alerts' tones and voice and the radar warning
+  receiver's voice are the crew's headsets', heard in the cockpit views only;
+  the tones stand 20 dB over the cockpit's noise as it changes
+  (`fdm/cockpitnoise.py` writes `Nasal/noise.nas`). The voices are
+  FlightGear's own speech, at its fixed level.
 - **Rotors** (`Models/Rotor/`, `fdm/rotorvis.py`): as each rotor speeds up its
   blades fade out and a faint fan behind each fades in (in the HDR renderer;
   `Models/Effects/RotorBlur`), into a disc as dense as the blades'

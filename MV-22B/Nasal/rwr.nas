@@ -36,7 +36,9 @@
 # word of it comes, whatever else stands, and again every alerts.CRITICAL_S while it flies, as the crew alerts' own
 # time-critical warnings are. Any other track is said once and each time it gets worse, SPEAK_S apart, and gives way to a
 # time-critical crew alert. The voice is FlightGear's own (sim/sound/voices/voice[5], Systems/v22-base.xml): a queue and
-# a voice apart from the crew alerts' (Nasal/alerts.nas), so a missile call need not wait for theirs.
+# a voice apart from the crew alerts' (Nasal/alerts.nas), so a missile call need not wait for theirs. It is in the crew's
+# headsets, so it is heard in the cockpit views only: from an outside view the set goes on (what it has said is said) but
+# nothing is spoken. (Its level is FlightGear's: its speech plays at a fixed volume, by the master volume alone.)
 #
 # After the F-16's Nasal/rwr.nas, damage.nas, ArmamentNotification.nas, GeoBridgedTransmitter.nas,
 # radar/radar-system.nas, radar/apg-68.nas and radar/radar-system-database.nas
@@ -62,6 +64,9 @@ var PLUME_NM = 2.25;     # a motor burning is seen this far (the F-16's missile 
 var ALARM = 3;           # s a launcher's or illuminator's symbol flashes its circle after the last word of it
 var SPEAK_S = 3;         # s between calls, about the time one takes
 var VOICE = "/sim/sound/voices/voice[5]/text";
+var INTERNAL = props.globals.getNode("/sim/current-view/internal", 1);
+# a call, spoken only where the headsets are heard: in a cockpit view
+var speak = func(text) { if (INTERNAL.getBoolValue()) setprop(VOICE, text); }
 var MODES = ["", "searching", "acquisition", "tracking", "launch", "inbound"];        # the call's last word, by a track's level
 var CLOCK = ["twelve", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven"];
 var OUT = "/instrumentation/mv22b/rwr/";
@@ -342,7 +347,7 @@ var publish = func(now) {
 
 var announce = func(t, level) {
     var o = math.mod(int(geo.normdeg(t.bearing - own_hdg.getValue()) / 30 + 0.5), 12);
-    setprop(VOICE, t.say ~ CLOCK[o] ~ " o clock " ~ MODES[level]);
+    speak(t.say ~ CLOCK[o] ~ " o clock " ~ MODES[level]);
 }
 
 var say = func(now) {
@@ -374,7 +379,7 @@ var rank = func(now) {
     if ((size(live) > TRACKS) != degraded) {
         degraded = !degraded;
         spoke = now;
-        setprop(VOICE, "threat detection " ~ (degraded ? "degraded" : "restored"));
+        speak("threat detection " ~ (degraded ? "degraded" : "restored"));
     }
     publish(now);
     say(now);
@@ -387,7 +392,7 @@ var step = func {
         if (size(shown)) { shown = []; missiles = {}; publish(now); }
         return;
     }
-    if (!powered) { powered = 1; spoke = now; setprop(VOICE, "A P R 39 power up"); }
+    if (!powered) { powered = 1; spoke = now; speak("A P R 39 power up"); }
     if (dirty or now - swept >= SWEEP) { sweep(); swept = now; dirty = 0; }
     var n = size(watched);
     if (n) {

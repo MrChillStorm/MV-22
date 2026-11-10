@@ -51,6 +51,10 @@ rumble and squeals.
         only the installed section's power turbine loops given their level by the turbine's speed (np_fade(), NP_EXPONENT)
         and their pitch blocks as the install writes them, nothing else: likewise without the banks
 
+    python3 rotorsound.py --scale
+        only the installed loops and the original sounds put on the cockpit's scale (scale_pass(), rescale_old() at SCALE_GAINS),
+        nothing else: likewise without the banks
+
     python3 rotorsound.py --runup RUNUP
         the installed section given the rotors' run-up on the ground (runup_section()) from RUNUP, made with `pywopwop bank mv22b
         --mode helicopter_load --runup --conditions he_ige_1 runup_20 ... runup_100 -o RUNUP`: its he_ige_1 sets the installed
@@ -238,10 +242,11 @@ def np_fade_only():
     section_only(lambda s: pitches(np_fade(s)), r'<engine>\s*<name>pww-[^<]*-turbine-lit-.*?</engine>')
 
 
-def rescale_old(t, k):
+def rescale_old(t, k, to_cockpit=1.0):
     """OLD_SOUNDS at the banks' scale: one more <volume> (an expression, last: FlightGear skips property entries after
-    one), the outside's factor, the cockpit's in the cockpit"""
-    ko = np.sqrt(k['engine', 'outside'] * k['exhaust', 'outside']) / OLD_ENGINE_VOLUME
+    one), the outside's factor (brought to the cockpit's scale by to_cockpit, as the outside's loops are: scale_pass), the
+    cockpit's in the cockpit"""
+    ko = to_cockpit * np.sqrt(k['engine', 'outside'] * k['exhaust', 'outside']) / OLD_ENGINE_VOLUME
     kc = np.sqrt(k['engine', 'cockpit'] * k['exhaust', 'cockpit']) / OLD_ENGINE_VOLUME
     vol = ('      <volume><expression><sum><value>%.6g</value><product><property>sim/current-view/internal</property>'
            '<value>%.6g</value></product></sum></expression></volume>\n' % (ko, kc - ko))
@@ -255,82 +260,75 @@ def rescale_old(t, k):
         t = t[:j] + OLD_TAG + vol + t[j:]
     return t, ko, kc
 
-# Loudness. Each bank is written so that its loudest file just reaches full scale, and the V-22's loudest are its rotors' heaviest hover in
-# ground effect and its blade slap, pulse trains whose peaks stand some 34 dB over their A-weighted level: everything else played 30 to
-# 50 dB under full scale. In FlightGear, at its default volume (0.8 x 0.6), the cockpit at ground idle played at -43.7 LUFS and the start
-# at -57, where the Alouette III's cockpit plays its ground run at -26.1 and its outside at -33.5 (all measured on FlightGear's own output,
-# ITU-R BS.1770). So each view is raised to the Alouette's at ground idle: the cockpit by 17.6 dB, the outside by 7.1 (its idle -40.6 LUFS
-# by the offline mix, put 8.0 dB under it as the cockpit's was measured). A loop whose peak at its loudest volume would pass LOUD_PEAK_DBFS
-# goes only as far as fits: the heaviest states then stand less over the rest than the model has them. The original sounds (rescale_old)
-# go up with their view. What each file has had is kept in LOUD_LOG beside the loops, so that a second pass adds nothing
-LOUDNESS_DB = {'cockpit': 17.6, 'outside': 7.1}
-LOUD_PEAK_DBFS = -1.0
+# Scale. Every sound plays at its level on one scale, the same in the cockpit and outside, so that the views keep their difference and
+# nothing is set by ear (as the Alouette III's and the X-57's sounds are). A bank writes each view at its own gain, its loudest sample at
+# full scale (PyWopWop's peak_dbfs); the cockpit's gain is the lower, its heavy hover in ground effect the loudest sample of all (134.1 dB
+# re 20 uPa), so the cockpit's gain is the scale: the outside's loops come down to it in their volume, and the original sounds' outside
+# factor with them (rescale_old). A full-scale sample at volume 1 is then 134.1 dB re 20 uPa in either view. The cockpit is the open ear,
+# as the cockpit recordings it is fitted to have it: under the crew's HGU-84/P (Gentex's data sheet, ANSI S12.6: 13 dB at 125 Hz to 44 at
+# 6.3 kHz) it would be about 17 dB(A) quieter and duller; not modelled.
+# The installed files were raised on 2026-11-11 to bring the aircraft up to the Alouette III's level by ear (LOUD_LOG beside them: up to
+# 17.6 dB in the cockpit and 7.1 outside, each as far as its peak allowed). They keep the raise, for their resolution, and their volume
+# carries it back. SCALE_LOG keeps the factor each entry's volume has, so that the pass can be run again
+SCALE_GAINS = {'cockpit': -40.071, 'exterior': -32.790}     # the helicopter bank's gain_db, which every installed loop is at
 LOUD_LOG = 'loudness.json'
+SCALE_LOG = 'scale.json'
 
 
-def loudness_pass(t):
-    """the sound file's text t with its bank loops' files raised by LOUDNESS_DB (each only as far as its peak allows) and the original
-    sounds' factors with them; returns the new text"""
-    import soundcheck as S
-    import xml.etree.ElementTree as ET
-    out = os.path.join(SOUNDS, SUBDIR)
-    log_p = os.path.join(out, LOUD_LOG)
-    applied = json.load(open(log_p)) if os.path.exists(log_p) else {}
-    i, j = t.index(BEGIN), t.index(END)
-    E = [x for x in ET.fromstring('<fx>' + t[i:j] + '</fx>') if (x.findtext('name') or '').startswith('pww-')]
-    n = 40000
-    P = S.states(E, n)
+def view_of(blk):
+    """'cockpit', 'outside' or None, by the entry's condition"""
+    c = re.search(r'<condition>(.*?)</condition>', blk, re.S)
+    c = c.group(1).replace('\n', '').replace(' ', '') if c else ''
     inside = '<property>sim/current-view/internal</property>'
-    want, views, skipped = {}, {}, []
-    for x in E:
-        c = ET.tostring(x.find('condition'), encoding='unicode') if x.find('condition') is not None else ''
-        view = 'outside' if '<not>%s</not>' % inside in c.replace('\n', '').replace(' ', '') else ('cockpit' if inside in c else None)
+    return 'outside' if '<not>%s</not>' % inside in c else ('cockpit' if inside in c else None)
+
+
+def scale_pass(t, gains=None):
+    """the section's bank loops in t on the cockpit's scale: in each volume, last in a product, the outside's gain against the cockpit's
+    and the file's raise (LOUD_LOG) taken back; returns the new text"""
+    gains = gains or SCALE_GAINS
+    to_cockpit = 10 ** ((gains['cockpit'] - gains['exterior']) / 20)
+    out = os.path.join(SOUNDS, SUBDIR)
+    raised = json.load(open(os.path.join(out, LOUD_LOG))) if os.path.exists(os.path.join(out, LOUD_LOG)) else {}
+    log_p = os.path.join(out, SCALE_LOG)
+    have = json.load(open(log_p)) if os.path.exists(log_p) else {}
+    count = {'cockpit': 0, 'outside': 0}
+
+    def entry(m):
+        blk, name = m.group(0), m.group(2)
+        view = view_of(blk)
         if view is None:
-            skipped.append(x.findtext('name'))
-            continue
-        C = np.broadcast_to(S.test(list(x.find('condition'))[0], P), (n,))
-        V = np.broadcast_to(S.val(list(x.find('volume').find('expression'))[0], P), (n,))
-        vmax = float(np.clip(V[C], 0, 1).max()) if C.any() else 0.0
-        fn = os.path.basename(x.findtext('path'))
-        _, y = wav.read(os.path.join(out, fn))
-        pk = max(np.abs(y.astype(np.float64)).max() / 32767 * max(vmax, 1e-6), 1e-9)
-        done = applied.get(fn, 0.0)
-        total = min(LOUDNESS_DB[view], done + LOUD_PEAK_DBFS - 20 * np.log10(pk))
-        want[fn] = min(want.get(fn, 1e9), total)
-        views[fn] = view
-    raised = {'cockpit': [], 'outside': []}
-    for fn, total in want.items():
-        d = total - applied.get(fn, 0.0)
-        if abs(d) > 0.01:
-            fs, y = wav.read(os.path.join(out, fn))
-            wav.write(os.path.join(out, fn), fs, np.clip(np.round(y.astype(np.float64) * 10 ** (d / 20)), -32768, 32767).astype(np.int16))
-            applied[fn] = round(total, 3)
-        raised[views[fn]].append(total)
-    # the original sounds with their views: their factor outside (ko) and in the cockpit (ko + the internal term)
-    old = applied.get('_old', {'outside': 0.0, 'cockpit': 0.0})
-    go, gc = (10 ** ((LOUDNESS_DB[v] - old[v]) / 20) for v in ('outside', 'cockpit'))
-    def scale(m):
-        ko, d = float(m.group(1)), float(m.group(2))
-        ko2, kc2 = min(ko * go, 1.0), min((ko + d) * gc, 1.0)
-        return m.group(0).replace(m.group(1), '%.6g' % ko2, 1).replace('<value>%s</value></product>' % m.group(2), '<value>%.6g</value></product>' % (kc2 - ko2), 1)
-    t = re.sub(re.escape(OLD_TAG) + r'      <volume><expression><sum><value>([^<]+)</value><product><property>sim/current-view/internal'
-               r'</property><value>([^<]+)</value></product></sum></expression></volume>', scale, t)
-    applied['_old'] = dict(LOUDNESS_DB)
-    json.dump(applied, open(log_p, 'w'), indent=0, sort_keys=True)
-    for v, r in raised.items():
-        r = np.array(r)
-        print('%s: %d loops, %d raised the full %.1f dB, the rest %.1f to %.1f dB' % (
-            v, len(r), int(np.sum(r >= LOUDNESS_DB[v] - 0.01)), LOUDNESS_DB[v], r.min() if len(r) else 0, r.max() if len(r) else 0))
-    if skipped:
-        print('no view in their condition, left as they are: %s' % ', '.join(skipped[:6]))
-    return t
+            sys.exit('%s: no view in its condition' % name)
+        fn = os.path.basename(re.search(r'<path>([^<]+)</path>', blk).group(1))
+        k = '%.6g' % (10 ** (-raised.get(fn, 0.0) / 20) * (to_cockpit if view == 'outside' else 1.0))
+        tail = '<value>%s</value></product></expression></volume>'
+        if name in have and tail % have[name] in blk:
+            blk = blk.replace(tail % have[name], tail % k, 1)
+        else:
+            blk, n = re.subn(r'<volume><expression>(.*?)</expression></volume>',
+                             lambda q: '<volume><expression><product>%s' % q.group(1) + tail % k, blk, count=1, flags=re.S)
+            if n != 1:
+                sys.exit('%s: not the volume this expects' % name)
+        have[name] = k
+        count[view] += 1
+        return blk
+    i, j = t.index(BEGIN), t.index(END)
+    sec = re.sub(r'\n    <(%s)>\n      <name>(pww-[^<]+)</name>.*?\n    </\1>' % '|'.join(ENTRY_TAGS), entry, t[i:j], flags=re.S)
+    json.dump(have, open(log_p, 'w'), indent=0, sort_keys=True)
+    print('on the cockpit\'s scale (a full-scale sample at volume 1: %.1f dB re 20 uPa): %d cockpit loops, %d outside (x %.4f, %+.2f dB)'
+          % (20 * np.log10(1 / 2e-5) - gains['cockpit'], count['cockpit'], count['outside'], to_cockpit, 20 * np.log10(to_cockpit)))
+    return t[:i] + sec + t[j:]
 
 
-def loudness_only():
-    """the installed loops raised by LOUDNESS_DB (loudness_pass), the rest of the file as it is"""
+def scale_only():
+    """the installed loops and the original sounds on the cockpit's scale (scale_pass, rescale_old at SCALE_GAINS), the rest as it is"""
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
-    open(p, 'w', encoding='latin-1').write(loudness_pass(t))
+    to = 10 ** ((SCALE_GAINS['cockpit'] - SCALE_GAINS['exterior']) / 20)
+    t, ko, kc = rescale_old(t, engine_scale(SCALE_GAINS), to)
+    t = scale_pass(t)
+    open(p, 'w', encoding='latin-1').write(t)
+    print('the original sounds: x %.4f outside, x %.4f in the cockpit' % (ko, kc))
 
 
 def ramp(prop, a, b):
@@ -831,13 +829,12 @@ def file_level(path):
     return 10 * np.log10(2 * np.sum(np.abs(Y) ** 2 * w) / len(y) ** 2)
 
 
-def engine_scale(helicopter):
-    """the original engine recordings' factors at the banks' scale, from Levine and DeFelice's levels: no longer played, they
-    are what carries the original aircraft's other sounds to it (rescale_old)"""
+def engine_scale(gains):
+    """the original engine recordings' factors at the banks' scale (gains: the helicopter bank's gain_db, by view), from Levine and
+    DeFelice's levels: no longer played, they are what carries the original aircraft's other sounds to it (rescale_old)"""
     sys.path.insert(0, HERE)
     import v22data as V
-    gains = json.load(open(os.path.join(helicopter, 'manifest.json')))['gain_db']
-    full = {v: 20 * np.log10(1.0 / 10 ** (gains['cockpit' if v == 'cockpit' else 'exterior'] / 20) / 2e-5)
+    full ={v: 20 * np.log10(1.0 / 10 ** (gains['cockpit' if v == 'cockpit' else 'exterior'] / 20) / 2e-5)
             for v in ('outside', 'cockpit')}
     k = {}
     for name, fn, spec, _ in ENGINE_LOOPS:
@@ -920,7 +917,8 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
     if not grid_r:
         print('no run-up in %s: the rotors on the ground play the grid\'s lowest row (bank --runup --update adds it)' % bank)
     body_w, files_w = wind_section(wind, bank)
-    k_eng = engine_scale(bank)
+    gains = json.load(open(os.path.join(bank, 'manifest.json')))['gain_db']
+    k_eng = engine_scale(gains)
     body_e, files_e = engine_section(engines)
     body_ea, files_ea = engine_section(engines_air, helicopter=bank)
     body_t, files_t = gear_section(tyres, 'pywopwop-tyres.xml', bank)
@@ -961,8 +959,8 @@ def install(bank, airplane, ap_grid, he_grid, wind, engines, engines_air, tyres,
         m = re.search(rx, t, re.S)
         if m:
             t = t[:m.start()] + t[m.end():]
-    t, ko, kc = rescale_old(t, k_eng)
-    t = loudness_pass(t)            # (the loops just written: their log went with the old folder)
+    t, ko, kc = rescale_old(t, k_eng, 10 ** ((gains['cockpit'] - gains['exterior']) / 20))
+    t = scale_pass(t, gains)        # (the loops just written: the logs went with the old folder)
     open(p, 'w', encoding='latin-1').write(t)
     mb = sum(os.path.getsize(os.path.join(out, fn)) for fn in files) / 2 ** 20
     print('%d loops (%.0f MB) in %s, %d sounds in %s' % (len(files), mb, out, sum(body.count('<%s>' % k) for k in
@@ -981,7 +979,7 @@ if __name__ == '__main__':
         np_fade_only()
     elif len(sys.argv) == 3 and sys.argv[1] == '--runup':
         runup_only(os.path.expanduser(sys.argv[2]))
-    elif sys.argv[1:] == ['--loudness']:
-        loudness_only()
+    elif sys.argv[1:] == ['--scale']:
+        scale_only()
     else:
         install(*[os.path.expanduser(a) for a in sys.argv[1:10]])

@@ -11,9 +11,12 @@ original overspeed loop (above 315 kt; the OVERSPEED warning, fdm/alerts.py, has
 - a let-go autopilot mode: a warble between 600 and 900 Hz at 2 Hz (500-1000 Hz, 1-3 Hz), four harmonics, a 1 s loop
   with whole cycles (seamless), played while it stands
 
-All within 200-4500 Hz, peaks at -1 dBFS; heard in the cockpit only (FlightGear's avionics sounds: tied to the listener,
-their own volume, sim/sound/avionics/volume). LEVEL: the alerts' factor against the cockpit's rotor sound, set in
-FlightGear (the handbook asks 20-30 dB over the ambient at the onset; FlightGear's levels are relative).
+All within 200-4500 Hz, peaks at -1 dBFS; heard in the cockpit views only, by their condition (they are the crew's headsets':
+FlightGear's avionics sounds are tied to the listener, with their own volume, sim/sound/avionics/volume, and would play outside
+too where its external-view setting is on). Their level is automatic: each tone's onset (its loudest 125 ms, A-weighted) is
+brought to the quietest's by a factor, and TONE_GAIN, which Nasal/noise.nas keeps 20 dB over the cockpit's noise as played,
+sets all three (the handbook asks 20-30 dB over the ambient at the onset, and automatic volume control; fdm/cockpitnoise.py
+writes it). LEVEL: a factor on top, 1.
 
     python3 alertsound.py
 """
@@ -28,6 +31,7 @@ FS = 44100
 PEAK_DBFS = -1.0
 LEVEL = 1.0
 OUT = '/instrumentation/mv22b/alerts/'
+TONE_GAIN = '/sim/model/v22/sound/tone-gain'
 BEGIN = '    <!-- the crew alerts\' tones: written by fdm/alertsound.py (Nasal/alerts.nas) -->'
 END = '    <!-- end of fdm/alertsound.py\'s tones -->'
 
@@ -68,9 +72,32 @@ def autopilot():
 
 
 def entry(tag, fn, mode, prop, volume):
+    """a tone's entry: on in a cockpit view only (whatever FlightGear's avionics-in-external-view setting), its own volume
+    times TONE_GAIN (a second <volume>: SimGear multiplies them)"""
     return ('    <%s>\n      <name>alert-%s</name>\n      <type>avionics</type>\n      <mode>%s</mode>\n'
-            '      <path>Sounds/%s/%s</path>\n      <condition>\n        <property>%s</property>\n      </condition>\n'
-            '      <volume>\n%s      </volume>\n    </%s>\n' % (tag, tag, mode, SUBDIR, fn, OUT + prop, volume, tag))
+            '      <path>Sounds/%s/%s</path>\n      <condition>\n        <and>\n          <property>sim/current-view/internal</property>\n'
+            '          <property>%s</property>\n        </and>\n      </condition>\n'
+            '      <volume>\n%s      </volume>\n      <volume>\n        <property>%s</property>\n      </volume>\n    </%s>\n'
+            % (tag, tag, mode, SUBDIR, fn, OUT + prop, volume, TONE_GAIN, tag))
+
+
+def onset_db(y, fs=FS, looped=False):
+    """a tone's onset level: its loudest 125 ms, A-weighted, dB re full scale (a looped tone over three cycles)"""
+    from scipy import signal as sg
+    y = np.tile(y, 3) if looped else y
+    f1, f2, f3, f4 = 20.598997, 107.65265, 737.86223, 12194.217
+    num = [(2 * np.pi * f4) ** 2 * 10 ** (1.9997 / 20), 0, 0, 0, 0]
+    den = np.polymul([1, 4 * np.pi * f4, (2 * np.pi * f4) ** 2], [1, 4 * np.pi * f1, (2 * np.pi * f1) ** 2])
+    den = np.polymul(np.polymul(den, [1, 2 * np.pi * f3]), [1, 2 * np.pi * f2])
+    z = sg.lfilter(*sg.bilinear(num, den, fs), y)
+    h = int(0.125 * fs)
+    return max(10 * np.log10(np.mean(z[i:i + h] ** 2)) for i in range(0, len(z) - h, h // 8))
+
+
+def onsets():
+    """the installed tones' onset levels, by name"""
+    return {n: onset_db(wav.read(os.path.join(SOUNDS, SUBDIR, n + '.wav'))[1].astype(float) / 32768, looped=n == 'autopilot')
+            for n in ('warning', 'caution', 'autopilot')}
 
 
 def install():
@@ -81,11 +108,15 @@ def install():
         y = y / np.abs(y).max() * peak
         wav.write(os.path.join(out, name + '.wav'), FS, np.round(y * 32767).astype(np.int16))
         print('%-9s %.2f s, rms %.1f dBFS' % (name, len(y) / FS, 20 * np.log10(np.sqrt(np.mean(y ** 2)))))
-    fixed = '        <factor>%g</factor>\n' % LEVEL
+    # each tone's onset brought to the quietest's, so that the one gain (TONE_GAIN) puts all three where it means to
+    on = onsets()
+    fixed = {n: '        <factor>%.4g</factor>\n' % (LEVEL * 10 ** ((min(on.values()) - v) / 20)) for n, v in on.items()}
+    print('onsets (loudest 125 ms, dBA re full scale): %s; all at %.2f' % (
+        ', '.join('%s %.2f' % kv for kv in on.items()), min(on.values())))
     body = (entry('warning', 'warning.wav', 'once', 'aural/warning',
-                  '        <property>%saural/warning-gain</property>\n%s' % (OUT, fixed)) +
-            entry('caution', 'caution.wav', 'once', 'aural/caution', fixed) +
-            entry('autopilot', 'autopilot.wav', 'looped', 'aural/autopilot', fixed))
+                  '        <property>%saural/warning-gain</property>\n%s' % (OUT, fixed['warning'])) +
+            entry('caution', 'caution.wav', 'once', 'aural/caution', fixed['caution']) +
+            entry('autopilot', 'autopilot.wav', 'looped', 'aural/autopilot', fixed['autopilot']))
     p = os.path.join(SOUNDS, 'v22-sound.xml')
     t = open(p, encoding='latin-1').read()
     block = BEGIN + '\n' + body + END + '\n'

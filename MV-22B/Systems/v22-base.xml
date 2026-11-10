@@ -285,6 +285,10 @@
       <!-- the crew alerts: masters, sounds, acknowledgement (fdm/alerts.py, Systems/mv22b-alerts.xml) -->
       <file>Aircraft/MV-22B/Nasal/alerts.nas</file>
     </alerts>
+    <noise>
+      <!-- the cockpit's noise, and the alert tones' gain 20 dB over it (fdm/cockpitnoise.py writes it from Sounds/v22-sound.xml) -->
+      <file>Aircraft/MV-22B/Nasal/noise.nas</file>
+    </noise>
     <rwr>
       <!-- the radar warning receiver: what its azimuth indicator on the console shows (displays.nas draws it) -->
       <file>Aircraft/MV-22B/Nasal/rwr.nas</file>

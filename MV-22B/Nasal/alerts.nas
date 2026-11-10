@@ -11,11 +11,19 @@
 # MASTER CAUT and chimes once (MIL-STD-411F 4.1.3.8: the masters lit till reset or the condition clears, their audio
 # cancelled within 10 s). A let-go autopilot mode is listed with its own tone till acknowledged, the mode engaged again
 # or AURAL_S. On the ground (alert/ground) nothing is new: alerts are listed only, and one still standing when the
-# aircraft lifts off is new then. The voice is FlightGear's own (sim/sound/voices/voice[4], Systems/v22-base.xml).
+# aircraft lifts off is new then. The voice is FlightGear's own (sim/sound/voices/voice[4], Systems/v22-base.xml). The
+# voice and the tones are in the crew's headsets, so they are heard in the cockpit views only (the tones by their sound's
+# condition, Sounds/v22-sound.xml from fdm/alertsound.py): from an outside view the alerts go on but nothing is heard.
 
 var JSB = "/fdm/jsbsim/";
 var OUT = "/instrumentation/mv22b/alerts/";
 var VOICE = "/sim/sound/voices/voice[4]/text";
+var INTERNAL = props.globals.getNode("/sim/current-view/internal", 1);
+# a voice message, spoken only in a cockpit view
+var speak = func(text) {
+    if (INTERNAL.getBoolValue()) { setprop(VOICE, text); log("said \"" ~ text ~ "\""); }
+    else log("not said, an outside view: \"" ~ text ~ "\"");
+}
 var AURAL_S = 10;        # s: the masters' audio and the autopilot tone cancelled after (MIL-STD-411F 4.1.3.8)
 var CYCLE_S = 4;         # s: a warning's tone and voice again
 var CRITICAL_S = 2.5;    # s: a time-critical warning's voice again, while it stands
@@ -111,7 +119,7 @@ var update = func {
     # the first standing (the table's order) only
     foreach (var a; table) {
         if (!a.critical or !a.on) continue;
-        if (t - a.said >= CRITICAL_S) { a.said = t; setprop(VOICE, a.voice); log("said \"" ~ a.voice ~ "\""); }
+        if (t - a.said >= CRITICAL_S) { a.said = t; speak(a.voice); }
         break;
     }
     if (mw != masters[0] or mc != masters[1]) log(sprintf("master warning %d, caution %d", mw, mc));
@@ -129,7 +137,7 @@ var update = func {
     var cycle = int(w / CYCLE_S);
     if (wtone and w < AURAL_S and math.mod(w, CYCLE_S) >= TONE_S and cycle != said) {
         said = cycle;
-        if (voice != nil and voice != "") { setprop(VOICE, voice); log("said \"" ~ voice ~ "\""); }
+        if (voice != nil and voice != "") speak(voice);
     }
     if (!wtone) said = -1;
     var ap = 0;
